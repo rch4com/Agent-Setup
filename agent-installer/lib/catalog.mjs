@@ -110,9 +110,9 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
   }
 }
 
-export function defineSkill({ id, label, scope, detect, install, uninstall, note, supports = ['claude'] }) {
+export function defineSkill({ id, label, scope, detect, install, uninstall, note }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => !supports.includes(c)).map((c) => [c, 'Claude Code 스킬 설치본']),
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, 'Claude Code 스킬 설치본']),
   )
-  return { id, category: 'skill', label, scope, supports, unsupported, note, detect, install, uninstall }
+  return { id, category: 'skill', label, scope, supports: ['claude'], unsupported, note, detect, install, uninstall }
 }

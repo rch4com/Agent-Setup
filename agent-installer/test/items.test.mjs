@@ -2,15 +2,14 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { loadItems } from '../lib/catalog.mjs'
 
-test('loadItems는 9개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 8개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 9)
+  assert.equal(items.length, 8)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('mcp.notion'))
   assert.ok(ids.includes('plugin.superpowers'))
   assert.ok(ids.includes('skill.gstack'))
-  assert.ok(ids.includes('skill.minimax'))
 })
 
 test('모든 항목은 카테고리와 스코프가 유효하다', async () => {

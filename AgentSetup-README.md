@@ -59,13 +59,6 @@ repository/
   스킬 탐색 경로가 `.grok/skills`라서 `.agents/skills`에 연결됩니다.
   플러그인은 `.grok/plugins/`에서 로드됩니다.
 
-> **MiniMax CLI(`mmx-cli`)가 없는 이유:** 공식 MiniMax CLI는 코딩
-> 에이전트가 아니라 멀티모달 생성 도구로, AGENTS.md·프로젝트 설정·
-> MCP·플러그인 규약이 존재하지 않아 초기화 대상이 아닙니다
-> (공식 문서: https://platform.minimax.io/docs/token-plan/minimax-cli).
-> 대신 다른 에이전트들이 mmx를 정확히 호출하도록 돕는 공식 스킬을
-> agent-installer의 `skill.minimax` 항목으로 설치할 수 있습니다.
-
 ## 안전 원칙
 
 - 반드시 Git 저장소 안에서만 실행됩니다.
@@ -188,7 +181,6 @@ node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리) |
-| 스킬 | `skill.minimax` | `npx skills add MiniMax-AI/cli` 프로젝트 설치 — mmx(멀티모달 생성 CLI) 사용법 스킬이 `.agents/skills/mmx-cli`에 설치되어 전 CLI가 공유 (`.gitignore` 자동 처리). mmx 바이너리는 별도로 `npm install -g mmx-cli` |
 
 ### 동작 원칙
 
