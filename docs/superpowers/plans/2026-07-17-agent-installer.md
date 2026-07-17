@@ -760,19 +760,9 @@ git commit -m "feat: Claude 플러그인 감지와 설정 직접 기록 폴백 �
 ```js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadItems, defineMcp } from '../lib/catalog.mjs'
+import { defineMcp } from '../lib/catalog.mjs'
 import { CLIS } from '../lib/clis.mjs'
 import { makeTempRepo } from './helpers.mjs'
-
-test('loadItems는 8개 항목을 id순으로 로드한다', async () => {
-  const items = await loadItems()
-  assert.equal(items.length, 8)
-  const ids = items.map((i) => i.id)
-  assert.deepEqual(ids, [...ids].sort())
-  assert.ok(ids.includes('mcp.notion'))
-  assert.ok(ids.includes('plugin.superpowers'))
-  assert.ok(ids.includes('skill.gstack'))
-})
 
 test('defineMcp: supports에서 빠진 CLI에 사유가 없으면 throw한다', () => {
   assert.throws(
@@ -812,7 +802,7 @@ test('defineMcp install은 누락 CLI만 채우고 uninstall은 전부 제거한
 - [ ] **Step 2: 실패 확인**
 
 Run: `cd agent-installer && npm test`
-Expected: FAIL — `Cannot find module '../lib/catalog.mjs'` (loadItems 테스트는 Task 7·8에서 items가 모두 생기기 전까지 개수 불일치로 실패할 수 있음 — 그 경우 이 테스트만 Task 8 완료 후 통과 확인)
+Expected: FAIL — `Cannot find module '../lib/catalog.mjs'`
 
 - [ ] **Step 3: catalog.mjs 구현**
 
@@ -926,10 +916,10 @@ export function defineSkill({ id, label, scope, detect, install, uninstall, note
 }
 ```
 
-- [ ] **Step 4: catalog 단위 테스트 통과 확인** (loadItems 제외)
+- [ ] **Step 4: 테스트 통과 확인**
 
-Run: `cd agent-installer && node --test test/catalog.test.mjs`
-Expected: defineMcp 관련 3개 PASS, loadItems 테스트는 items 파일이 없어 FAIL (Task 7·8 완료 후 재확인)
+Run: `cd agent-installer && npm test`
+Expected: 전부 PASS (loadItems 카운트 테스트는 항목 8개가 완성되는 Task 8에서 작성)
 
 - [ ] **Step 5: 커밋**
 
@@ -1019,7 +1009,7 @@ export default definePlugin({
 - [ ] **Step 3: 동작 확인** (임시 검증 스크립트 없이 기존 테스트로)
 
 Run: `cd agent-installer && npm test`
-Expected: 기존 테스트 전부 PASS. `catalog.test.mjs`의 loadItems 테스트는 아직 6/8개라 FAIL — 정상 (Task 8에서 해소).
+Expected: 기존 테스트 전부 PASS.
 
 - [ ] **Step 4: 커밋**
 
@@ -1035,7 +1025,7 @@ git commit -m "feat: MCP 4종과 플러그인 2종 카탈로그 항목 추가"
 **Files:**
 - Create: `agent-installer/lib/gitignore.mjs`
 - Create: `agent-installer/lib/items/skill.gsd.mjs`, `skill.gstack.mjs`
-- Test: `agent-installer/test/gitignore.test.mjs`
+- Test: `agent-installer/test/gitignore.test.mjs`, `agent-installer/test/items.test.mjs`
 
 **Interfaces:**
 - Consumes: `defineSkill`(Task 6), `ctx.exec`, `repoPath`(Task 1)
@@ -1156,15 +1146,40 @@ export default defineSkill({
 })
 ```
 
-- [ ] **Step 3: 전체 테스트 통과 확인** (loadItems 8개 포함)
+- [ ] **Step 3: loadItems 카탈로그 완성 테스트 작성** — `test/items.test.mjs`
+
+```js
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { loadItems } from '../lib/catalog.mjs'
+
+test('loadItems는 8개 항목을 id순으로 로드한다', async () => {
+  const items = await loadItems()
+  assert.equal(items.length, 8)
+  const ids = items.map((i) => i.id)
+  assert.deepEqual(ids, [...ids].sort())
+  assert.ok(ids.includes('mcp.notion'))
+  assert.ok(ids.includes('plugin.superpowers'))
+  assert.ok(ids.includes('skill.gstack'))
+})
+
+test('모든 항목은 카테고리와 스코프가 유효하다', async () => {
+  for (const item of await loadItems()) {
+    assert.ok(['plugin', 'mcp', 'skill'].includes(item.category))
+    assert.ok(['project', 'user'].includes(item.scope))
+  }
+})
+```
+
+- [ ] **Step 4: 전체 테스트 통과 확인**
 
 Run: `cd agent-installer && npm test`
-Expected: PASS — catalog.test.mjs의 loadItems 테스트 포함 전부
+Expected: PASS — items.test.mjs 포함 전부
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
-git add agent-installer/lib/gitignore.mjs agent-installer/test/gitignore.test.mjs agent-installer/lib/items/skill.gsd.mjs agent-installer/lib/items/skill.gstack.mjs
+git add agent-installer/lib/gitignore.mjs agent-installer/test/gitignore.test.mjs agent-installer/test/items.test.mjs agent-installer/lib/items/skill.gsd.mjs agent-installer/lib/items/skill.gstack.mjs
 git commit -m "feat: GSD와 gstack 스킬 항목 추가"
 ```
 
