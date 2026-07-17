@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defineMcp } from '../lib/catalog.mjs'
+import { defineMcp, makeExec } from '../lib/catalog.mjs'
 import { CLIS } from '../lib/clis.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
@@ -36,4 +36,11 @@ test('defineMcp install은 누락 CLI만 채우고 uninstall은 전부 제거한
   assert.equal((await item.detect(ctx)).status, 'installed')
   await item.uninstall(ctx)
   assert.equal((await item.detect(ctx)).status, 'absent')
+})
+
+test('makeExec는 공백 포함 명령과 인자를 온전히 전달한다', () => {
+  const exec = makeExec(false, () => {})
+  const r = exec(process.execPath, ['-e', 'console.log(process.argv[1])', 'a b c'])
+  assert.equal(r.ok, true)
+  assert.equal(r.output.trim(), 'a b c')
 })

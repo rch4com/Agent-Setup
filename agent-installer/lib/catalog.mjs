@@ -38,13 +38,18 @@ export function makeExec(dryRun, log = console.log) {
       log(`  [dry-run] ${cmd} ${args.join(' ')}`)
       return { ok: true, output: '' }
     }
+    // Windows에서는 npx/claude가 .cmd 심이라 shell 경유가 필요하다.
+    const shell = opts.shell ?? process.platform === 'win32'
+    // shell 모드에서 Node는 명령과 인자를 공백으로 이어붙일 뿐 quote하지 않으므로 직접 감싼다.
+    const quote = (s) => (/[\s"]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s)
+    const file = shell ? quote(cmd) : cmd
+    const fileArgs = shell ? args.map(quote) : args
     try {
-      const output = execFileSync(cmd, args, {
+      const output = execFileSync(file, fileArgs, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-        // Windows에서는 npx/claude가 .cmd 심이라 shell 경유가 필요하다.
-        shell: process.platform === 'win32',
         ...opts,
+        shell,
       })
       return { ok: true, output }
     } catch (err) {
