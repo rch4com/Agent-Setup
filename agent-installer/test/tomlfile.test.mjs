@@ -35,3 +35,19 @@ test('removeSection은 해당 섹션만 제거한다', () => {
 test('hasSection은 없는 파일에서 false를 반환한다', () => {
   assert.equal(hasSection(join(tmpdir(), 'no-such-dir', 'x.toml'), 'notion'), false)
 })
+
+test('appendSection은 새 파일을 선행 빈 줄 없이 생성한다', () => {
+  const file = tmpToml(undefined)
+  appendSection(file, 'notion', ['url = "https://mcp.notion.com/mcp"'])
+  const text = readFileSync(file, 'utf8')
+  assert.ok(text.startsWith('[mcp_servers.notion]'))
+  assert.equal(hasSection(file, 'notion'), true)
+})
+
+test('removeSection은 무관한 위치의 연속 빈 줄을 보존한다', () => {
+  const before = '# top\n\n\n\n# after blanks\nproject_doc_max_bytes = 65536\n'
+  const file = tmpToml(before)
+  appendSection(file, 'notion', ['url = "https://x"'])
+  removeSection(file, 'notion')
+  assert.equal(readFileSync(file, 'utf8'), before)
+})
