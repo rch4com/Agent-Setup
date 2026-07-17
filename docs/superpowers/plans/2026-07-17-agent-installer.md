@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - 의존성은 정확히 3개: `@clack/prompts`, `jsonc-parser`, `smol-toml`. 추가 금지.
-- 모든 쓰기는 git 저장소 루트 안으로 제한 (예외: `scope: 'user'`로 선언된 항목의 사용자 홈 쓰기 — v1에서는 gstack 1개).
+- 모든 쓰기는 git 저장소 루트 안으로 제한. (`scope: 'user'` 항목 인터페이스는 유지하되 v1 카탈로그에는 사용 항목 없음.)
 - 기존 설정 파일의 다른 키·주석은 절대 변경하지 않는다 (보존적 편집).
 - 커밋 메시지는 저장소 규칙(`.gitmessage.txt`, AGENTS.md)에 따라 한국어로 작성한다.
 - 시크릿(토큰·키)을 설정 파일에 쓰지 않는다. 원격 MCP는 URL만 기록한다.
@@ -28,11 +28,11 @@
 | superpowers | 플러그인 | `claude plugin install superpowers@claude-plugins-official --scope project` | `.claude/settings.json` `enabledPlugins`에 `superpowers@claude-plugins-official` 또는 `superpowers@superpowers-marketplace` | `claude plugin uninstall <동일 식별자>` |
 | bkit | 플러그인 | `claude plugin marketplace add popup-studio-ai/bkit-claude-code` → `claude plugin install bkit@bkit-marketplace --scope project` | `enabledPlugins`에 `bkit@bkit-marketplace` | `claude plugin uninstall bkit@bkit-marketplace` |
 | GSD | npx 스킬 인스톨러 | `npx -y @opengsd/gsd-core@latest --claude --local` (프로젝트 로컬) | 프로젝트 `.claude/commands/gsd-*` 또는 `.claude/skills/gsd-*` 존재 | `npx -y @opengsd/gsd-core@latest --uninstall` (저장소 루트에서 실행) |
-| gstack | git clone 스킬 (글로벌 전용) | `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack` 후 `bash ./setup` | `~/.claude/skills/gstack` 디렉터리 존재 | `bash ~/.claude/skills/gstack/bin/gstack-uninstall --force`, 실패 시 디렉터리 삭제 |
+| gstack | git clone 스킬 (프로젝트 로컬) | `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git <repo>/.claude/skills/gstack` 후 그 디렉터리에서 `bash ./setup` (setup은 스크립트 위치의 부모 폴더 INSTALL_SKILLS_DIR 기준으로 설치 — 사용자 스크립트 분석으로 확인) + `.gitignore`에 `.claude/skills/gstack`·`.agents/skills/gstack` 추가 | `<repo>/.claude/skills/gstack` 디렉터리 존재 | `bash <dir>/bin/gstack-uninstall --force` 시도 후 디렉터리 삭제 폴백 |
 
 - `enabledPlugins`는 **객체 맵**(`"name@marketplace": true`)이 실측 기본 형식이나 배열 형식도 존재 → 감지·편집은 양쪽 처리, 신규 생성은 객체 형식.
 - 플러그인 설치는 A(claude CLI 호출) 시도 → 실패 시 B(`.claude/settings.json` 직접 기록: `enabledPlugins` + bkit는 `extraKnownMarketplaces["bkit-marketplace"] = {source:{source:"github",repo:"popup-studio-ai/bkit-claude-code"}}`) 폴백.
-- gstack은 프로젝트 로컬 미지원(공식 인스톨러 제약) → `scope: 'user'` 선언 + UI/리포트에 명시. **스펙과의 차이점이므로 사용자 승인 필요.**
+- gstack의 setup은 스크립트 위치 기준으로 설치하므로 저장소 내부 clone으로 프로젝트 로컬 격리가 가능 (사용자 분석·승인 완료). 주의: 부트스트랩된 저장소에서는 `.claude/skills`가 `.agents/skills` Junction이라 물리 파일이 `.agents/skills/gstack`에 생기므로 `.gitignore`에 두 경로를 모두 추가한다. 런타임 상태(`~/.gstack`)는 전역에 생길 수 있음을 항목 note로 표시.
 
 **MCP 서버 4종 (정규화된 서버 정의):**
 
@@ -1030,14 +1030,63 @@ git commit -m "feat: MCP 4종과 플러그인 2종 카탈로그 항목 추가"
 
 ---
 
-### Task 8: 스킬 항목 2개 (GSD, gstack)
+### Task 8: 스킬 항목 2개 (GSD, gstack) + gitignore 헬퍼
 
 **Files:**
+- Create: `agent-installer/lib/gitignore.mjs`
 - Create: `agent-installer/lib/items/skill.gsd.mjs`, `skill.gstack.mjs`
+- Test: `agent-installer/test/gitignore.test.mjs`
 
 **Interfaces:**
-- Consumes: `defineSkill`(Task 6), `ctx.exec`
-- Produces: 카탈로그 항목 8개 완성 → Task 6의 loadItems 테스트 통과
+- Consumes: `defineSkill`(Task 6), `ctx.exec`, `repoPath`(Task 1)
+- Produces: `ensureGitignoreEntries(root, entries: string[]): void` (누락 줄만 추가, 기존 내용 보존), 카탈로그 항목 8개 완성 → Task 6의 loadItems 테스트 통과
+
+- [ ] **Step 0a: gitignore 헬퍼 실패 테스트 작성** — `test/gitignore.test.mjs`
+
+```js
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { writeFileSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ensureGitignoreEntries } from '../lib/gitignore.mjs'
+import { makeTempRepo } from './helpers.mjs'
+
+test('없는 항목만 추가하고 기존 내용을 보존한다', () => {
+  const repo = makeTempRepo()
+  writeFileSync(join(repo, '.gitignore'), '*.log\n.claude/skills/gstack\n')
+  ensureGitignoreEntries(repo, ['.claude/skills/gstack', '.agents/skills/gstack'])
+  const text = readFileSync(join(repo, '.gitignore'), 'utf8')
+  assert.match(text, /\*\.log/)
+  assert.equal(text.match(/\.claude\/skills\/gstack/g).length, 1)
+  assert.match(text, /\.agents\/skills\/gstack/)
+})
+
+test('.gitignore가 없으면 생성한다', () => {
+  const repo = makeTempRepo()
+  ensureGitignoreEntries(repo, ['.claude/skills/gstack'])
+  assert.match(readFileSync(join(repo, '.gitignore'), 'utf8'), /gstack/)
+})
+```
+
+- [ ] **Step 0b: gitignore.mjs 구현 후 테스트 통과 확인**
+
+```js
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { repoPath } from './context.mjs'
+
+export function ensureGitignoreEntries(root, entries) {
+  const file = repoPath(root, '.gitignore')
+  const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
+  const lines = new Set(text.split(/\r?\n/))
+  const missing = entries.filter((e) => !lines.has(e))
+  if (missing.length === 0) return
+  const sep = text.length === 0 || text.endsWith('\n') ? '' : '\n'
+  writeFileSync(file, text + sep + missing.join('\n') + '\n')
+}
+```
+
+Run: `cd agent-installer && node --test test/gitignore.test.mjs`
+Expected: PASS (2 tests)
 
 - [ ] **Step 1: skill.gsd.mjs 작성** (프로젝트 로컬 설치)
 
@@ -1070,32 +1119,39 @@ export default defineSkill({
 
 Windows 주의: `npx`는 `npx.cmd`일 수 있음 — `exec`에서 `shell: process.platform === 'win32'` 옵션을 npx/claude 호출에 적용하도록 `makeExec`를 보강한다 (구현 시 `opts.shell` 기본값을 win32에서 true로).
 
-- [ ] **Step 2: skill.gstack.mjs 작성** (글로벌 전용 — scope: 'user' 명시)
+- [ ] **Step 2: skill.gstack.mjs 작성** (프로젝트 로컬 — setup이 스크립트 위치 기준으로 설치함을 이용)
 
 ```js
-import { existsSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineSkill } from '../catalog.mjs'
+import { repoPath } from '../context.mjs'
+import { ensureGitignoreEntries } from '../gitignore.mjs'
 
-const GSTACK_DIR = join(homedir(), '.claude', 'skills', 'gstack')
+const REL_DIR = '.claude/skills/gstack'
 
 export default defineSkill({
-  id: 'skill.gstack', label: 'gstack', scope: 'user',
-  note: '주의: 사용자 글로벌(~/.claude/skills/gstack) 설치 — 공식 인스톨러가 프로젝트 로컬을 지원하지 않음. bash 필요(Windows는 Git Bash).',
-  async detect() {
-    return { status: existsSync(GSTACK_DIR) ? 'installed' : 'absent' }
+  id: 'skill.gstack', label: 'gstack', scope: 'project',
+  note: '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
+  async detect({ root }) {
+    return { status: existsSync(repoPath(root, REL_DIR)) ? 'installed' : 'absent' }
   },
-  async install({ exec }) {
-    if (existsSync(GSTACK_DIR)) return
-    const clone = exec('git', ['clone', '--single-branch', '--depth', '1', 'https://github.com/garrytan/gstack.git', GSTACK_DIR])
-    if (!clone.ok) throw new Error(`gstack clone 실패: ${clone.output}`)
-    const setup = exec('bash', ['./setup'], { cwd: GSTACK_DIR })
-    if (!setup.ok) throw new Error(`gstack setup 실패: ${setup.output}`)
+  async install({ root, dryRun, exec }) {
+    const dir = repoPath(root, REL_DIR)
+    if (!existsSync(dir)) {
+      const clone = exec('git', ['clone', '--single-branch', '--depth', '1', 'https://github.com/garrytan/gstack.git', dir])
+      if (!clone.ok) throw new Error(`gstack clone 실패: ${clone.output}`)
+      const setup = exec('bash', ['./setup'], { cwd: dir })
+      if (!setup.ok) throw new Error(`gstack setup 실패: ${setup.output}`)
+    }
+    // 부트스트랩 저장소에서는 .claude/skills가 .agents/skills Junction이므로 두 경로 모두 무시 처리
+    if (!dryRun) ensureGitignoreEntries(root, ['.claude/skills/gstack', '.agents/skills/gstack'])
   },
-  async uninstall({ exec }) {
-    const r = exec('bash', [join(GSTACK_DIR, 'bin', 'gstack-uninstall'), '--force'])
-    if (!r.ok) throw new Error(`gstack 제거 실패: ${r.output}`)
+  async uninstall({ root, dryRun, exec }) {
+    const dir = repoPath(root, REL_DIR)
+    if (!existsSync(dir)) return
+    exec('bash', [join(dir, 'bin', 'gstack-uninstall'), '--force'], { cwd: dir }) // 실패해도 디렉터리 삭제로 폴백
+    if (!dryRun && existsSync(dir)) rmSync(dir, { recursive: true, force: true })
   },
 })
 ```
@@ -1108,7 +1164,7 @@ Expected: PASS — catalog.test.mjs의 loadItems 테스트 포함 전부
 - [ ] **Step 4: 커밋**
 
 ```bash
-git add agent-installer/lib/items/skill.gsd.mjs agent-installer/lib/items/skill.gstack.mjs
+git add agent-installer/lib/gitignore.mjs agent-installer/test/gitignore.test.mjs agent-installer/lib/items/skill.gsd.mjs agent-installer/lib/items/skill.gstack.mjs
 git commit -m "feat: GSD와 gstack 스킬 항목 추가"
 ```
 
