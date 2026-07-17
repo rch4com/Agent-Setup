@@ -165,6 +165,8 @@ kilo.jsonc
 플러그인·MCP·스킬을 체크박스로 골라 설치/제거하는 콘솔 도구입니다.
 체크하고 Submit하면 설치되고, 다시 실행하면 실제 환경을 스캔해 설치된
 항목이 미리 체크되어 표시되며, 체크를 해제하면 제거됩니다.
+대화형으로 실행하면 첫 화면에서 **에이전트 설치**와 **design.md 라이브러리**
+중 무엇을 관리할지 먼저 고릅니다.
 
 ```bash
 cd agent-installer && npm install && cd ..    # 최초 1회 (의존성 설치)
@@ -199,6 +201,32 @@ node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드
 - 새 항목 추가 = `agent-installer/lib/items/`에 파일 1개
   (`defineMcp`/`definePlugin`/`defineSkill` 팩토리 사용, MCP는 5줄이면 충분).
 - `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다.
+
+### design.md 라이브러리
+
+AI 에이전트가 읽어 일관된 UI를 생성하는 DESIGN.md 문서를
+[awesome-design-md](https://github.com/VoltAgent/awesome-design-md)에서 골라
+`design-md/<이름>/DESIGN.md`로 내려받고, 동기화하고, 브라우저 미리보기로
+확인합니다. 다운로드본은 git 커밋 대상이라 팀과 공유됩니다.
+
+대화형 흐름: **카테고리(탭)로 둘러보기 · 이름/키워드 검색 · 미리보기(브라우저)
+· 동기화** 중에서 고릅니다. 검색·카테고리 화면은 보이는 목록 안에서만
+설치/제거를 반영하므로 화면 밖 항목을 실수로 지우지 않습니다.
+
+```bash
+node agent-installer/install.mjs design --list        # 카탈로그 + 설치 상태
+node agent-installer/install.mjs design --set stripe,vercel   # 목표 집합 설치
+node agent-installer/install.mjs design --preview stripe      # getdesign.md 미리보기 오픈
+node agent-installer/install.mjs design --sync=installed  # 설치본을 원본 최신으로
+node agent-installer/install.mjs design --sync=catalog   # 사용 가능 목록·카테고리 갱신
+node agent-installer/install.mjs design --sync=stale     # 원본과 달라진 설치본 감지
+```
+
+- 미리보기는 `https://getdesign.md/<이름>/design-md` 페이지를 OS 기본 브라우저로
+  엽니다(사이트 자체 라이트/다크 제공, 다운로드 불필요).
+- 카탈로그는 `agent-installer/lib/design-md/catalog.json`에 캐시되어 오프라인에서도
+  즉시 동작하며, `--sync=catalog`(또는 동기화 메뉴)로 갱신합니다.
+- 소스 추가 = `agent-installer/lib/design-md/providers/`에 프로바이더 1개 등록.
 
 ## 팀 저장소에 넣을 파일
 

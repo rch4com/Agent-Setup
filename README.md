@@ -20,6 +20,6 @@ pwsh -File .\setup-agents.ps1
 ```
 
 ```bash
-# 플러그인·MCP·스킬 선택 설치 (최초 1회 npm install 필요)
+# 플러그인·MCP·스킬 선택 설치 + design.md 라이브러리 (최초 1회 npm install 필요)
 node agent-installer/install.mjs
 ```

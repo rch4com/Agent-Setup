@@ -3,19 +3,7 @@ import * as p from '@clack/prompts'
 import { findRepoRoot } from './lib/context.mjs'
 import { loadItems } from './lib/catalog.mjs'
 import { scan, planChanges, apply } from './lib/engine.mjs'
-
-const argv = process.argv.slice(2)
-const dryRun = argv.includes('--dry-run')
-const listOnly = argv.includes('--list')
-let setArg = null
-if (argv.includes('--set')) {
-  const value = argv[argv.indexOf('--set') + 1]
-  if (value === undefined || value.startsWith('--')) {
-    console.error('--set 뒤에 항목 목록이 필요합니다. 전체 제거는 --set "" 로 명시하세요.')
-    process.exit(2)
-  }
-  setArg = value
-}
+import { runDesign } from './lib/design-md/flow.mjs'
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
 
@@ -33,8 +21,40 @@ function hint(item, state) {
   return parts.join(' · ')
 }
 
-async function main() {
-  const root = findRepoRoot()
+function requireValue(argv, name) {
+  const value = argv[argv.indexOf(name) + 1]
+  if (value === undefined || value.startsWith('--')) {
+    throw new Error(`${name} 뒤에 값이 필요합니다.`)
+  }
+  return value
+}
+
+// `design` 서브커맨드 플래그 파싱.
+function parseDesignArgs(argv) {
+  const dryRun = argv.includes('--dry-run')
+  const list = argv.includes('--list')
+  let set = null
+  if (argv.includes('--set')) {
+    const value = argv[argv.indexOf('--set') + 1]
+    if (value === undefined || value.startsWith('--')) {
+      throw new Error('--set 뒤에 항목 목록이 필요합니다. 전체 제거는 --set "" 로 명시하세요.')
+    }
+    set = value
+  }
+  let preview = null
+  if (argv.includes('--preview')) preview = requireValue(argv, '--preview')
+  let sync = null
+  const s = argv.find((a) => a === '--sync' || a.startsWith('--sync='))
+  if (s) {
+    const m = /^--sync=(installed|catalog|stale)$/.exec(s)
+    if (!m) throw new Error('--sync=installed|catalog|stale 형식으로 지정하세요.')
+    sync = m[1]
+  }
+  const interactive = !list && set === null && preview === null && sync === null
+  return { dryRun, list, set, preview, sync, interactive }
+}
+
+async function runClassic(root, { dryRun, listOnly, setArg }) {
   const items = await loadItems()
   const states = await scan(root, items)
 
@@ -50,6 +70,16 @@ async function main() {
     for (const id of selectedIds) if (!known.has(id)) throw new Error(`알 수 없는 항목: ${id}`)
   } else {
     p.intro(`agent-installer${dryRun ? ' (dry-run)' : ''} — 저장소: ${root}`)
+    const mode = await p.select({
+      message: '무엇을 관리할까요?',
+      options: [
+        { value: 'agents', label: '에이전트 설치 (plugin · mcp · skill)' },
+        { value: 'design', label: 'design.md 라이브러리' },
+      ],
+    })
+    if (p.isCancel(mode)) { p.cancel('취소되었습니다.'); return }
+    if (mode === 'design') { await runDesign(root, { interactive: true, dryRun }); return }
+
     const byCategory = { plugin: '플러그인', mcp: 'MCP 서버', skill: '스킬' }
     const selection = await p.groupMultiselect({
       message: '설치할 항목을 선택하세요 (체크 해제 = 제거)',
@@ -86,6 +116,30 @@ async function main() {
   console.log('\n설정 파일 변경 내용은 git diff로 확인할 수 있습니다.')
   const failed = results.filter((r) => !r.ok)
   if (failed.length > 0) process.exitCode = 1
+}
+
+async function main() {
+  const argv = process.argv.slice(2)
+  const root = findRepoRoot()
+
+  if (argv[0] === 'design') {
+    await runDesign(root, parseDesignArgs(argv.slice(1)))
+    return
+  }
+
+  const dryRun = argv.includes('--dry-run')
+  const listOnly = argv.includes('--list')
+  let setArg = null
+  if (argv.includes('--set')) {
+    const value = argv[argv.indexOf('--set') + 1]
+    if (value === undefined || value.startsWith('--')) {
+      console.error('--set 뒤에 항목 목록이 필요합니다. 전체 제거는 --set "" 로 명시하세요.')
+      process.exit(2)
+    }
+    setArg = value
+  }
+
+  await runClassic(root, { dryRun, listOnly, setArg })
 }
 
 main().catch((err) => { console.error(err.message); process.exit(1) })
