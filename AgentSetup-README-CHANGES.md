@@ -2,6 +2,12 @@
 
 최신 항목이 위에 옵니다. 상세 사용법은 `AgentSetup-README.md`를 참조하세요.
 
+## Matt Pocock skills 플러그인 항목 (2026-07-17)
+
+- agent-installer에 `plugin.mattpocock-skills` 추가 — Claude Code
+  마켓플레이스 `mattpocock/skills`에서 `mattpocock-skills@mattpocock`
+  플러그인(엔지니어링·생산성 스킬 22종)을 프로젝트 범위로 설치.
+
 ## Grok Build 지원 (2026-07-17)
 
 - Grok Build(xAI grok CLI)를 지원 도구에 추가.
