@@ -110,7 +110,7 @@ function Assert-NotReparsePoint {
     }
 }
 
-function Ensure-Directory {
+function New-Directory {
     param(
         [string]$RepositoryRoot,
         [string]$RelativePath
@@ -160,7 +160,7 @@ function Write-NewFile {
     }
 }
 
-function Ensure-ManagedBlock {
+function Update-ManagedBlock {
     param(
         [string]$RepositoryRoot,
         [string]$RelativePath,
@@ -173,7 +173,6 @@ function Ensure-ManagedBlock {
     Assert-NotReparsePoint -Path $target
 
     $beginMarker = "<!-- agent-kit:begin -->"
-    $endMarker = "<!-- agent-kit:end -->"
 
     if (Test-Path -LiteralPath $target) {
         $existing = [System.IO.File]::ReadAllText($target)
@@ -210,7 +209,7 @@ function Ensure-ManagedBlock {
     }
 }
 
-function Ensure-GitignoreEntries {
+function Add-GitignoreEntries {
     param(
         [string]$RepositoryRoot,
         [string[]]$Entries
@@ -297,7 +296,7 @@ function Test-LinkPointsTo {
     }
 }
 
-function Configure-SkillAdapter {
+function Set-SkillAdapter {
     param(
         [string]$RepositoryRoot,
         [string]$ToolName,
@@ -530,17 +529,17 @@ $kimiMcpConfig = @'
 }
 '@
 
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agents\skills"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agent-kit"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".claude"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".codex"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".gemini"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".kiro\settings"
-Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".kimi-code"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".agents\skills"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".agent-kit"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".claude"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".codex"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".gemini"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".kiro\settings"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".kimi-code"
 
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "AGENTS.md" -Content $agentsTemplate
-Ensure-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "CLAUDE.md" -Block $claudeBlock
-Ensure-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "GEMINI.md" -Block $geminiBlock
+Update-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "CLAUDE.md" -Block $claudeBlock
+Update-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "GEMINI.md" -Block $geminiBlock
 
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".agents\skills\README.md" -Content $skillReadme
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".agents\skills\repository-check\SKILL.md" -Content $exampleSkill
@@ -554,20 +553,20 @@ Write-NewFile -RepositoryRoot $repoRoot -RelativePath "kilo.jsonc" -Content $kil
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kiro\settings\mcp.json" -Content $kiroMcpConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kimi-code\mcp.json" -Content $kimiMcpConfig
 
-Configure-SkillAdapter `
+Set-SkillAdapter `
     -RepositoryRoot $repoRoot `
     -ToolName "Claude Code" `
     -RelativeTargetDirectory ".claude\skills" `
     -Mode $SkillMode
 
-Configure-SkillAdapter `
+Set-SkillAdapter `
     -RepositoryRoot $repoRoot `
     -ToolName "Kiro" `
     -RelativeTargetDirectory ".kiro\skills" `
     -Mode $SkillMode
 
 # 어댑터 경로(스킬 중복 커밋 방지)와 Kimi Code의 머신별 설정 파일은 항상 무시합니다.
-Ensure-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(
+Add-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(
     ".claude/skills",
     ".kiro/skills",
     ".kimi-code/local.toml"
