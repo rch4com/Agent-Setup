@@ -68,7 +68,7 @@ export const awesomeDesignMd = {
   },
 
   bundlePath(name, file = 'DESIGN.md') {
-    return join(BUNDLE_DIR, name, file)
+    return join(BUNDLE_DIR, this.id, name, file)
   },
 
   // 동봉 번들에서 읽는다(없으면 null). 오프라인 설치용.

@@ -37,13 +37,13 @@ const failed = []
 await pool(jobs, CONCURRENCY, async ({ provider, name }) => {
   try {
     const text = await provider.fetchFile(fetch, name, 'DESIGN.md')
-    if (text == null) { failed.push(name); return }
-    const dir = join(CACHE, name)
+    if (text == null) { failed.push(`${provider.id}/${name}`); return }
+    const dir = join(CACHE, provider.id, name) // cache/<provider>/<name>/DESIGN.md
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'DESIGN.md'), text)
     ok++
   } catch (err) {
-    failed.push(`${name} (${err.message})`)
+    failed.push(`${provider.id}/${name} (${err.message})`)
   }
 })
 

@@ -27,9 +27,13 @@ export function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
-function designPaths(root, name) {
-  if (/[\\/]/.test(name)) throw new Error(`잘못된 design.md 이름: ${name}`)
-  const dir = repoPath(root, `design-md/${name}`)
+// 설치·번들 경로는 제공자별로 스코프한다: design-md/<provider>/<name>/DESIGN.md.
+// 동명 항목이 여러 제공자에 있어도 충돌 없이 공존한다.
+function designPaths(root, providerId, name) {
+  if (/[\\/]/.test(providerId) || /[\\/]/.test(name)) {
+    throw new Error(`잘못된 design.md 식별자: ${providerId}/${name}`)
+  }
+  const dir = repoPath(root, `design-md/${providerId}/${name}`)
   return { dir, file: join(dir, 'DESIGN.md') }
 }
 
@@ -37,10 +41,11 @@ function designPaths(root, name) {
 // provider와 fetchImpl을 클로저로 잡아 install/detect가 그것을 사용한다.
 export function defineDesignMd(entry, provider, { fetchImpl }) {
   const { name, label, category, description } = entry
+  const providerId = provider.id
   return {
-    id: `design.${name}`,
+    id: `design.${providerId}.${name}`,
     category: 'design',
-    providerId: provider.id,
+    providerId,
     name,
     label,
     designCategory: category,
@@ -48,7 +53,7 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
     webUrl: provider.webUrl(name),
 
     async detect({ root }) {
-      return { status: existsSync(designPaths(root, name).file) ? 'installed' : 'absent' }
+      return { status: existsSync(designPaths(root, providerId, name).file) ? 'installed' : 'absent' }
     },
 
     // fresh=false: 동봉 번들 우선(오프라인) → 없으면 네트워크.
@@ -57,20 +62,20 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
       if (dryRun) return // dry-run은 네트워크·쓰기 없이 예정 동작만 리포트
       let text = fresh ? null : provider.bundledText?.(name, 'DESIGN.md')
       if (text == null) text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
-      if (text == null) throw new Error(`${name}: DESIGN.md 다운로드 실패`)
-      const { dir, file } = designPaths(root, name)
+      if (text == null) throw new Error(`${providerId}/${name}: DESIGN.md 다운로드 실패`)
+      const { dir, file } = designPaths(root, providerId, name)
       mkdirSync(dir, { recursive: true })
       writeFileSync(file, text)
     },
 
     async uninstall({ root, dryRun }) {
-      const { dir } = designPaths(root, name)
+      const { dir } = designPaths(root, providerId, name)
       if (!dryRun && existsSync(dir)) rmSync(dir, { recursive: true, force: true })
     },
 
     // 오래된 항목 감지용: 로컬과 원본 DESIGN.md 해시 비교.
     localText({ root }) {
-      const { file } = designPaths(root, name)
+      const { file } = designPaths(root, providerId, name)
       return existsSync(file) ? readFileSync(file, 'utf8') : null
     },
     async remoteText() {
@@ -80,6 +85,7 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
 }
 
 // 캐시 카탈로그 → item 배열. 알 수 없는 프로바이더 엔트리는 건너뛴다.
+// id가 제공자별로 유일하므로 동명 항목이 붕괴하지 않는다. (provider, name)순 정렬.
 export function buildItems(catalog, { fetchImpl, providers = PROVIDERS } = {}) {
   const byId = new Map(providers.map((p) => [p.id, p]))
   const items = []
@@ -94,5 +100,23 @@ export function buildItems(catalog, { fetchImpl, providers = PROVIDERS } = {}) {
       items.push(item)
     }
   }
-  return items.sort((a, b) => a.name.localeCompare(b.name))
+  return items.sort((a, b) => a.providerId.localeCompare(b.providerId) || a.name.localeCompare(b.name))
+}
+
+// `--set`/`--preview` 토큰(`name` 또는 `provider/name`)을 item으로 해석한다.
+// 이름이 여러 제공자에 걸쳐 중복되면 제공자 지정을 요구한다.
+export function resolveTokens(items, tokensStr) {
+  const out = []
+  for (const tok of tokensStr.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const slash = tok.indexOf('/')
+    const matches = slash >= 0
+      ? items.filter((i) => i.providerId === tok.slice(0, slash) && i.name === tok.slice(slash + 1))
+      : items.filter((i) => i.name === tok)
+    if (matches.length === 0) throw new Error(`알 수 없는 항목: ${tok}`)
+    if (matches.length > 1) {
+      throw new Error(`중복된 이름 '${tok}' — 제공자를 지정하세요: ${matches.map((m) => `${m.providerId}/${m.name}`).join(', ')}`)
+    }
+    out.push(matches[0])
+  }
+  return out
 }

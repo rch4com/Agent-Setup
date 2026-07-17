@@ -206,8 +206,10 @@ node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드
 
 AI 에이전트가 읽어 일관된 UI를 생성하는 DESIGN.md 문서를
 [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)에서 골라
-`design-md/<이름>/DESIGN.md`로 내려받고, 동기화하고, 브라우저 미리보기로
-확인합니다. 다운로드본은 git 커밋 대상이라 팀과 공유됩니다.
+`design-md/<제공자>/<이름>/DESIGN.md`로 내려받고, 동기화하고, 브라우저
+미리보기로 확인합니다. 다운로드본은 git 커밋 대상이라 팀과 공유됩니다.
+목록·캐시·설치 경로가 모두 제공자별로 스코프되어, 같은 이름을 여러 제공자에서
+받아도 충돌 없이 공존합니다.
 
 대화형 흐름: **카테고리(탭)로 둘러보기 · 이름/키워드 검색 · 미리보기(브라우저)
 · 동기화** 중에서 고릅니다. 검색·카테고리 화면은 보이는 목록 안에서만
@@ -226,10 +228,12 @@ node agent-installer/install.mjs design --sync=stale     # 원본과 달라진 �
   엽니다(사이트 자체 라이트/다크 제공, 다운로드 불필요).
 - 카탈로그는 `agent-installer/lib/design-md/catalog.json`에 캐시되어 오프라인에서도
   즉시 동작하며, `--sync=catalog`(또는 동기화 메뉴)로 갱신합니다.
-- **오프라인 번들**: 74개 DESIGN.md가 `agent-installer/lib/design-md/cache/`에 동봉되어
-  설치 시 네트워크 없이 즉시 복사됩니다(번들에 없으면 네트워크 폴백). `--sync=installed`와
-  오래된 항목 업데이트는 번들을 건너뛰고 원본 최신을 받습니다. 번들 재생성은
-  `cd agent-installer && npm run refresh-bundle`.
+- **오프라인 번들**: 74개 DESIGN.md가 `agent-installer/lib/design-md/cache/<제공자>/`에
+  동봉되어 설치 시 네트워크 없이 즉시 복사됩니다(번들에 없으면 네트워크 폴백).
+  `--sync=installed`와 오래된 항목 업데이트는 번들을 건너뛰고 원본 최신을 받습니다.
+  번들 재생성은 `cd agent-installer && npm run refresh-bundle`.
+- **중복 처리**: `--set`·`--preview`는 `이름` 또는 `제공자/이름`을 받습니다. 같은 이름이
+  여러 제공자에 있으면 `제공자/이름`으로 지정해야 합니다.
 - 소스 추가 = `agent-installer/lib/design-md/providers/`에 프로바이더 1개 등록.
 
 ## 팀 저장소에 넣을 파일

@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts'
 import { scan, planChanges, apply } from '../engine.mjs'
-import { loadCatalog, saveCatalog, buildItems, allEntries, sha256 } from './catalog.mjs'
+import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens } from './catalog.mjs'
 import { PROVIDERS } from './providers/index.mjs'
 import { makeOpener, openPreview } from './open.mjs'
 
@@ -11,8 +11,10 @@ function short(text, n = 60) {
   return t.length > n ? t.slice(0, n - 1) + '…' : t
 }
 
-function designHint(state) {
-  const parts = [state.item.designCategory]
+function designHint(state, multiProvider = false) {
+  const parts = []
+  if (multiProvider) parts.push(state.item.providerId)
+  parts.push(state.item.designCategory)
   if (state.status !== 'absent') parts.push(STATUS_LABEL[state.status])
   if (state.item.description) parts.push(short(state.item.description))
   return parts.filter(Boolean).join(' · ')
@@ -33,19 +35,32 @@ function report(results, log) {
 // ── 비대화형/공용 코어 ─────────────────────────────────────────────
 
 function printList(states, log) {
+  const byProvider = new Map()
   for (const s of states) {
-    log(`${STATUS_LABEL[s.status].padEnd(4)} ${s.item.name} — ${s.item.label} [${s.item.designCategory}]`)
+    if (!byProvider.has(s.item.providerId)) byProvider.set(s.item.providerId, [])
+    byProvider.get(s.item.providerId).push(s)
+  }
+  for (const [pid, group] of byProvider) {
+    log(`[${pid}]`)
+    for (const s of group) {
+      log(`  ${STATUS_LABEL[s.status].padEnd(4)} ${s.item.name} — ${s.item.label} [${s.item.designCategory}]`)
+    }
   }
 }
 
-function openPreviews(items, names, opener, log) {
-  const byName = new Map(items.map((i) => [i.name, i]))
-  for (const raw of names) {
-    const name = raw.trim()
-    if (!name) continue
-    const item = byName.get(name)
-    if (!item) { log(`  알 수 없는 항목: ${name}`); continue }
-    openPreview(opener, item, log)
+// 미리보기는 관대하게 해석한다: 알 수 없거나 중복된 토큰은 예외 없이 안내하고 건너뛴다.
+function openPreviews(items, tokensStr, opener, log) {
+  for (const tok of tokensStr.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const slash = tok.indexOf('/')
+    const matches = slash >= 0
+      ? items.filter((i) => i.providerId === tok.slice(0, slash) && i.name === tok.slice(slash + 1))
+      : items.filter((i) => i.name === tok)
+    if (matches.length === 0) { log(`  알 수 없는 항목: ${tok}`); continue }
+    if (matches.length > 1) {
+      log(`  중복된 이름 '${tok}' — 제공자를 지정하세요: ${matches.map((m) => `${m.providerId}/${m.name}`).join(', ')}`)
+      continue
+    }
+    openPreview(opener, matches[0], log)
   }
 }
 
@@ -135,7 +150,7 @@ export async function runDesign(root, opts = {}) {
     return
   }
   if (preview != null) {
-    openPreviews(items, preview.split(','), opener, log)
+    openPreviews(items, preview, opener, log)
     return
   }
   if (sync != null) {
@@ -143,15 +158,14 @@ export async function runDesign(root, opts = {}) {
     return
   }
   if (set != null) {
-    const selected = new Set(set.split(',').map((s) => s.trim()).filter(Boolean).map((n) => `design.${n}`))
-    const known = new Set(items.map((i) => i.id))
-    for (const id of selected) if (!known.has(id)) throw new Error(`알 수 없는 항목: ${id.replace(/^design\./, '')}`)
+    const selected = new Set(resolveTokens(items, set).map((i) => i.id))
     await applyVisible(root, await scan(root, items), selected, { dryRun, log })
     return
   }
   if (!interactive) { printList(await scan(root, items), log); return }
 
-  await interactiveLoop(root, items, catalog, { dryRun, fetchImpl, log, opener, sourceLabel })
+  const multiProvider = new Set(items.map((i) => i.providerId)).size > 1
+  await interactiveLoop(root, items, catalog, { dryRun, fetchImpl, log, opener, sourceLabel, multiProvider })
 }
 
 async function runSync(root, items, catalog, { op, dryRun, fetchImpl, log, interactive }) {
@@ -209,19 +223,39 @@ async function interactiveLoop(root, items, catalog, ctx) {
     })
     if (p.isCancel(action) || action === 'exit') break
 
-    if (action === 'category') {
-      const visible = await pickByCategory(items)
-      if (visible) await selectAndApply(root, visible, ctx)
-    } else if (action === 'search') {
-      const visible = await pickBySearch(items)
-      if (visible) await selectAndApply(root, visible, ctx)
-    } else if (action === 'preview') {
-      await previewBrowse(root, items, ctx)
+    if (action === 'category' || action === 'search' || action === 'preview') {
+      const scope = await scopeByProvider(items, ctx.multiProvider)
+      if (!scope) continue
+      if (action === 'category') {
+        const visible = await pickByCategory(scope)
+        if (visible) await selectAndApply(root, visible, ctx)
+      } else if (action === 'search') {
+        const visible = await pickBySearch(scope)
+        if (visible) await selectAndApply(root, visible, ctx)
+      } else {
+        await previewBrowse(root, scope, ctx)
+      }
     } else if (action === 'sync') {
       await runSync(root, items, catalog, { op: null, dryRun: ctx.dryRun, fetchImpl: ctx.fetchImpl, log: ctx.log, interactive: true })
     }
   }
   p.outro('완료')
+}
+
+// 제공자가 둘 이상일 때만 제공자(탭)를 먼저 고른다. 하나뿐이면 그대로 통과.
+async function scopeByProvider(items, multiProvider) {
+  if (!multiProvider) return items
+  const counts = new Map()
+  for (const i of items) counts.set(i.providerId, (counts.get(i.providerId) ?? 0) + 1)
+  const pick = await p.select({
+    message: '제공자(소스)',
+    options: [
+      { value: '*', label: `전체 (${items.length})` },
+      ...[...counts.keys()].map((id) => ({ value: id, label: `${id} (${counts.get(id)})` })),
+    ],
+  })
+  if (p.isCancel(pick)) return null
+  return pick === '*' ? items : items.filter((i) => i.providerId === pick)
 }
 
 async function pickByCategory(items) {
@@ -263,7 +297,7 @@ async function selectAndApply(root, visible, ctx) {
   const vstates = await scan(root, visible)
   const selection = await p.multiselect({
     message: '설치할 항목 (체크=설치, 해제=제거) · 이 목록 안에서만 적용',
-    options: vstates.map((s) => ({ value: s.item.id, label: s.item.label, hint: designHint(s) })),
+    options: vstates.map((s) => ({ value: s.item.id, label: s.item.label, hint: designHint(s, ctx.multiProvider) })),
     initialValues: vstates.filter((s) => s.status !== 'absent').map((s) => s.item.id),
     required: false,
   })
@@ -276,7 +310,7 @@ async function previewBrowse(root, items, ctx) {
   if (!visible || visible.length === 0) return
   const sel = await p.multiselect({
     message: '미리볼 항목 (브라우저로 열림)',
-    options: visible.map((i) => ({ value: i.id, label: i.label, hint: i.designCategory })),
+    options: visible.map((i) => ({ value: i.id, label: i.label, hint: ctx.multiProvider ? `${i.providerId} · ${i.designCategory}` : i.designCategory })),
     required: false,
   })
   if (p.isCancel(sel)) return

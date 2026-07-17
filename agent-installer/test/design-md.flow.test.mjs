@@ -9,6 +9,8 @@ import { awesomeDesignMd } from '../lib/design-md/providers/awesome-design-md.mj
 
 // 번들 catalog.json(실제 74개)을 쓰되 네트워크는 가짜 fetch로 대체한다.
 const fileFetch = (body) => makeFetch([{ match: '/DESIGN.md', body }])
+const PID = awesomeDesignMd.id // 'awesome-design-md'
+const stripePath = (root) => join(root, 'design-md', PID, 'stripe', 'DESIGN.md')
 
 test('--list는 카탈로그를 상태와 함께 출력', async () => {
   const cap = makeCapture()
@@ -20,9 +22,9 @@ test('--list는 카탈로그를 상태와 함께 출력', async () => {
 test('--set 설치 후 --set "" 로 제거 (visible=전체)', async () => {
   const root = makeTempRepo()
   await runDesign(root, { set: 'stripe', log() {}, fetchImpl: fileFetch('# S') })
-  assert.ok(existsSync(join(root, 'design-md', 'stripe', 'DESIGN.md')))
+  assert.ok(existsSync(stripePath(root)))
   await runDesign(root, { set: '', log() {}, fetchImpl: fileFetch('# S') })
-  assert.equal(existsSync(join(root, 'design-md', 'stripe')), false)
+  assert.equal(existsSync(join(root, 'design-md', PID, 'stripe')), false)
 })
 
 test('--set 알 수 없는 항목은 예외', async () => {
@@ -30,6 +32,12 @@ test('--set 알 수 없는 항목은 예외', async () => {
     runDesign(makeTempRepo(), { set: 'does-not-exist', fetchImpl: fileFetch('x'), log() {} }),
     /알 수 없는 항목/,
   )
+})
+
+test('--set은 provider/name 형식도 설치한다', async () => {
+  const root = makeTempRepo()
+  await runDesign(root, { set: `${PID}/stripe`, log() {}, fetchImpl: fileFetch('# S') })
+  assert.ok(existsSync(stripePath(root)))
 })
 
 test('--preview는 webUrl을 opener로 연다', async () => {
@@ -55,7 +63,7 @@ test('sync=installed는 설치본을 재다운로드한다', async () => {
   await runDesign(root, { set: 'stripe', fetchImpl: fileFetch('# v1'), log() {} })
   await runDesign(root, { sync: 'installed', fetchImpl: fileFetch('# v2'), log: cap.log })
   assert.match(cap.text(), /업데이트 Stripe/)
-  assert.equal(readFileSync(join(root, 'design-md', 'stripe', 'DESIGN.md'), 'utf8'), '# v2')
+  assert.equal(readFileSync(stripePath(root), 'utf8'), '# v2')
 })
 
 test('sync=stale은 변경된 설치본을 감지', async () => {

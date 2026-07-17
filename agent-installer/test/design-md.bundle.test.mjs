@@ -22,8 +22,8 @@ function stubProvider({ bundle = null, net = null } = {}) {
   return { provider, calls }
 }
 
-function contentOf(root, name) {
-  return readFileSync(join(root, 'design-md', name, 'DESIGN.md'), 'utf8')
+function contentOf(root, providerId, name) {
+  return readFileSync(join(root, 'design-md', providerId, name, 'DESIGN.md'), 'utf8')
 }
 
 test('install 기본은 번들 우선 — 네트워크를 호출하지 않는다', async () => {
@@ -31,7 +31,7 @@ test('install 기본은 번들 우선 — 네트워크를 호출하지 않는다
   const { provider, calls } = stubProvider({ bundle: { stripe: '# BUNDLED' }, net: '# NET' })
   const item = defineDesignMd(entry('stripe'), provider, { fetchImpl: async () => ({}) })
   await item.install({ root, dryRun: false })
-  assert.equal(contentOf(root, 'stripe'), '# BUNDLED')
+  assert.equal(contentOf(root, 'stub', 'stripe'), '# BUNDLED')
   assert.equal(calls.fetch, 0)
 })
 
@@ -40,7 +40,7 @@ test('install fresh=true는 번들을 무시하고 네트워크 최신을 쓴다
   const { provider, calls } = stubProvider({ bundle: { stripe: '# BUNDLED' }, net: '# NET' })
   const item = defineDesignMd(entry('stripe'), provider, { fetchImpl: async () => ({}) })
   await item.install({ root, dryRun: false, fresh: true })
-  assert.equal(contentOf(root, 'stripe'), '# NET')
+  assert.equal(contentOf(root, 'stub', 'stripe'), '# NET')
   assert.equal(calls.fetch, 1)
 })
 
@@ -49,7 +49,7 @@ test('install은 번들이 없으면 네트워크로 폴백한다', async () => 
   const { provider, calls } = stubProvider({ bundle: {}, net: '# NET' })
   const item = defineDesignMd(entry('stripe'), provider, { fetchImpl: async () => ({}) })
   await item.install({ root, dryRun: false })
-  assert.equal(contentOf(root, 'stripe'), '# NET')
+  assert.equal(contentOf(root, 'stub', 'stripe'), '# NET')
   assert.equal(calls.fetch, 1)
 })
 
