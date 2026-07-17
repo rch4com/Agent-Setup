@@ -144,6 +144,22 @@ kilo.jsonc
 `CLAUDE.md`와 `GEMINI.md`는 파일이 존재하더라도 agent-kit 관리 블록이 없으면
 공통 지침 import 블록만 추가합니다.
 
+## 선택 항목 설치기 (agent-installer)
+
+플러그인·MCP·스킬을 체크박스로 골라 설치/제거합니다.
+
+```bash
+node agent-installer/install.mjs            # 대화형
+node agent-installer/install.mjs --dry-run  # 변경 없이 확인
+node agent-installer/install.mjs --list     # 현재 상태만 출력
+```
+
+- 설치 상태는 파일에 저장되지 않고 실행 시 실제 설정을 스캔해 판정합니다.
+- 항목 추가는 `agent-installer/lib/items/`에 파일 하나를 추가하면 됩니다.
+- MCP는 7개 CLI 프로젝트 설정에 동시 등록됩니다.
+- `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다
+  (최초 1회 `npm install` 필요).
+
 ## 팀 저장소에 넣을 파일
 
 ```text
