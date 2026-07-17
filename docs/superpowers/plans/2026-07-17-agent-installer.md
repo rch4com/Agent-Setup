@@ -4,7 +4,7 @@
 
 **Goal:** plugin·MCP·skill을 체크박스로 골라 설치/제거하는 자기완결 콘솔 도구 `agent-installer/`를 만든다.
 
-**Architecture:** 환경 스캔(stateless)으로 설치 상태를 판정하고, `lib/items/*.mjs` 자동 발견 카탈로그로 항목을 유동적으로 관리한다. 7개 CLI의 프로젝트 설정 파일은 CLI별 어댑터가 보존적으로 편집한다.
+**Architecture:** 환경 스캔(stateless)으로 설치 상태를 판정하고, `lib/items/*.mjs` 자동 발견 카탈로그로 항목을 유동적으로 관리한다. 8개 CLI의 프로젝트 설정 파일은 CLI별 어댑터가 보존적으로 편집한다.
 
 **Tech Stack:** Node.js ≥ 20 (ESM, node:test), @clack/prompts, jsonc-parser, smol-toml
 
@@ -43,7 +43,7 @@
 | vercel | http | `https://mcp.vercel.com` (경로 없음, OAuth) |
 | codebase-memory | stdio | command `codebase-memory-mcp`, args `[]` (PATH에 바이너리 필요 — 미설치 시 안내: `curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh \| bash`, Windows는 install.ps1) |
 
-**CLI별 MCP 설정 (7개 어댑터의 정확한 스키마):**
+**CLI별 MCP 설정 (8개 어댑터의 정확한 스키마):**
 
 | CLI | 파일 | 최상위 키 | http 형식 | stdio 형식 |
 |---|---|---|---|---|
@@ -54,8 +54,10 @@
 | kilo | `.kilocode/mcp.json` | `mcpServers` | `{"type":"streamable-http","url":U,"disabled":false}` | `{"command":C,"args":A,"disabled":false}` |
 | kiro | `.kiro/settings/mcp.json` | `mcpServers` | `{"url":U,"disabled":false,"autoApprove":[]}` | `{"command":C,"args":A,"disabled":false,"autoApprove":[]}` |
 | kimi | `.kimi-code/mcp.json` | `mcpServers` | `{"url":U}` | `{"command":C,"args":A}` |
+| grok | `.grok/config.toml` | `[mcp_servers.<name>]` | `url = "U"` | `command = "C"` + `args = [...]` |
 
-7개 CLI 모두 원격 HTTP MCP 지원 확인됨 → MCP 항목 4종의 `supports`는 7개 전체.
+8개 CLI 모두 원격 HTTP MCP 지원 확인됨 → MCP 항목 4종의 `supports`는 8개 전체.
+(grok 어댑터는 2026-07-17 Grok Build 지원 라운드에서 추가됨.)
 
 ## File Structure
 
@@ -67,7 +69,7 @@ agent-installer/
 │  ├─ context.mjs              # findRepoRoot, repoPath(경로 안전)
 │  ├─ jsonfile.mjs             # JSON/JSONC 보존 편집 (jsonc-parser)
 │  ├─ tomlfile.mjs             # TOML 섹션 추가/제거 (텍스트 기반, smol-toml은 검증용)
-│  ├─ clis.mjs                 # 7개 CLI MCP 어댑터 레지스트리 {has, add, remove}
+│  ├─ clis.mjs                 # 8개 CLI MCP 어댑터 레지스트리 {has, add, remove}
 │  ├─ claude-plugins.mjs       # enabledPlugins 읽기/폴백 쓰기 (객체·배열 양식)
 │  ├─ catalog.mjs              # items/*.mjs 자동 발견 + 검증 + defineMcp/definePlugin/defineSkill
 │  ├─ engine.mjs               # scan, planChanges(diff), apply, 리포트 데이터
@@ -443,7 +445,7 @@ git commit -m "feat: Codex TOML 섹션 편집 모듈 추가"
 
 ---
 
-### Task 4: 7개 CLI MCP 어댑터 레지스트리
+### Task 4: CLI MCP 어댑터 레지스트리 (구현 당시 7개, 현재 8개)
 
 **Files:**
 - Create: `agent-installer/lib/clis.mjs`
@@ -1430,7 +1432,7 @@ node agent-installer/install.mjs --list     # 현재 상태만 출력
 
 - 설치 상태는 파일에 저장되지 않고 실행 시 실제 설정을 스캔해 판정합니다.
 - 항목 추가는 `agent-installer/lib/items/`에 파일 하나를 추가하면 됩니다.
-- MCP는 7개 CLI 프로젝트 설정에 동시 등록됩니다.
+- MCP는 8개 CLI 프로젝트 설정에 동시 등록됩니다.
 - `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다
   (최초 1회 `npm install` 필요).
 ```
@@ -1449,6 +1451,6 @@ git commit -m "feat: agent-installer 대화형 UI와 비대화형 모드 추가"
 
 ## Self-Review 결과
 
-- 스펙 커버리지: 환경 스캔(T6·T9), 유동적 카탈로그(T6·T7·T8), 7개 CLI 등록(T4), supports/unsupported 3곳 반영(T6 팩토리 + T10 hint/리포트), A→B 폴백(T5·T6), --dry-run/--set(T9·T10), 자기완결 폴더(T1) — 전 항목 태스크 매핑 확인.
+- 스펙 커버리지: 환경 스캔(T6·T9), 유동적 카탈로그(T6·T7·T8), 전 CLI 등록(T4, 구현 당시 7개·현재 8개), supports/unsupported 3곳 반영(T6 팩토리 + T10 hint/리포트), A→B 폴백(T5·T6), --dry-run/--set(T9·T10), 자기완결 폴더(T1) — 전 항목 태스크 매핑 확인.
 - 스펙과의 차이 없음(최종): gstack도 저장소 내부 clone으로 프로젝트 로컬 설치되며(scope: 'project'), 저장소 밖 쓰기가 발생하는 항목은 없다.
 - 타입 일관성: `{kind, url|command+args}` 정규형(T4 정의)을 T6·T7이 동일하게 사용, `ctx = {root, dryRun, exec}` 시그니처 T6 정의·T8·T9 사용 일치.

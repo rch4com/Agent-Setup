@@ -16,7 +16,7 @@ plugin, MCP, skill을 체크박스로 골라 설치하는 콘솔 대화 도구�
 | 결정 | 내용 |
 |---|---|
 | 설치 범위 | 프로젝트 로컬 (플러그인은 `--scope project`, MCP는 저장소 안 설정 파일) |
-| MCP 등록 대상 | 7개 CLI 프로젝트 설정에 동시 등록 (Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code) |
+| MCP 등록 대상 | 8개 CLI 프로젝트 설정에 동시 등록 (Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build) |
 | 구현 기술 | Node.js + @clack/prompts (체크박스 멀티셀렉트 UI) |
 | 상태 유지 | **순수 환경 스캔(stateless)** — 상태 파일 없음, 실제 설정 파일이 곧 상태 |
 | 플러그인 설치 | claude CLI 호출(A) 시도 → 실패 시 `.claude/settings.json` 직접 기록(B)으로 폴백. 폴백 시 실제 다운로드는 다음 Claude Code 실행 때 이루어짐을 리포트에 명시 |
@@ -31,7 +31,7 @@ plugin, MCP, skill을 체크박스로 골라 설치하는 콘솔 대화 도구�
 - GSD — https://github.com/open-gsd/gsd-core
 - gstack — https://github.com/garrytan/gstack
 
-MCP (category: mcp, 기본 지원: 7개 CLI 전체, 항목별 축소 가능)
+MCP (category: mcp, 기본 지원: 8개 CLI 전체, 항목별 축소 가능)
 
 - notion — 원격 URL (https://mcp.notion.com/mcp)
 - supabase — 원격 또는 npx
@@ -78,12 +78,12 @@ export default {
 
 같은 유형은 팩토리로 정의를 축약한다:
 
-- `defineMcp({ id, label, server, supports?, unsupported? })` — 7개 CLI 등록·감지·제거 자동 처리. 새 MCP 추가는 실질적으로 5줄짜리 파일 1개.
+- `defineMcp({ id, label, server, supports?, unsupported? })` — 8개 CLI 등록·감지·제거 자동 처리. 새 MCP 추가는 실질적으로 5줄짜리 파일 1개.
 - `definePlugin({ id, label, name, marketplace })` — claude CLI 호출 처리. supports는 `['claude']` 고정.
 
 ### 지원 CLI 선언 규칙
 
-- `supports`: 항목이 지원하는 CLI 목록. 생략 시 카테고리 기본값(mcp = 7개 전체, plugin = claude).
+- `supports`: 항목이 지원하는 CLI 목록. 생략 시 카테고리 기본값(mcp = 8개 전체, plugin = claude).
 - `unsupported`: supports에서 빠진 CLI마다 **사유 문자열 필수**. 카탈로그 로드 시 검증해 "말없이 빠지는" 항목이 없도록 강제한다.
 - 반영 위치 3곳:
   1. 선택 UI hint: `지원: claude, codex, ... / 미지원: kimi(원격 OAuth MCP 미지원)`
@@ -93,7 +93,7 @@ export default {
 ## 실행 흐름
 
 1. 저장소 안 어디서든 `node agent-installer/install.mjs` 실행. git root 탐지, git 저장소 밖이면 거부.
-2. 스캔: 전 항목 `detect()` — 플러그인은 `.claude/settings.json`의 `enabledPlugins`, MCP는 7개 설정 파일의 서버 키 존재 여부.
+2. 스캔: 전 항목 `detect()` — 플러그인은 `.claude/settings.json`의 `enabledPlugins`, MCP는 8개 설정 파일의 서버 키 존재 여부.
 3. UI: 멀티셀렉트 표시. installed는 미리 체크, partial은 체크 + `(일부 설치됨)` 표시.
 4. Submit → diff:
    - 새로 체크 → install
