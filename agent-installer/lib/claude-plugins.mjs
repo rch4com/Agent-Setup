@@ -45,11 +45,13 @@ export function disablePlugin(root, ids) {
   } else if (settings.enabledPlugins) {
     for (const id of ids) removeKey(file, ['enabledPlugins', id])
   }
-  // 고아 마켓플레이스 정리: 남은 플러그인이 참조하지 않는 extraKnownMarketplaces 항목 제거
+  // 제거한 플러그인이 쓰던 마켓플레이스만 정리 대상으로 삼는다 (무관한 사용자 항목 보존).
+  const candidates = new Set(ids.map((id) => id.slice(id.indexOf('@') + 1)))
   const after = readSettings(root)
-  // 마켓플레이스 이름은 첫 '@' 뒤 전체 접미사 (ID에 '@'가 여러 개여도 안전)
   const remaining = enabledList(after).map((e) => e.slice(e.indexOf('@') + 1))
-  for (const mkt of Object.keys(after.extraKnownMarketplaces ?? {})) {
-    if (!remaining.includes(mkt)) removeKey(file, ['extraKnownMarketplaces', mkt])
+  for (const mkt of candidates) {
+    if (!remaining.includes(mkt) && after.extraKnownMarketplaces?.[mkt] !== undefined) {
+      removeKey(file, ['extraKnownMarketplaces', mkt])
+    }
   }
 }

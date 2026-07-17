@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { isPluginEnabled, enablePlugin, disablePlugin } from '../lib/claude-plugins.mjs'
-import { readJson } from '../lib/jsonfile.mjs'
+import { readJson, setKey } from '../lib/jsonfile.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 function settingsPath(repo) { return join(repo, '.claude', 'settings.json') }
@@ -61,4 +61,14 @@ test('배열 양식에서 disablePlugin은 항목 제거와 고아 마켓 정리
   const s = readJson(settingsPath(repo))
   assert.deepEqual(s.enabledPlugins, ['superpowers@claude-plugins-official'])
   assert.equal(s.extraKnownMarketplaces?.['bkit-marketplace'], undefined)
+})
+
+test('disablePlugin은 무관한 마켓플레이스를 보존한다', () => {
+  const repo = makeTempRepo()
+  enablePlugin(repo, 'bkit@bkit-marketplace', { name: 'bkit-marketplace', repo: 'popup-studio-ai/bkit-claude-code' })
+  setKey(settingsPath(repo), ['extraKnownMarketplaces', 'my-unrelated-marketplace'], { source: { source: 'github', repo: 'someone/else' } })
+  disablePlugin(repo, ['bkit@bkit-marketplace'])
+  const s = readJson(settingsPath(repo))
+  assert.equal(s.extraKnownMarketplaces?.['bkit-marketplace'], undefined)
+  assert.equal(s.extraKnownMarketplaces['my-unrelated-marketplace'].source.repo, 'someone/else')
 })

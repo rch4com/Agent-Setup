@@ -18,7 +18,11 @@ export default defineSkill({
       const clone = exec('git', ['clone', '--single-branch', '--depth', '1', 'https://github.com/garrytan/gstack.git', dir])
       if (!clone.ok) throw new Error(`gstack clone 실패: ${clone.output}`)
       const setup = exec('bash', ['./setup'], { cwd: dir })
-      if (!setup.ok) throw new Error(`gstack setup 실패: ${setup.output}`)
+      if (!setup.ok) {
+        // setup 실패 잔존물이 detect를 installed로 오판시키지 않도록 정리한다.
+        rmSync(dir, { recursive: true, force: true })
+        throw new Error(`gstack setup 실패: ${setup.output}`)
+      }
     }
     // 부트스트랩 저장소에서는 .claude/skills가 .agents/skills Junction이므로 두 경로 모두 무시 처리
     if (!dryRun) ensureGitignoreEntries(root, ['.claude/skills/gstack', '.agents/skills/gstack'])

@@ -1450,5 +1450,5 @@ git commit -m "feat: agent-installer 대화형 UI와 비대화형 모드 추가"
 ## Self-Review 결과
 
 - 스펙 커버리지: 환경 스캔(T6·T9), 유동적 카탈로그(T6·T7·T8), 7개 CLI 등록(T4), supports/unsupported 3곳 반영(T6 팩토리 + T10 hint/리포트), A→B 폴백(T5·T6), --dry-run/--set(T9·T10), 자기완결 폴더(T1) — 전 항목 태스크 매핑 확인.
-- 스펙과의 차이 1건(명시적): gstack은 조사 결과 프로젝트 로컬 미지원 → `scope: 'user'`로 선언하고 UI에 글로벌 설치임을 표시. 저장소 밖(사용자 홈) 쓰기가 발생하는 유일한 항목.
+- 스펙과의 차이 없음(최종): gstack도 저장소 내부 clone으로 프로젝트 로컬 설치되며(scope: 'project'), 저장소 밖 쓰기가 발생하는 항목은 없다.
 - 타입 일관성: `{kind, url|command+args}` 정규형(T4 정의)을 T6·T7이 동일하게 사용, `ctx = {root, dryRun, exec}` 시그니처 T6 정의·T8·T9 사용 일치.

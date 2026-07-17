@@ -7,7 +7,15 @@ import { scan, planChanges, apply } from './lib/engine.mjs'
 const argv = process.argv.slice(2)
 const dryRun = argv.includes('--dry-run')
 const listOnly = argv.includes('--list')
-const setArg = argv.includes('--set') ? (argv[argv.indexOf('--set') + 1] ?? '') : null
+let setArg = null
+if (argv.includes('--set')) {
+  const value = argv[argv.indexOf('--set') + 1]
+  if (value === undefined || value.startsWith('--')) {
+    console.error('--set 뒤에 항목 목록이 필요합니다. 전체 제거는 --set "" 로 명시하세요.')
+    process.exit(2)
+  }
+  setArg = value
+}
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
 
