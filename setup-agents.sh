@@ -244,7 +244,7 @@ ensure_gitignore_entries() {
   local target header entry
   target="$(safe_path "$REPO_ROOT/.gitignore")"
   header='# agent-kit: local skill adapters (do not commit duplicated skills)'
-  local entries=(".claude/skills" ".kiro/skills")
+  local entries=(".claude/skills" ".kiro/skills" ".kimi-code/local.toml")
   local missing=()
 
   for entry in "${entries[@]}"; do
@@ -334,8 +334,8 @@ description: Explain when this skill should be used.
 ```
 
 Claude Code and Kiro receive these skills through project-local adapters at
-`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, and Kilo Code
-discover `.agents/skills` directly.
+`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, Kilo Code,
+and Kimi Code discover `.agents/skills` directly.
 EOF
 
 read -r -d '' EXAMPLE_SKILL <<'EOF' || true
@@ -367,7 +367,8 @@ The bootstrap scripts:
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code and Kiro through local adapters;
-- rely on Kilo Code's native support for `AGENTS.md` and `.agents/skills`.
+- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
+  and `.agents/skills`.
 EOF
 
 read -r -d '' CLAUDE_SETTINGS <<'EOF' || true
@@ -414,12 +415,19 @@ read -r -d '' KIRO_MCP_CONFIG <<'EOF' || true
 }
 EOF
 
+read -r -d '' KIMI_MCP_CONFIG <<'EOF' || true
+{
+  "mcpServers": {}
+}
+EOF
+
 ensure_dir ".agents/skills"
 ensure_dir ".agent-kit"
 ensure_dir ".claude"
 ensure_dir ".codex"
 ensure_dir ".gemini"
 ensure_dir ".kiro/settings"
+ensure_dir ".kimi-code"
 
 write_new_file "AGENTS.md" "$AGENTS_TEMPLATE"
 ensure_managed_block "CLAUDE.md" "$CLAUDE_BLOCK"
@@ -435,6 +443,7 @@ write_new_file ".gemini/settings.json" "$GEMINI_SETTINGS"
 write_new_file "opencode.jsonc" "$OPENCODE_CONFIG"
 write_new_file "kilo.jsonc" "$KILO_CONFIG"
 write_new_file ".kiro/settings/mcp.json" "$KIRO_MCP_CONFIG"
+write_new_file ".kimi-code/mcp.json" "$KIMI_MCP_CONFIG"
 
 configure_skill_adapter "Claude Code" ".claude/skills" "../.agents/skills"
 configure_skill_adapter "Kiro" ".kiro/skills" "../.agents/skills"
@@ -446,6 +455,6 @@ printf '\n'
 info "완료되었습니다."
 info "공통 지침: AGENTS.md"
 info "공통 스킬: .agents/skills/"
-info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro"
+info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code"
 info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 info "기존 설정 파일은 덮어쓰지 않았습니다."

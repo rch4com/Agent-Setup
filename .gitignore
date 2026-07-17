@@ -427,3 +427,11 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+# agent-kit: local skill adapters (do not commit duplicated skills)
+.claude/skills
+.kiro/skills
+
+# Local AI tool state (not part of the shared agent setup)
+.omc/
+.bkit/
+.kimi-code/local.toml

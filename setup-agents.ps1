@@ -443,8 +443,8 @@ description: Explain when this skill should be used.
 ```
 
 Claude Code and Kiro receive these skills through project-local adapters at
-`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, and Kilo Code
-discover `.agents/skills` directly.
+`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, Kilo Code,
+and Kimi Code discover `.agents/skills` directly.
 '@
 
 $exampleSkill = @'
@@ -476,7 +476,8 @@ The bootstrap scripts:
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code and Kiro through local adapters;
-- rely on Kilo Code's native support for `AGENTS.md` and `.agents/skills`.
+- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
+  and `.agents/skills`.
 '@
 
 $claudeSettings = @'
@@ -523,12 +524,19 @@ $kiroMcpConfig = @'
 }
 '@
 
+$kimiMcpConfig = @'
+{
+  "mcpServers": {}
+}
+'@
+
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agents\skills"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agent-kit"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".claude"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".codex"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".gemini"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".kiro\settings"
+Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".kimi-code"
 
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "AGENTS.md" -Content $agentsTemplate
 Ensure-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "CLAUDE.md" -Block $claudeBlock
@@ -544,6 +552,7 @@ Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".gemini\settings.json" -C
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "opencode.jsonc" -Content $openCodeConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "kilo.jsonc" -Content $kiloConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kiro\settings\mcp.json" -Content $kiroMcpConfig
+Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kimi-code\mcp.json" -Content $kimiMcpConfig
 
 Configure-SkillAdapter `
     -RepositoryRoot $repoRoot `
@@ -557,13 +566,17 @@ Configure-SkillAdapter `
     -RelativeTargetDirectory ".kiro\skills" `
     -Mode $SkillMode
 
-# 어댑터 경로는 Git이 Junction을 일반 디렉터리로 취급해 스킬이 중복 커밋되므로 항상 무시합니다.
-Ensure-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(".claude/skills", ".kiro/skills")
+# 어댑터 경로(스킬 중복 커밋 방지)와 Kimi Code의 머신별 설정 파일은 항상 무시합니다.
+Ensure-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(
+    ".claude/skills",
+    ".kiro/skills",
+    ".kimi-code/local.toml"
+)
 
 Write-Host ""
 Write-Info "완료되었습니다."
 Write-Info "공통 지침: AGENTS.md"
 Write-Info "공통 스킬: .agents/skills/"
-Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro"
+Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code"
 Write-Info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 Write-Info "기존 설정 파일은 덮어쓰지 않았습니다."

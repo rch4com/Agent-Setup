@@ -1,8 +1,8 @@
 # Repository-local AI agent bootstrap
 
-Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro를 한 저장소에서
-함께 사용할 때 공통 지침과 공통 Agent Skills를 **저장소 범위로만**
-초기화하는 스크립트입니다.
+Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code를
+한 저장소에서 함께 사용할 때 공통 지침과 공통 Agent Skills를
+**저장소 범위로만** 초기화하는 스크립트입니다.
 
 ## 생성되는 구조
 
@@ -28,6 +28,8 @@ repository/
 │  ├─ skills/          # .agents/skills 링크 또는 관리되는 복제본
 │  └─ settings/
 │     └─ mcp.json
+├─ .kimi-code/
+│  └─ mcp.json
 └─ .agent-kit/
    └─ README.md
 ```
@@ -45,6 +47,9 @@ repository/
 - **Kiro:** 루트 `AGENTS.md`를 직접 사용하며,
   `.kiro/skills`가 `.agents/skills`에 연결됩니다.
   프로젝트 MCP 파일은 `.kiro/settings/mcp.json`에만 생성됩니다.
+- **Kimi Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용합니다.
+  프로젝트 MCP 파일은 `.kimi-code/mcp.json`에 생성되며, 머신별 설정인
+  `.kimi-code/local.toml`은 `.gitignore`에 추가됩니다.
 
 ## 안전 원칙
 
@@ -57,6 +62,7 @@ repository/
 - 기존 `.claude/skills` 또는 `.kiro/skills`가 사용자 관리 경로이면 보존합니다.
 - `.claude/skills`와 `.kiro/skills`를 `.gitignore`에 추가해
   어댑터(링크/복제본)가 커밋되지 않도록 합니다.
+- 머신별 설정인 `.kimi-code/local.toml`도 `.gitignore`에 추가합니다.
 - 반복 실행할 수 있습니다.
 
 ## Windows
@@ -130,6 +136,7 @@ GEMINI.md
 .codex/config.toml
 .gemini/settings.json
 .kiro/settings/mcp.json
+.kimi-code/mcp.json
 opencode.jsonc
 kilo.jsonc
 ```
@@ -150,6 +157,7 @@ GEMINI.md
 .codex/config.toml
 .gemini/settings.json
 .kiro/settings/mcp.json
+.kimi-code/mcp.json
 opencode.jsonc
 kilo.jsonc
 ```
