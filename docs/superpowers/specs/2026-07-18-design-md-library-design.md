@@ -10,9 +10,12 @@
 브라우저 미리보기로 확인해 선택을 쉽게 한다.
 
 - 소스: [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)
-  (getdesign.md의 원본). 각 디자인은 `design-md/<name>/DESIGN.md` +
-  `preview.html` + `preview-dark.html` (총 73개+, 평면 구조, manifest 없음,
-  카테고리는 README 표에만 존재).
+  (getdesign.md의 원본). 각 디자인 폴더는 `design-md/<name>/DESIGN.md` +
+  `README.md`뿐 (총 74개, 평면 구조, manifest 없음). **리포지토리에
+  preview.html은 없다** — 렌더된 미리보기는 getdesign.md 웹페이지
+  `https://getdesign.md/<name>/design-md`에만 존재.
+- 카테고리는 README `## Collection`의 `### <카테고리>` 표에만 존재.
+  README 링크 URL `getdesign.md/<name>/design-md`의 `<name>`이 곧 GitHub 폴더명.
 - **소스는 추가될 수 있다** — 프로바이더 추상화로 확장한다.
 
 ## 확정된 결정 사항
@@ -20,13 +23,12 @@
 | 결정 | 내용 |
 |---|---|
 | 노출 방식 | **전용 모드 분리.** `install.mjs` 첫 화면에 모드 선택 추가(에이전트 설치 / design.md 라이브러리). 기존 plugin·mcp·skill 흐름 보존 |
-| 저장 위치 | **소스 레이아웃 미러링** `design-md/<name>/DESIGN.md` (+ preview). git 커밋 대상(팀 공유) |
+| 저장 위치 | **소스 레이아웃 미러링** `design-md/<name>/DESIGN.md`. git 커밋 대상(팀 공유) |
 | 카탈로그 획득 | **번들 캐시 인덱스 + 동기화 갱신.** `catalog.json`을 동봉, "카탈로그 새로고침"이 소스에서 재생성 |
 | 동기화 | 3작업: 설치본 업데이트 · 카탈로그 새로고침 · 오래된 항목 감지/알림 |
 | 탐색 UI | 탭(카테고리 select) + 검색(텍스트→매칭 멀티셀렉트). 보이는 집합 안에서만 diff |
-| 미리보기 | **브라우저 오픈(OS 레벨).** 로컬 우선, 없으면 임시파일로 받아 오픈. 라이트/다크 |
+| 미리보기 | **브라우저로 getdesign.md 페이지 오픈(OS 레벨).** `https://getdesign.md/<name>/design-md` (사이트 자체 라이트/다크·Live Preview 제공). 다운로드 불필요 |
 | 항목 모델 | design.md도 item 인터페이스(`detect/install/uninstall`)를 따르되 `lib/items/`가 아니라 캐시 인덱스에서 런타임 생성 → `engine.mjs` 재사용 |
-| preview 다운로드 | 기본 포함, `--no-preview`로 생략 |
 
 ## 아키텍처
 
@@ -40,7 +42,7 @@ agent-installer/
       ├─ catalog.json              # 번들 캐시 인덱스 (동봉·커밋, 새로고침이 덮어씀)
       ├─ catalog.mjs               # 인덱스 로드/저장, defineDesignMd(entry, provider)
       ├─ flow.mjs                  # 대화형 UI: 탭/검색/미리보기/동기화 (@clack/prompts)
-      ├─ open.mjs                  # makeOpener(주입 가능) + resolvePreview
+      ├─ open.mjs                  # makeOpener(주입 가능) + openPreview(webUrl)
       └─ providers/
          ├─ index.mjs              # 프로바이더 레지스트리 (소스 확장 지점)
          └─ awesome-design-md.mjs  # 1호 프로바이더 (GitHub raw + README 파싱)
@@ -53,11 +55,11 @@ agent-installer/
 {
   id: 'awesome-design-md',
   label: 'awesome-design-md (VoltAgent)',
-  files: ['DESIGN.md', 'preview.html', 'preview-dark.html'],
+  files: ['DESIGN.md'],              // 소스에 있는 파일(preview 없음)
   async fetchCatalog(fetch),         // → [{ name, label, category, description }]
   fileUrl(name, file),               // raw URL
   async fetchFile(fetch, name, file),// → string | null (404 등은 null)
-  webUrl(name),                      // 웹 미리보기 URL 또는 null
+  webUrl(name),                      // 웹 미리보기 URL (getdesign.md/<name>/design-md)
 }
 ```
 
@@ -104,7 +106,7 @@ $ node install.mjs
 - **카테고리(탭)**: 카테고리 select → 해당 항목 멀티셀렉트(설치본 미리 체크) →
   설치 전 "먼저 미리볼래요?"(선택) → 적용.
 - **검색**: 텍스트 입력 → 이름·라벨·카테고리·설명 매칭 → 멀티셀렉트 → 적용.
-- **미리보기**: 후보 좁히기 → 볼 항목 멀티셀렉트(라이트/다크 토글) → 브라우저 오픈 →
+- **미리보기**: 후보 좁히기 → 볼 항목 멀티셀렉트 → getdesign.md 페이지 브라우저 오픈 →
   "방금 본 항목 설치할까요?"로 설치 흐름 연결.
 - **동기화**: [설치본 업데이트 / 카탈로그 새로고침 / 오래된 항목 확인] 중 선택.
 
@@ -114,19 +116,20 @@ $ node install.mjs
 ## 항목 메커니즘 (defineDesignMd)
 
 - **detect**: `design-md/<name>/DESIGN.md` 존재 → `installed`, 없으면 `absent`.
-- **install**: 프로바이더로 `DESIGN.md`(필수) 다운로드 → `design-md/<name>/`에 저장.
-  preview 파일은 기본 포함(`--no-preview`로 생략). DESIGN.md 성공 + preview 실패면
-  설치 성공으로 보고하되 메모.
+- **install**: 프로바이더로 `DESIGN.md` 다운로드 → `design-md/<name>/DESIGN.md` 저장.
 - **uninstall**: `design-md/<name>/` 디렉터리만 삭제.
 - 경로는 `repoPath(root, ...)`로 저장소 밖 쓰기 차단.
 
 ## 미리보기 (open.mjs)
 
+렌더된 미리보기는 getdesign.md 웹페이지에만 있으므로, 프로바이더의 `webUrl(name)`을
+브라우저로 연다(라이트/다크·Live Preview는 사이트가 제공). 로컬 다운로드 없음.
+
 ```text
-resolvePreview(root, name, variant, { fetch, provider, tmpDir }):
-  1) design-md/<name>/preview[-dark].html 있으면       → file:// 경로
-  2) 없으면 provider.fetchFile 로 받아 tmpDir 에 저장  → 그 경로
-  3) 둘 다 실패                                        → null (안내 + URL 출력)
+openPreview(opener, provider, name):
+  url = provider.webUrl(name)     // https://getdesign.md/<name>/design-md
+  url 없으면 → 안내(미리보기 미제공)
+  있으면 opener(url)              // 실패 시 URL 출력해 수동 오픈 폴백
 ```
 
 ```js
@@ -143,9 +146,8 @@ export function makeOpener(dryRun, log) {
 }
 ```
 
-- GitHub raw HTML은 `text/plain`이라 브라우저에서 안 렌더 → **임시파일로 받아** 연다.
-- 헤드리스/오픈 실패 시 경로/URL을 출력해 수동 오픈 폴백.
-- `--dry-run`: 실제로 열지 않고 대상만 리포트.
+- 헤드리스/오픈 실패 시 URL을 출력해 수동 오픈 폴백.
+- `--dry-run`: 실제로 열지 않고 대상 URL만 리포트.
 
 ## 동기화 3작업
 
@@ -162,8 +164,8 @@ export function makeOpener(dryRun, log) {
 - `node install.mjs design --list`
 - `node install.mjs design --set stripe,vercel` (design 카테고리 한정 목표 집합)
 - `node install.mjs design --sync=installed|catalog|stale`
-- `node install.mjs design --preview stripe,vercel [--dark]`
-- `--no-preview`, `--dry-run`
+- `node install.mjs design --preview stripe,vercel` (getdesign.md 페이지 오픈)
+- `--dry-run`
 
 ## 오류 처리·안전
 
@@ -181,7 +183,7 @@ export function makeOpener(dryRun, log) {
   - `defineDesignMd` detect/install/uninstall (임시 git 저장소 쓰기·삭제)
   - 검색/카테고리 diff가 보이는 집합에만 적용
   - 오래된 항목 해시 비교
-  - `resolvePreview` 로컬 우선 vs 임시 다운로드 분기
+  - `openPreview`가 `webUrl`로 opener 호출, webUrl 없으면 안내
   - `makeOpener` 올바른 target 호출, dry-run 미오픈
 - E2E: 임시 저장소에서 `design --set stripe` → detect installed → `--set ""` 제거 →
   absent, `--dry-run` 무변경.
