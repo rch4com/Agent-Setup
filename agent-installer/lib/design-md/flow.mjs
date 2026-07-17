@@ -89,7 +89,7 @@ async function updateInstalled(root, items, { dryRun, log }) {
   if (installed.length === 0) { log('설치된 design.md가 없습니다.'); return }
   for (const item of installed) {
     try {
-      await item.install({ root, dryRun })
+      await item.install({ root, dryRun, fresh: true })
       log(`  ✔ 업데이트 ${item.label}`)
     } catch (err) {
       log(`  ✖ 업데이트 ${item.label} — ${err.message}`)
@@ -181,7 +181,7 @@ async function runSync(root, items, catalog, { op, dryRun, fetchImpl, log, inter
       })
       if (p.isCancel(sel)) return
       for (const item of stale.filter((i) => sel.includes(i.id))) {
-        try { await item.install({ root, dryRun }); log(`  ✔ 업데이트 ${item.label}`) }
+        try { await item.install({ root, dryRun, fresh: true }); log(`  ✔ 업데이트 ${item.label}`) }
         catch (err) { log(`  ✖ ${item.label} — ${err.message}`) }
       }
     }

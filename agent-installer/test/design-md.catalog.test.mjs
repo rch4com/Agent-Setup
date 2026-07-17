@@ -16,7 +16,7 @@ test('defineDesignMd: install 쓰기 → detect installed → uninstall 제거',
   const item = defineDesignMd(entry('stripe', { label: 'Stripe' }), provider, { fetchImpl })
 
   assert.equal((await item.detect({ root })).status, 'absent')
-  await item.install({ root, dryRun: false })
+  await item.install({ root, dryRun: false, fresh: true }) // fresh=네트워크 경로 검증
   const file = join(root, 'design-md', 'stripe', 'DESIGN.md')
   assert.ok(existsSync(file))
   assert.equal(readFileSync(file, 'utf8'), '# Stripe DESIGN')

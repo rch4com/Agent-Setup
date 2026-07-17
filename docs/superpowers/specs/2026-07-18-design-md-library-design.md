@@ -29,6 +29,7 @@
 | 탐색 UI | 탭(카테고리 select) + 검색(텍스트→매칭 멀티셀렉트). 보이는 집합 안에서만 diff |
 | 미리보기 | **브라우저로 getdesign.md 페이지 오픈(OS 레벨).** `https://getdesign.md/<name>/design-md` (사이트 자체 라이트/다크·Live Preview 제공). 다운로드 불필요 |
 | 항목 모델 | design.md도 item 인터페이스(`detect/install/uninstall`)를 따르되 `lib/items/`가 아니라 캐시 인덱스에서 런타임 생성 → `engine.mjs` 재사용 |
+| 오프라인 번들 | 74개 DESIGN.md를 `lib/design-md/cache/<name>/DESIGN.md`에 동봉. 설치는 번들 우선(네트워크 0), 없으면 폴백. 업데이트/동기화는 `fresh`로 네트워크 최신. `npm run refresh-bundle`로 재생성 |
 
 ## 아키텍처
 
@@ -43,9 +44,12 @@ agent-installer/
       ├─ catalog.mjs               # 인덱스 로드/저장, defineDesignMd(entry, provider)
       ├─ flow.mjs                  # 대화형 UI: 탭/검색/미리보기/동기화 (@clack/prompts)
       ├─ open.mjs                  # makeOpener(주입 가능) + openPreview(webUrl)
+      ├─ cache/<name>/DESIGN.md    # 오프라인 번들 (동봉·커밋, npm run refresh-bundle로 생성)
       └─ providers/
          ├─ index.mjs              # 프로바이더 레지스트리 (소스 확장 지점)
-         └─ awesome-design-md.mjs  # 1호 프로바이더 (GitHub raw + README 파싱)
+         └─ awesome-design-md.mjs  # 1호 프로바이더 (GitHub raw + README 파싱 + bundledText)
+   scripts/
+      └─ refresh-bundle.mjs        # 번들 (재)생성 유지보수 스크립트
 ```
 
 ### 프로바이더 인터페이스
@@ -116,7 +120,9 @@ $ node install.mjs
 ## 항목 메커니즘 (defineDesignMd)
 
 - **detect**: `design-md/<name>/DESIGN.md` 존재 → `installed`, 없으면 `absent`.
-- **install**: 프로바이더로 `DESIGN.md` 다운로드 → `design-md/<name>/DESIGN.md` 저장.
+- **install**: 동봉 번들(`provider.bundledText`) 우선 → 없으면 프로바이더로 다운로드 →
+  `design-md/<name>/DESIGN.md` 저장. `fresh:true`(업데이트·오래된 항목 갱신)는 번들을
+  건너뛰고 항상 네트워크 최신을 받는다.
 - **uninstall**: `design-md/<name>/` 디렉터리만 삭제.
 - 경로는 `repoPath(root, ...)`로 저장소 밖 쓰기 차단.
 

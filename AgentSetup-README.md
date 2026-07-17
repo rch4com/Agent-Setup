@@ -226,6 +226,10 @@ node agent-installer/install.mjs design --sync=stale     # 원본과 달라진 �
   엽니다(사이트 자체 라이트/다크 제공, 다운로드 불필요).
 - 카탈로그는 `agent-installer/lib/design-md/catalog.json`에 캐시되어 오프라인에서도
   즉시 동작하며, `--sync=catalog`(또는 동기화 메뉴)로 갱신합니다.
+- **오프라인 번들**: 74개 DESIGN.md가 `agent-installer/lib/design-md/cache/`에 동봉되어
+  설치 시 네트워크 없이 즉시 복사됩니다(번들에 없으면 네트워크 폴백). `--sync=installed`와
+  오래된 항목 업데이트는 번들을 건너뛰고 원본 최신을 받습니다. 번들 재생성은
+  `cd agent-installer && npm run refresh-bundle`.
 - 소스 추가 = `agent-installer/lib/design-md/providers/`에 프로바이더 1개 등록.
 
 ## 팀 저장소에 넣을 파일

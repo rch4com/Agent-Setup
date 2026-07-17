@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { makeTempRepo, makeFetch, makeCapture, recordingOpener } from './helpers.mjs'
 import { runDesign } from '../lib/design-md/flow.mjs'
 import { makeOpener, openPreview } from '../lib/design-md/open.mjs'
+import { awesomeDesignMd } from '../lib/design-md/providers/awesome-design-md.mjs'
 
 // 번들 catalog.json(실제 74개)을 쓰되 네트워크는 가짜 fetch로 대체한다.
 const fileFetch = (body) => makeFetch([{ match: '/DESIGN.md', body }])
@@ -68,8 +69,10 @@ test('sync=stale은 변경된 설치본을 감지', async () => {
 test('sync=stale은 동일하면 최신으로 보고', async () => {
   const root = makeTempRepo()
   const cap = makeCapture()
-  await runDesign(root, { set: 'stripe', fetchImpl: fileFetch('# same'), log() {} })
-  await runDesign(root, { sync: 'stale', fetchImpl: fileFetch('# same'), log: cap.log })
+  // 기본 설치는 번들 콘텐츠를 쓰므로, 원격도 같은 번들 콘텐츠면 최신이어야 한다.
+  const bundled = awesomeDesignMd.bundledText('stripe')
+  await runDesign(root, { set: 'stripe', fetchImpl: fileFetch(bundled), log() {} })
+  await runDesign(root, { sync: 'stale', fetchImpl: fileFetch(bundled), log: cap.log })
   assert.match(cap.text(), /최신입니다/)
 })
 

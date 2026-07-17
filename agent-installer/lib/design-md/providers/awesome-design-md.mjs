@@ -2,6 +2,12 @@
 // 카탈로그: README `## Collection`의 `### 카테고리` + 링크 목록을 파싱한다.
 // 링크 URL `getdesign.md/<name>/design-md`의 <name>이 곧 GitHub 폴더명이다.
 // 파일: 폴더에는 DESIGN.md만 있다(preview.html 없음). 렌더된 미리보기는 웹페이지.
+import { existsSync, readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// lib/design-md/cache/<name>/DESIGN.md — 인스톨러에 동봉된 오프라인 번들.
+const BUNDLE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'cache')
 
 const REPO = 'VoltAgent/awesome-design-md'
 const BRANCH = 'main'
@@ -59,6 +65,17 @@ export const awesomeDesignMd = {
 
   webUrl(name) {
     return `https://getdesign.md/${name}/design-md`
+  },
+
+  bundlePath(name, file = 'DESIGN.md') {
+    return join(BUNDLE_DIR, name, file)
+  },
+
+  // 동봉 번들에서 읽는다(없으면 null). 오프라인 설치용.
+  bundledText(name, file = 'DESIGN.md') {
+    if (/[\\/]/.test(name)) return null
+    const p = this.bundlePath(name, file)
+    return existsSync(p) ? readFileSync(p, 'utf8') : null
   },
 
   async fetchFile(fetchImpl, name, file = 'DESIGN.md') {

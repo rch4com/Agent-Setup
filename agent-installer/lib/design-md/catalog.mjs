@@ -51,9 +51,12 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
       return { status: existsSync(designPaths(root, name).file) ? 'installed' : 'absent' }
     },
 
-    async install({ root, dryRun }) {
+    // fresh=false: 동봉 번들 우선(오프라인) → 없으면 네트워크.
+    // fresh=true: 번들 우회, 항상 네트워크 최신(업데이트/동기화용).
+    async install({ root, dryRun, fresh = false }) {
       if (dryRun) return // dry-run은 네트워크·쓰기 없이 예정 동작만 리포트
-      const text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
+      let text = fresh ? null : provider.bundledText?.(name, 'DESIGN.md')
+      if (text == null) text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
       if (text == null) throw new Error(`${name}: DESIGN.md 다운로드 실패`)
       const { dir, file } = designPaths(root, name)
       mkdirSync(dir, { recursive: true })
