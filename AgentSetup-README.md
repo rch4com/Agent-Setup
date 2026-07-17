@@ -55,6 +55,8 @@ repository/
 - 기존 설정 파일은 덮어쓰지 않습니다.
 - `CLAUDE.md`와 `GEMINI.md`에는 관리 블록이 없을 때만 추가합니다.
 - 기존 `.claude/skills` 또는 `.kiro/skills`가 사용자 관리 경로이면 보존합니다.
+- `.claude/skills`와 `.kiro/skills`를 `.gitignore`에 추가해
+  어댑터(링크/복제본)가 커밋되지 않도록 합니다.
 - 반복 실행할 수 있습니다.
 
 ## Windows
@@ -153,6 +155,7 @@ kilo.jsonc
 ```
 
 `.claude/skills`와 `.kiro/skills`가 로컬 Junction 또는 심볼릭 링크라면 Git과
-운영체제에 따라 다르게 처리될 수 있습니다. 가장 이식성 높은 방식은
-`.agents/skills`만 커밋하고 각 개발자가 bootstrap 스크립트를 실행해 두
-어댑터를 만드는 것입니다.
+운영체제에 따라 다르게 처리될 수 있습니다(Windows에서 git은 Junction을 일반
+디렉터리로 취급해 스킬이 중복 커밋됩니다). 이를 막기 위해 스크립트가 두
+어댑터 경로를 `.gitignore`에 자동 추가합니다. 즉 `.agents/skills`만 커밋하고
+각 개발자가 bootstrap 스크립트를 실행해 두 어댑터를 만드는 방식입니다.

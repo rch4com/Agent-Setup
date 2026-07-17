@@ -178,7 +178,8 @@ configure_skill_adapter() {
 
   if [[ -L "$target" ]]; then
     local resolved
-    resolved="$(realpath "$target")"
+    # -m: 깨진 심볼릭 링크도 실패 없이 해석해 아래 불일치 경고로 처리
+    resolved="$(realpath -m "$target")"
     if [[ "$resolved" == "$source" ]]; then
       info "$tool_name 스킬 링크 확인: $target_relative"
       return
@@ -213,10 +214,14 @@ configure_skill_adapter() {
   fi
 
   if [[ "$effective_mode" == "link" ]]; then
-    if ln -s "$relative_link_target" "$target" 2>/dev/null; then
+    if ln -s "$relative_link_target" "$target" 2>/dev/null && [[ -L "$target" ]]; then
       info "$tool_name 스킬 심볼릭 링크 생성: $target_relative -> .agents/skills"
       return
     fi
+
+    # MSYS(Git Bash) 기본 설정에서는 ln -s가 링크 대신 복사를 만들므로,
+    # 마커 없는 복사본이 남지 않도록 정리하고 아래 분기로 넘어갑니다.
+    rm -rf "$target"
 
     if [[ "$SKILL_MODE" == "link" ]]; then
       echo "$tool_name 스킬 심볼릭 링크를 만들지 못했습니다." >&2
@@ -232,6 +237,38 @@ configure_skill_adapter() {
     cp -a "$source/." "$target/"
     : > "$marker"
     info "$tool_name 스킬 복제본 생성: $target_relative"
+  fi
+}
+
+ensure_gitignore_entries() {
+  local target header entry
+  target="$(safe_path "$REPO_ROOT/.gitignore")"
+  header='# agent-kit: local skill adapters (do not commit duplicated skills)'
+  local entries=(".claude/skills" ".kiro/skills")
+  local missing=()
+
+  for entry in "${entries[@]}"; do
+    if [[ -f "$target" ]] && grep -Fxq "$entry" "$target"; then
+      continue
+    fi
+    missing+=("$entry")
+  done
+
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    info ".gitignore 항목 확인: ${entries[*]}"
+    return
+  fi
+
+  info ".gitignore 항목 추가: ${missing[*]}"
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    if [[ -s "$target" ]]; then
+      # 마지막 줄에 개행이 없으면 먼저 추가
+      [[ -z "$(tail -c 1 "$target")" ]] || printf '\n' >> "$target"
+    fi
+    if [[ ! -f "$target" ]] || ! grep -Fxq "$header" "$target"; then
+      printf '%s\n' "$header" >> "$target"
+    fi
+    printf '%s\n' "${missing[@]}" >> "$target"
   fi
 }
 
@@ -401,6 +438,9 @@ write_new_file ".kiro/settings/mcp.json" "$KIRO_MCP_CONFIG"
 
 configure_skill_adapter "Claude Code" ".claude/skills" "../.agents/skills"
 configure_skill_adapter "Kiro" ".kiro/skills" "../.agents/skills"
+
+# 어댑터 경로는 OS/Git 조합에 따라 스킬이 중복 커밋될 수 있으므로 항상 무시합니다.
+ensure_gitignore_entries
 
 printf '\n'
 info "완료되었습니다."

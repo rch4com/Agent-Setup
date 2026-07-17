@@ -139,7 +139,9 @@ function Write-NewFile {
     $target = Join-Path $RepositoryRoot $RelativePath
     Assert-InsideRepository -RepositoryRoot $RepositoryRoot -TargetPath $target
 
-    if (Test-Path -LiteralPath $target) {
+    # Test-Path는 깨진 링크에 대해 false를 반환하므로 Get-Item으로 항목 존재를 확인합니다.
+    $existingItem = Get-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+    if ($null -ne $existingItem) {
         Write-Info "기존 파일 유지: $RelativePath"
         return
     }
@@ -208,6 +210,57 @@ function Ensure-ManagedBlock {
     }
 }
 
+function Ensure-GitignoreEntries {
+    param(
+        [string]$RepositoryRoot,
+        [string[]]$Entries
+    )
+
+    $target = Join-Path $RepositoryRoot ".gitignore"
+    Assert-InsideRepository -RepositoryRoot $RepositoryRoot -TargetPath $target
+    Assert-NoReparsePointInParents -RepositoryRoot $RepositoryRoot -TargetPath $target
+    Assert-NotReparsePoint -Path $target
+
+    $header = "# agent-kit: local skill adapters (do not commit duplicated skills)"
+    $existingLines = @()
+    if (Test-Path -LiteralPath $target) {
+        $existingLines = [System.IO.File]::ReadAllLines($target)
+    }
+
+    $missing = @($Entries | Where-Object { $existingLines -notcontains $_ })
+    if ($missing.Count -eq 0) {
+        Write-Info ".gitignore 항목 확인: $($Entries -join ', ')"
+        return
+    }
+
+    Write-Info ".gitignore 항목 추가: $($missing -join ', ')"
+    if (-not $DryRun) {
+        $builder = [System.Text.StringBuilder]::new()
+
+        if (Test-Path -LiteralPath $target) {
+            $existing = [System.IO.File]::ReadAllText($target)
+            [void]$builder.Append($existing)
+            if ($existing.Length -gt 0 -and -not $existing.EndsWith("`n")) {
+                [void]$builder.Append([Environment]::NewLine)
+            }
+        }
+
+        if ($existingLines -notcontains $header) {
+            [void]$builder.Append($header + [Environment]::NewLine)
+        }
+
+        foreach ($entry in $missing) {
+            [void]$builder.Append($entry + [Environment]::NewLine)
+        }
+
+        [System.IO.File]::WriteAllText(
+            $target,
+            $builder.ToString(),
+            [System.Text.UTF8Encoding]::new($false)
+        )
+    }
+}
+
 function Test-LinkPointsTo {
     param(
         [string]$LinkPath,
@@ -266,7 +319,14 @@ function Configure-SkillAdapter {
         return
     }
 
-    if (Test-Path -LiteralPath $target) {
+    # 깨진 링크도 포함해 기존 항목을 확인하고, 다른 곳을 가리키는 링크는 보존합니다.
+    $existingItem = Get-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+    if ($null -ne $existingItem) {
+        if ($existingItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            Write-Warning "$RelativeTargetDirectory 경로가 다른 위치를 가리키는 링크/Junction입니다. 변경하지 않습니다."
+            return
+        }
+
         $marker = Join-Path $target ".agent-kit-managed-copy"
 
         if (Test-Path -LiteralPath $marker) {
@@ -496,6 +556,9 @@ Configure-SkillAdapter `
     -ToolName "Kiro" `
     -RelativeTargetDirectory ".kiro\skills" `
     -Mode $SkillMode
+
+# 어댑터 경로는 Git이 Junction을 일반 디렉터리로 취급해 스킬이 중복 커밋되므로 항상 무시합니다.
+Ensure-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(".claude/skills", ".kiro/skills")
 
 Write-Host ""
 Write-Info "완료되었습니다."
