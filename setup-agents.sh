@@ -10,7 +10,7 @@ usage() {
   ./setup-agents.sh [--skill-mode auto|link|copy] [--dry-run]
 
 옵션:
-  --skill-mode  Claude Code용 .claude/skills 구성 방식
+  --skill-mode  Claude Code와 Kiro의 프로젝트 스킬 어댑터 구성 방식
                 auto: 심볼릭 링크 우선, 실패 시 복사
                 link: 심볼릭 링크만 사용
                 copy: 관리되는 복제본 사용
@@ -166,38 +166,42 @@ ensure_managed_block() {
   fi
 }
 
-configure_claude_skills() {
+configure_skill_adapter() {
+  local tool_name="$1"
+  local target_relative="$2"
+  local relative_link_target="$3"
   local source target effective_mode marker
+
   source="$(safe_path "$REPO_ROOT/.agents/skills")"
-  target="$(safe_path "$REPO_ROOT/.claude/skills")"
+  target="$(safe_path "$REPO_ROOT/$target_relative")"
   marker="$target/.agent-kit-managed-copy"
 
   if [[ -L "$target" ]]; then
     local resolved
     resolved="$(realpath "$target")"
     if [[ "$resolved" == "$source" ]]; then
-      info "Claude 스킬 링크 확인: .claude/skills"
+      info "$tool_name 스킬 링크 확인: $target_relative"
       return
     fi
 
-    warn ".claude/skills가 다른 위치를 가리키는 심볼릭 링크입니다. 변경하지 않습니다."
+    warn "$target_relative 경로가 다른 위치를 가리키는 심볼릭 링크입니다. 변경하지 않습니다."
     return
   fi
 
   if [[ -e "$target" ]]; then
     if [[ -f "$marker" ]]; then
-      info "Claude 스킬 복제본 동기화: .claude/skills"
+      info "$tool_name 스킬 복제본 동기화: $target_relative"
       if [[ "$DRY_RUN" -eq 0 ]]; then
         rm -rf "$target"
       fi
     else
-      warn ".claude/skills가 이미 존재하며 agent-kit 관리 대상이 아닙니다. 변경하지 않습니다."
+      warn "$target_relative 경로가 이미 존재하며 agent-kit 관리 대상이 아닙니다. 변경하지 않습니다."
       return
     fi
   fi
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    info "Claude 스킬 어댑터 생성 예정 ($SKILL_MODE)"
+    info "$tool_name 스킬 어댑터 생성 예정: $target_relative ($SKILL_MODE)"
     return
   fi
 
@@ -209,17 +213,17 @@ configure_claude_skills() {
   fi
 
   if [[ "$effective_mode" == "link" ]]; then
-    if ln -s ../.agents/skills "$target" 2>/dev/null; then
-      info "Claude 스킬 심볼릭 링크 생성: .claude/skills -> .agents/skills"
+    if ln -s "$relative_link_target" "$target" 2>/dev/null; then
+      info "$tool_name 스킬 심볼릭 링크 생성: $target_relative -> .agents/skills"
       return
     fi
 
     if [[ "$SKILL_MODE" == "link" ]]; then
-      echo "Claude 스킬 심볼릭 링크를 만들지 못했습니다." >&2
+      echo "$tool_name 스킬 심볼릭 링크를 만들지 못했습니다." >&2
       exit 1
     fi
 
-    warn "심볼릭 링크 생성에 실패하여 복사 방식으로 전환합니다."
+    warn "$tool_name 심볼릭 링크 생성에 실패하여 복사 방식으로 전환합니다."
     effective_mode="copy"
   fi
 
@@ -227,7 +231,7 @@ configure_claude_skills() {
     mkdir -p "$target"
     cp -a "$source/." "$target/"
     : > "$marker"
-    info "Claude 스킬 복제본 생성: .claude/skills"
+    info "$tool_name 스킬 복제본 생성: $target_relative"
   fi
 }
 
@@ -292,8 +296,8 @@ description: Explain when this skill should be used.
 ---
 ```
 
-Claude Code receives these skills through the project-local `.claude/skills`
-adapter created by the bootstrap script. Codex, Gemini CLI, and OpenCode can
+Claude Code and Kiro receive these skills through project-local adapters at
+`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, and Kilo Code
 discover `.agents/skills` directly.
 EOF
 
@@ -325,7 +329,8 @@ The bootstrap scripts:
 - never write to user-home or system-wide agent configuration;
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
-- expose `.agents/skills` to Claude Code through a local adapter.
+- expose `.agents/skills` to Claude Code and Kiro through local adapters;
+- rely on Kilo Code's native support for `AGENTS.md` and `.agents/skills`.
 EOF
 
 read -r -d '' CLAUDE_SETTINGS <<'EOF' || true
@@ -359,11 +364,25 @@ read -r -d '' OPENCODE_CONFIG <<'EOF' || true
 }
 EOF
 
+read -r -d '' KILO_CONFIG <<'EOF' || true
+{
+  // Project-local Kilo Code configuration.
+  // Kilo Code automatically loads ./AGENTS.md and ./.agents/skills/.
+}
+EOF
+
+read -r -d '' KIRO_MCP_CONFIG <<'EOF' || true
+{
+  "mcpServers": {}
+}
+EOF
+
 ensure_dir ".agents/skills"
 ensure_dir ".agent-kit"
 ensure_dir ".claude"
 ensure_dir ".codex"
 ensure_dir ".gemini"
+ensure_dir ".kiro/settings"
 
 write_new_file "AGENTS.md" "$AGENTS_TEMPLATE"
 ensure_managed_block "CLAUDE.md" "$CLAUDE_BLOCK"
@@ -377,12 +396,16 @@ write_new_file ".claude/settings.json" "$CLAUDE_SETTINGS"
 write_new_file ".codex/config.toml" "$CODEX_CONFIG"
 write_new_file ".gemini/settings.json" "$GEMINI_SETTINGS"
 write_new_file "opencode.jsonc" "$OPENCODE_CONFIG"
+write_new_file "kilo.jsonc" "$KILO_CONFIG"
+write_new_file ".kiro/settings/mcp.json" "$KIRO_MCP_CONFIG"
 
-configure_claude_skills
+configure_skill_adapter "Claude Code" ".claude/skills" "../.agents/skills"
+configure_skill_adapter "Kiro" ".kiro/skills" "../.agents/skills"
 
 printf '\n'
 info "완료되었습니다."
 info "공통 지침: AGENTS.md"
 info "공통 스킬: .agents/skills/"
+info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro"
 info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 info "기존 설정 파일은 덮어쓰지 않았습니다."

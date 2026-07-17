@@ -1,7 +1,8 @@
 # Repository-local AI agent bootstrap
 
-Claude Code, Codex, Gemini CLI, OpenCode를 한 저장소 안에서 함께 사용할 때
-공통 지침과 공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
+Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro를 한 저장소에서
+함께 사용할 때 공통 지침과 공통 Agent Skills를 **저장소 범위로만**
+초기화하는 스크립트입니다.
 
 ## 생성되는 구조
 
@@ -11,6 +12,7 @@ repository/
 ├─ CLAUDE.md
 ├─ GEMINI.md
 ├─ opencode.jsonc
+├─ kilo.jsonc
 ├─ .agents/
 │  └─ skills/
 │     └─ repository-check/
@@ -22,9 +24,27 @@ repository/
 │  └─ config.toml
 ├─ .gemini/
 │  └─ settings.json
+├─ .kiro/
+│  ├─ skills/          # .agents/skills 링크 또는 관리되는 복제본
+│  └─ settings/
+│     └─ mcp.json
 └─ .agent-kit/
    └─ README.md
 ```
+
+## 도구별 연결 방식
+
+- **Claude Code:** `CLAUDE.md`가 `AGENTS.md`를 가져오며,
+  `.claude/skills`가 `.agents/skills`에 연결됩니다.
+- **Codex:** 루트 `AGENTS.md`와 `.agents/skills`를 사용합니다.
+- **Gemini CLI:** `GEMINI.md`가 `AGENTS.md`를 가져오며,
+  `.agents/skills`를 사용합니다.
+- **OpenCode:** 루트 `AGENTS.md`, `.agents/skills`, `opencode.jsonc`를 사용합니다.
+- **Kilo Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용하며,
+  프로젝트 로컬 `kilo.jsonc`를 생성합니다.
+- **Kiro:** 루트 `AGENTS.md`를 직접 사용하며,
+  `.kiro/skills`가 `.agents/skills`에 연결됩니다.
+  프로젝트 MCP 파일은 `.kiro/settings/mcp.json`에만 생성됩니다.
 
 ## 안전 원칙
 
@@ -34,6 +54,7 @@ repository/
 - 홈 디렉터리의 글로벌 설정을 읽거나 수정하지 않습니다.
 - 기존 설정 파일은 덮어쓰지 않습니다.
 - `CLAUDE.md`와 `GEMINI.md`에는 관리 블록이 없을 때만 추가합니다.
+- 기존 `.claude/skills` 또는 `.kiro/skills`가 사용자 관리 경로이면 보존합니다.
 - 반복 실행할 수 있습니다.
 
 ## Windows
@@ -44,13 +65,13 @@ repository/
 powershell -ExecutionPolicy Bypass -File .\setup-agents.ps1
 ```
 
-PowerShell 7을 사용한다면:
+PowerShell 7:
 
 ```powershell
 pwsh -File .\setup-agents.ps1
 ```
 
-Claude 스킬 어댑터 방식:
+Claude와 Kiro의 스킬 어댑터 방식:
 
 ```powershell
 # Junction 우선, 실패하면 복사
@@ -76,7 +97,7 @@ chmod +x ./setup-agents.sh
 ./setup-agents.sh
 ```
 
-Claude 스킬 어댑터 방식:
+Claude와 Kiro의 스킬 어댑터 방식:
 
 ```bash
 # 심볼릭 링크 우선, 실패하면 복사
@@ -95,17 +116,26 @@ Claude 스킬 어댑터 방식:
 ./setup-agents.sh --dry-run
 ```
 
-## 동작 방식
+## 기존 파일 처리
 
-- Codex, Gemini CLI, OpenCode는 공통 스킬 원본인 `.agents/skills`를 사용합니다.
-- Claude Code에는 `.claude/skills` 어댑터를 만듭니다.
-- `CLAUDE.md`는 `AGENTS.md`를 가져옵니다.
-- `GEMINI.md`도 `AGENTS.md`를 가져옵니다.
-- 기존 `AGENTS.md` 또는 도구별 설정이 있으면 그대로 보존합니다.
+다음 파일이 이미 있으면 그대로 보존합니다.
+
+```text
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.claude/settings.json
+.codex/config.toml
+.gemini/settings.json
+.kiro/settings/mcp.json
+opencode.jsonc
+kilo.jsonc
+```
+
+`CLAUDE.md`와 `GEMINI.md`는 파일이 존재하더라도 agent-kit 관리 블록이 없으면
+공통 지침 import 블록만 추가합니다.
 
 ## 팀 저장소에 넣을 파일
-
-두 스크립트와 생성된 공통 설정을 저장소에 커밋하는 방식을 권장합니다.
 
 ```text
 setup-agents.ps1
@@ -117,9 +147,12 @@ GEMINI.md
 .claude/settings.json
 .codex/config.toml
 .gemini/settings.json
+.kiro/settings/mcp.json
 opencode.jsonc
+kilo.jsonc
 ```
 
-`.claude/skills`가 로컬 Junction 또는 심볼릭 링크라면 Git 처리 방식은 팀 환경에
-따라 다를 수 있습니다. 가장 이식성 높은 운영 방식은 `.agents/skills`만 커밋하고,
-각 개발자가 bootstrap 스크립트를 실행해 `.claude/skills`를 만드는 것입니다.
+`.claude/skills`와 `.kiro/skills`가 로컬 Junction 또는 심볼릭 링크라면 Git과
+운영체제에 따라 다르게 처리될 수 있습니다. 가장 이식성 높은 방식은
+`.agents/skills`만 커밋하고 각 개발자가 bootstrap 스크립트를 실행해 두
+어댑터를 만드는 것입니다.

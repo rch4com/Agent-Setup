@@ -244,15 +244,17 @@ function Test-LinkPointsTo {
     }
 }
 
-function Configure-ClaudeSkills {
+function Configure-SkillAdapter {
     param(
         [string]$RepositoryRoot,
+        [string]$ToolName,
+        [string]$RelativeTargetDirectory,
         [string]$Mode
     )
 
     $source = Join-Path $RepositoryRoot ".agents\skills"
-    $claudeDir = Join-Path $RepositoryRoot ".claude"
-    $target = Join-Path $claudeDir "skills"
+    $target = Join-Path $RepositoryRoot $RelativeTargetDirectory
+    $targetParent = Split-Path -Parent $target
 
     Assert-InsideRepository -RepositoryRoot $RepositoryRoot -TargetPath $source
     Assert-InsideRepository -RepositoryRoot $RepositoryRoot -TargetPath $target
@@ -260,7 +262,7 @@ function Configure-ClaudeSkills {
     Assert-NoReparsePointInParents -RepositoryRoot $RepositoryRoot -TargetPath $target
 
     if (Test-LinkPointsTo -LinkPath $target -ExpectedTarget $source) {
-        Write-Info "Claude 스킬 링크 확인: .claude/skills"
+        Write-Info "$ToolName 스킬 링크 확인: $RelativeTargetDirectory"
         return
     }
 
@@ -268,23 +270,23 @@ function Configure-ClaudeSkills {
         $marker = Join-Path $target ".agent-kit-managed-copy"
 
         if (Test-Path -LiteralPath $marker) {
-            Write-Info "Claude 스킬 복제본 동기화: .claude/skills"
+            Write-Info "$ToolName 스킬 복제본 동기화: $RelativeTargetDirectory"
             if (-not $DryRun) {
                 Remove-Item -LiteralPath $target -Recurse -Force
             }
         }
         else {
-            Write-Warning ".claude/skills가 이미 존재하며 agent-kit 관리 대상이 아닙니다. 변경하지 않습니다."
+            Write-Warning "$RelativeTargetDirectory 경로가 이미 존재하며 agent-kit 관리 대상이 아닙니다. 변경하지 않습니다."
             return
         }
     }
 
     if ($DryRun) {
-        Write-Info "Claude 스킬 어댑터 생성 예정 ($Mode)"
+        Write-Info "$ToolName 스킬 어댑터 생성 예정: $RelativeTargetDirectory ($Mode)"
         return
     }
 
-    New-Item -ItemType Directory -Path $claudeDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
 
     $effectiveMode = $Mode
     if ($effectiveMode -eq "Auto") {
@@ -295,7 +297,7 @@ function Configure-ClaudeSkills {
         try {
             # Windows에서는 Junction이 관리자 권한 없이 동작하는 경우가 많습니다.
             New-Item -ItemType Junction -Path $target -Target $source -ErrorAction Stop | Out-Null
-            Write-Info "Claude 스킬 Junction 생성: .claude/skills -> .agents/skills"
+            Write-Info "$ToolName 스킬 Junction 생성: $RelativeTargetDirectory -> .agents/skills"
             return
         }
         catch {
@@ -303,7 +305,7 @@ function Configure-ClaudeSkills {
                 throw
             }
 
-            Write-Warning "Junction 생성에 실패하여 복사 방식으로 전환합니다: $($_.Exception.Message)"
+            Write-Warning "$ToolName Junction 생성에 실패하여 복사 방식으로 전환합니다: $($_.Exception.Message)"
             $effectiveMode = "Copy"
         }
     }
@@ -311,7 +313,7 @@ function Configure-ClaudeSkills {
     if ($effectiveMode -eq "Copy") {
         Copy-Item -LiteralPath $source -Destination $target -Recurse -Force
         New-Item -ItemType File -Path (Join-Path $target ".agent-kit-managed-copy") -Force | Out-Null
-        Write-Info "Claude 스킬 복제본 생성: .claude/skills"
+        Write-Info "$ToolName 스킬 복제본 생성: $RelativeTargetDirectory"
     }
 }
 
@@ -380,8 +382,8 @@ description: Explain when this skill should be used.
 ---
 ```
 
-Claude Code receives these skills through the project-local `.claude/skills`
-adapter created by the bootstrap script. Codex, Gemini CLI, and OpenCode can
+Claude Code and Kiro receive these skills through project-local adapters at
+`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, and Kilo Code
 discover `.agents/skills` directly.
 '@
 
@@ -413,7 +415,8 @@ The bootstrap scripts:
 - never write to user-home or system-wide agent configuration;
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
-- expose `.agents/skills` to Claude Code through a local adapter.
+- expose `.agents/skills` to Claude Code and Kiro through local adapters;
+- rely on Kilo Code's native support for `AGENTS.md` and `.agents/skills`.
 '@
 
 $claudeSettings = @'
@@ -447,11 +450,25 @@ $openCodeConfig = @'
 }
 '@
 
+$kiloConfig = @'
+{
+  // Project-local Kilo Code configuration.
+  // Kilo Code automatically loads ./AGENTS.md and ./.agents/skills/.
+}
+'@
+
+$kiroMcpConfig = @'
+{
+  "mcpServers": {}
+}
+'@
+
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agents\skills"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".agent-kit"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".claude"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".codex"
 Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".gemini"
+Ensure-Directory -RepositoryRoot $repoRoot -RelativePath ".kiro\settings"
 
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "AGENTS.md" -Content $agentsTemplate
 Ensure-ManagedBlock -RepositoryRoot $repoRoot -RelativePath "CLAUDE.md" -Block $claudeBlock
@@ -465,12 +482,25 @@ Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".claude\settings.json" -C
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".codex\config.toml" -Content $codexConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".gemini\settings.json" -Content $geminiSettings
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "opencode.jsonc" -Content $openCodeConfig
+Write-NewFile -RepositoryRoot $repoRoot -RelativePath "kilo.jsonc" -Content $kiloConfig
+Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kiro\settings\mcp.json" -Content $kiroMcpConfig
 
-Configure-ClaudeSkills -RepositoryRoot $repoRoot -Mode $SkillMode
+Configure-SkillAdapter `
+    -RepositoryRoot $repoRoot `
+    -ToolName "Claude Code" `
+    -RelativeTargetDirectory ".claude\skills" `
+    -Mode $SkillMode
+
+Configure-SkillAdapter `
+    -RepositoryRoot $repoRoot `
+    -ToolName "Kiro" `
+    -RelativeTargetDirectory ".kiro\skills" `
+    -Mode $SkillMode
 
 Write-Host ""
 Write-Info "완료되었습니다."
 Write-Info "공통 지침: AGENTS.md"
 Write-Info "공통 스킬: .agents/skills/"
+Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro"
 Write-Info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 Write-Info "기존 설정 파일은 덮어쓰지 않았습니다."
