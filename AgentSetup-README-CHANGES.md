@@ -2,6 +2,17 @@
 
 최신 항목이 위에 옵니다. 상세 사용법은 `AgentSetup-README.md`를 참조하세요.
 
+## Antigravity 지원 (2026-07-18)
+
+- Antigravity(Google 에이전트 IDE/CLI)를 지원 도구에 추가.
+  루트 `AGENTS.md`와 `.agents/` 디렉터리를 네이티브로 인식하므로
+  기존 공유 `AGENTS.md`·`.agents/skills`를 그대로 사용 —
+  import 배선·어댑터·신규 파일이 필요 없음.
+- MCP는 홈 글로벌(`~/.gemini/config/mcp_config.json`)에서만 설정되고
+  프로젝트 스코프 MCP 파일이 없어 스크립트 관리 범위 밖 →
+  agent-installer의 프로젝트 MCP 등록 대상에서도 제외.
+- 생성 문서 문구와 완료 요약의 도구 목록에만 반영(구조 변화 없음).
+
 ## Matt Pocock skills 플러그인 항목 (2026-07-17)
 
 - agent-installer에 `plugin.mattpocock-skills` 추가 — Claude Code

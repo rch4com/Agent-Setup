@@ -341,8 +341,8 @@ description: Explain when this skill should be used.
 
 Claude Code, Kiro, and Grok Build receive these skills through project-local
 adapters at `.claude/skills`, `.kiro/skills`, and `.grok/skills`. Codex,
-Gemini CLI, OpenCode, Kilo Code, and Kimi Code discover `.agents/skills`
-directly.
+Gemini CLI, OpenCode, Kilo Code, Kimi Code, and Antigravity discover
+`.agents/skills` directly.
 EOF
 
 read -r -d '' EXAMPLE_SKILL <<'EOF' || true
@@ -375,8 +375,8 @@ The bootstrap scripts:
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
   local adapters;
-- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
-  and `.agents/skills`.
+- rely on the native support of Kilo Code, Kimi Code, and Antigravity for
+  `AGENTS.md` and `.agents/skills`.
 EOF
 
 read -r -d '' CLAUDE_SETTINGS <<'EOF' || true
@@ -473,6 +473,6 @@ printf '\n'
 info "완료되었습니다."
 info "공통 지침: AGENTS.md"
 info "공통 스킬: .agents/skills/"
-info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build"
+info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build, Antigravity"
 info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 info "기존 설정 파일은 덮어쓰지 않았습니다."

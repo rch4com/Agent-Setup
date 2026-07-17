@@ -1,8 +1,9 @@
 # Repository-local AI agent bootstrap
 
 Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
-Grok Build(xAI grok CLI)를 한 저장소에서 함께 사용할 때 공통 지침과
-공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
+Grok Build(xAI grok CLI), Antigravity(Google 에이전트 IDE/CLI)를 한
+저장소에서 함께 사용할 때 공통 지침과 공통 Agent Skills를 **저장소 범위로만**
+초기화하는 스크립트입니다.
 
 ## 생성되는 구조
 
@@ -58,6 +59,11 @@ repository/
   `.grok/config.toml`(`[mcp_servers.<name>]` 테이블)에 두며, 프로젝트
   스킬 탐색 경로가 `.grok/skills`라서 `.agents/skills`에 연결됩니다.
   플러그인은 `.grok/plugins/`에서 로드됩니다.
+- **Antigravity (Google 에이전트 IDE/CLI):** 루트 `AGENTS.md`와 `.agents/`
+  디렉터리를 네이티브로 인식하므로 `AGENTS.md`와 `.agents/skills`를 그대로
+  사용합니다(import 배선·어댑터 불필요, 신규 파일 없음). MCP는 홈 글로벌
+  (`~/.gemini/config/mcp_config.json`)에서만 설정하고 프로젝트 스코프 MCP
+  파일이 없어 이 스크립트가 관리하는 범위 밖입니다.
 
 ## 안전 원칙
 

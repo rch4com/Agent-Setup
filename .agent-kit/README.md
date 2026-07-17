@@ -12,5 +12,5 @@ The bootstrap scripts:
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
   local adapters;
-- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
-  and `.agents/skills`.
+- rely on the native support of Kilo Code, Kimi Code, and Antigravity for
+  `AGENTS.md` and `.agents/skills`.

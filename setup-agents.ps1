@@ -443,8 +443,8 @@ description: Explain when this skill should be used.
 
 Claude Code, Kiro, and Grok Build receive these skills through project-local
 adapters at `.claude/skills`, `.kiro/skills`, and `.grok/skills`. Codex,
-Gemini CLI, OpenCode, Kilo Code, and Kimi Code discover `.agents/skills`
-directly.
+Gemini CLI, OpenCode, Kilo Code, Kimi Code, and Antigravity discover
+`.agents/skills` directly.
 '@
 
 $exampleSkill = @'
@@ -477,8 +477,8 @@ The bootstrap scripts:
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
   local adapters;
-- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
-  and `.agents/skills`.
+- rely on the native support of Kilo Code, Kimi Code, and Antigravity for
+  `AGENTS.md` and `.agents/skills`.
 '@
 
 $claudeSettings = @'
@@ -594,6 +594,6 @@ Write-Host ""
 Write-Info "완료되었습니다."
 Write-Info "공통 지침: AGENTS.md"
 Write-Info "공통 스킬: .agents/skills/"
-Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build"
+Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build, Antigravity"
 Write-Info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 Write-Info "기존 설정 파일은 덮어쓰지 않았습니다."
