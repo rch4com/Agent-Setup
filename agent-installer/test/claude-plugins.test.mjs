@@ -39,3 +39,26 @@ test('disablePlugin은 항목과 고아 마켓플레이스를 제거한다', () 
   assert.equal(isPluginEnabled(repo, ['bkit@bkit-marketplace']), false)
   assert.equal(s.extraKnownMarketplaces?.['bkit-marketplace'], undefined)
 })
+
+test('배열 양식에서 enablePlugin은 배열에 추가한다', () => {
+  const repo = makeTempRepo()
+  mkdirSync(join(repo, '.claude'), { recursive: true })
+  writeFileSync(settingsPath(repo), '{"enabledPlugins":["superpowers@claude-plugins-official"]}')
+  enablePlugin(repo, 'bkit@bkit-marketplace', { name: 'bkit-marketplace', repo: 'popup-studio-ai/bkit-claude-code' })
+  const s = readJson(settingsPath(repo))
+  assert.deepEqual(s.enabledPlugins, ['superpowers@claude-plugins-official', 'bkit@bkit-marketplace'])
+  assert.equal(isPluginEnabled(repo, ['bkit@bkit-marketplace']), true)
+})
+
+test('배열 양식에서 disablePlugin은 항목 제거와 고아 마켓 정리를 수행한다', () => {
+  const repo = makeTempRepo()
+  mkdirSync(join(repo, '.claude'), { recursive: true })
+  writeFileSync(settingsPath(repo), JSON.stringify({
+    enabledPlugins: ['bkit@bkit-marketplace', 'superpowers@claude-plugins-official'],
+    extraKnownMarketplaces: { 'bkit-marketplace': { source: { source: 'github', repo: 'popup-studio-ai/bkit-claude-code' } } },
+  }))
+  disablePlugin(repo, ['bkit@bkit-marketplace'])
+  const s = readJson(settingsPath(repo))
+  assert.deepEqual(s.enabledPlugins, ['superpowers@claude-plugins-official'])
+  assert.equal(s.extraKnownMarketplaces?.['bkit-marketplace'], undefined)
+})

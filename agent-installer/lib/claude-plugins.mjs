@@ -47,7 +47,8 @@ export function disablePlugin(root, ids) {
   }
   // 고아 마켓플레이스 정리: 남은 플러그인이 참조하지 않는 extraKnownMarketplaces 항목 제거
   const after = readSettings(root)
-  const remaining = enabledList(after).map((e) => e.split('@')[1])
+  // 마켓플레이스 이름은 첫 '@' 뒤 전체 접미사 (ID에 '@'가 여러 개여도 안전)
+  const remaining = enabledList(after).map((e) => e.slice(e.indexOf('@') + 1))
   for (const mkt of Object.keys(after.extraKnownMarketplaces ?? {})) {
     if (!remaining.includes(mkt)) removeKey(file, ['extraKnownMarketplaces', mkt])
   }
