@@ -438,3 +438,4 @@ FodyWeavers.xsd
 
 # agent-installer dependencies
 agent-installer/node_modules/
+.grok/skills

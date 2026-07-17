@@ -1,0 +1,4 @@
+# Repository-local Grok Build configuration.
+# Project scope supports mcp_servers, plugins, and permission rules only.
+# Personal or machine-wide defaults belong in ~/.grok/config.toml.
+# Grok Build reads the root AGENTS.md natively.

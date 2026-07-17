@@ -1,8 +1,8 @@
 # Repository-local AI agent bootstrap
 
-Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code를
-한 저장소에서 함께 사용할 때 공통 지침과 공통 Agent Skills를
-**저장소 범위로만** 초기화하는 스크립트입니다.
+Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
+Grok Build(xAI grok CLI)를 한 저장소에서 함께 사용할 때 공통 지침과
+공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
 
 ## 생성되는 구조
 
@@ -24,6 +24,9 @@ repository/
 │  └─ config.toml
 ├─ .gemini/
 │  └─ settings.json
+├─ .grok/
+│  ├─ config.toml
+│  └─ skills/          # .agents/skills 링크 또는 관리되는 복제본
 ├─ .kiro/
 │  ├─ skills/          # .agents/skills 링크 또는 관리되는 복제본
 │  └─ settings/
@@ -50,6 +53,18 @@ repository/
 - **Kimi Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용합니다.
   프로젝트 MCP 파일은 `.kimi-code/mcp.json`에 생성되며, 머신별 설정인
   `.kimi-code/local.toml`은 `.gitignore`에 추가됩니다.
+- **Grok Build (xAI grok CLI):** 루트 `AGENTS.md`를 직접 읽습니다
+  (커밋 메시지 규약 포함, import 배선 불필요). 프로젝트 설정과 MCP는
+  `.grok/config.toml`(`[mcp_servers.<name>]` 테이블)에 두며, 프로젝트
+  스킬 탐색 경로가 `.grok/skills`라서 `.agents/skills`에 연결됩니다.
+  플러그인은 `.grok/plugins/`에서 로드됩니다.
+
+> **MiniMax CLI(`mmx-cli`)가 없는 이유:** 공식 MiniMax CLI는 코딩
+> 에이전트가 아니라 멀티모달 생성 도구로, AGENTS.md·프로젝트 설정·
+> MCP·플러그인 규약이 존재하지 않아 초기화 대상이 아닙니다
+> (공식 문서: https://platform.minimax.io/docs/token-plan/minimax-cli).
+> 대신 다른 에이전트들이 mmx를 정확히 호출하도록 돕는 공식 스킬을
+> agent-installer의 `skill.minimax` 항목으로 설치할 수 있습니다.
 
 ## 안전 원칙
 
@@ -59,9 +74,10 @@ repository/
 - 홈 디렉터리의 글로벌 설정을 읽거나 수정하지 않습니다.
 - 기존 설정 파일은 덮어쓰지 않습니다.
 - `CLAUDE.md`와 `GEMINI.md`에는 관리 블록이 없을 때만 추가합니다.
-- 기존 `.claude/skills` 또는 `.kiro/skills`가 사용자 관리 경로이면 보존합니다.
-- `.claude/skills`와 `.kiro/skills`를 `.gitignore`에 추가해
-  어댑터(링크/복제본)가 커밋되지 않도록 합니다.
+- 기존 `.claude/skills`, `.kiro/skills`, `.grok/skills`가 사용자 관리
+  경로이면 보존합니다.
+- `.claude/skills`, `.kiro/skills`, `.grok/skills`를 `.gitignore`에
+  추가해 어댑터(링크/복제본)가 커밋되지 않도록 합니다.
 - 머신별 설정인 `.kimi-code/local.toml`도 `.gitignore`에 추가합니다.
 - 반복 실행할 수 있습니다.
 
@@ -79,7 +95,7 @@ PowerShell 7:
 pwsh -File .\setup-agents.ps1
 ```
 
-Claude와 Kiro의 스킬 어댑터 방식:
+Claude, Kiro, Grok Build의 스킬 어댑터 방식:
 
 ```powershell
 # Junction 우선, 실패하면 복사
@@ -105,7 +121,7 @@ chmod +x ./setup-agents.sh
 ./setup-agents.sh
 ```
 
-Claude와 Kiro의 스킬 어댑터 방식:
+Claude, Kiro, Grok Build의 스킬 어댑터 방식:
 
 ```bash
 # 심볼릭 링크 우선, 실패하면 복사
@@ -135,6 +151,7 @@ GEMINI.md
 .claude/settings.json
 .codex/config.toml
 .gemini/settings.json
+.grok/config.toml
 .kiro/settings/mcp.json
 .kimi-code/mcp.json
 opencode.jsonc
@@ -167,10 +184,11 @@ node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 플러그인 | `plugin.superpowers`, `plugin.bkit` | Claude Code 전용, `--scope project` 설치. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 7개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 8개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리) |
+| 스킬 | `skill.minimax` | `npx skills add MiniMax-AI/cli` 프로젝트 설치 — mmx(멀티모달 생성 CLI) 사용법 스킬이 `.agents/skills/mmx-cli`에 설치되어 전 CLI가 공유 (`.gitignore` 자동 처리). mmx 바이너리는 별도로 `npm install -g mmx-cli` |
 
 ### 동작 원칙
 
@@ -197,14 +215,16 @@ GEMINI.md
 .claude/settings.json
 .codex/config.toml
 .gemini/settings.json
+.grok/config.toml
 .kiro/settings/mcp.json
 .kimi-code/mcp.json
 opencode.jsonc
 kilo.jsonc
 ```
 
-`.claude/skills`와 `.kiro/skills`가 로컬 Junction 또는 심볼릭 링크라면 Git과
-운영체제에 따라 다르게 처리될 수 있습니다(Windows에서 git은 Junction을 일반
-디렉터리로 취급해 스킬이 중복 커밋됩니다). 이를 막기 위해 스크립트가 두
-어댑터 경로를 `.gitignore`에 자동 추가합니다. 즉 `.agents/skills`만 커밋하고
-각 개발자가 bootstrap 스크립트를 실행해 두 어댑터를 만드는 방식입니다.
+`.claude/skills`, `.kiro/skills`, `.grok/skills`가 로컬 Junction 또는 심볼릭
+링크라면 Git과 운영체제에 따라 다르게 처리될 수 있습니다(Windows에서 git은
+Junction을 일반 디렉터리로 취급해 스킬이 중복 커밋됩니다). 이를 막기 위해
+스크립트가 세 어댑터 경로를 `.gitignore`에 자동 추가합니다. 즉
+`.agents/skills`만 커밋하고 각 개발자가 bootstrap 스크립트를 실행해
+어댑터들을 만드는 방식입니다.

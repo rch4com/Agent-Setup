@@ -250,7 +250,7 @@ ensure_gitignore_entries() {
   local target header entry
   target="$(safe_path "$REPO_ROOT/.gitignore")"
   header='# agent-kit: local skill adapters (do not commit duplicated skills)'
-  local entries=(".claude/skills" ".kiro/skills" ".kimi-code/local.toml")
+  local entries=(".claude/skills" ".kiro/skills" ".grok/skills" ".kimi-code/local.toml")
   local missing=()
 
   for entry in "${entries[@]}"; do
@@ -339,9 +339,10 @@ description: Explain when this skill should be used.
 ---
 ```
 
-Claude Code and Kiro receive these skills through project-local adapters at
-`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, Kilo Code,
-and Kimi Code discover `.agents/skills` directly.
+Claude Code, Kiro, and Grok Build receive these skills through project-local
+adapters at `.claude/skills`, `.kiro/skills`, and `.grok/skills`. Codex,
+Gemini CLI, OpenCode, Kilo Code, and Kimi Code discover `.agents/skills`
+directly.
 EOF
 
 read -r -d '' EXAMPLE_SKILL <<'EOF' || true
@@ -372,7 +373,8 @@ The bootstrap scripts:
 - never write to user-home or system-wide agent configuration;
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
-- expose `.agents/skills` to Claude Code and Kiro through local adapters;
+- expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
+  local adapters;
 - rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
   and `.agents/skills`.
 EOF
@@ -385,6 +387,13 @@ read -r -d '' CODEX_CONFIG <<'EOF' || true
 # Repository-local Codex configuration.
 # Personal or machine-wide defaults belong outside this repository.
 project_doc_max_bytes = 65536
+EOF
+
+read -r -d '' GROK_CONFIG <<'EOF' || true
+# Repository-local Grok Build configuration.
+# Project scope supports mcp_servers, plugins, and permission rules only.
+# Personal or machine-wide defaults belong in ~/.grok/config.toml.
+# Grok Build reads the root AGENTS.md natively.
 EOF
 
 read -r -d '' GEMINI_SETTINGS <<'EOF' || true
@@ -432,6 +441,7 @@ ensure_dir ".agent-kit"
 ensure_dir ".claude"
 ensure_dir ".codex"
 ensure_dir ".gemini"
+ensure_dir ".grok"
 ensure_dir ".kiro/settings"
 ensure_dir ".kimi-code"
 
@@ -446,6 +456,7 @@ write_new_file ".agent-kit/README.md" "$AGENT_KIT_README"
 write_new_file ".claude/settings.json" "$CLAUDE_SETTINGS"
 write_new_file ".codex/config.toml" "$CODEX_CONFIG"
 write_new_file ".gemini/settings.json" "$GEMINI_SETTINGS"
+write_new_file ".grok/config.toml" "$GROK_CONFIG"
 write_new_file "opencode.jsonc" "$OPENCODE_CONFIG"
 write_new_file "kilo.jsonc" "$KILO_CONFIG"
 write_new_file ".kiro/settings/mcp.json" "$KIRO_MCP_CONFIG"
@@ -453,6 +464,7 @@ write_new_file ".kimi-code/mcp.json" "$KIMI_MCP_CONFIG"
 
 configure_skill_adapter "Claude Code" ".claude/skills" "../.agents/skills"
 configure_skill_adapter "Kiro" ".kiro/skills" "../.agents/skills"
+configure_skill_adapter "Grok Build" ".grok/skills" "../.agents/skills"
 
 # 어댑터 경로는 OS/Git 조합에 따라 스킬이 중복 커밋될 수 있으므로 항상 무시합니다.
 ensure_gitignore_entries
@@ -461,6 +473,6 @@ printf '\n'
 info "완료되었습니다."
 info "공통 지침: AGENTS.md"
 info "공통 스킬: .agents/skills/"
-info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code"
+info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build"
 info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 info "기존 설정 파일은 덮어쓰지 않았습니다."

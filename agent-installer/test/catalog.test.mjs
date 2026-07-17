@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { defineMcp, makeExec } from '../lib/catalog.mjs'
-import { CLIS } from '../lib/clis.mjs'
+import { CLIS, CLI_IDS } from '../lib/clis.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 test('defineMcp: supports에서 빠진 CLI에 사유가 없으면 throw한다', () => {
@@ -16,7 +16,7 @@ test('defineMcp detect: 지원 CLI 전부 등록 시 installed, 일부면 partia
     id: 'mcp.t', label: 'T',
     server: { kind: 'http', url: 'https://t/mcp' },
     supports: ['claude', 'gemini'],
-    unsupported: Object.fromEntries(['codex','opencode','kilo','kiro','kimi'].map((c) => [c, '테스트용 제외'])),
+    unsupported: Object.fromEntries(CLI_IDS.filter((c) => !['claude', 'gemini'].includes(c)).map((c) => [c, '테스트용 제외'])),
   })
   const root = makeTempRepo()
   const ctx = { root, dryRun: false }

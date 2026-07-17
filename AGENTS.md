@@ -22,8 +22,8 @@ This is a script-only repository (no install or build step).
 - Lint: `bash -n ./setup-agents.sh`
 - Full verification: run both dry-run commands above; for behavior changes,
   run both scripts twice in a scratch Git repository and confirm the second
-  run is idempotent and `git status` stages no `.claude/skills` or
-  `.kiro/skills` entries.
+  run is idempotent and `git status` stages no `.claude/skills`,
+  `.kiro/skills`, or `.grok/skills` entries.
 
 ## Commit messages
 

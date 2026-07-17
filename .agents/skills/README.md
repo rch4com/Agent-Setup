@@ -13,6 +13,7 @@ description: Explain when this skill should be used.
 ---
 ```
 
-Claude Code and Kiro receive these skills through project-local adapters at
-`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, and Kilo Code
-discover `.agents/skills` directly.
+Claude Code, Kiro, and Grok Build receive these skills through project-local
+adapters at `.claude/skills`, `.kiro/skills`, and `.grok/skills`. Codex,
+Gemini CLI, OpenCode, Kilo Code, and Kimi Code discover `.agents/skills`
+directly.

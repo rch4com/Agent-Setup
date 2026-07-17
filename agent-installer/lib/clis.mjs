@@ -70,6 +70,12 @@ export const CLIS = {
     ...jsonAdapter('.kimi-code/mcp.json', 'mcpServers', (s) =>
       s.kind === 'http' ? { url: s.url } : { command: s.command, args: s.args }),
   },
+  grok: {
+    label: 'Grok Build',
+    has: (root, name) => hasSection(repoPath(root, '.grok/config.toml'), name),
+    add: (root, name, s) => appendSection(repoPath(root, '.grok/config.toml'), name, tomlLines(s)),
+    remove: (root, name) => removeSection(repoPath(root, '.grok/config.toml'), name),
+  },
 }
 
 export const CLI_IDS = Object.keys(CLIS)

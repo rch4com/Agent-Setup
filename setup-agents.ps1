@@ -441,9 +441,10 @@ description: Explain when this skill should be used.
 ---
 ```
 
-Claude Code and Kiro receive these skills through project-local adapters at
-`.claude/skills` and `.kiro/skills`. Codex, Gemini CLI, OpenCode, Kilo Code,
-and Kimi Code discover `.agents/skills` directly.
+Claude Code, Kiro, and Grok Build receive these skills through project-local
+adapters at `.claude/skills`, `.kiro/skills`, and `.grok/skills`. Codex,
+Gemini CLI, OpenCode, Kilo Code, and Kimi Code discover `.agents/skills`
+directly.
 '@
 
 $exampleSkill = @'
@@ -474,7 +475,8 @@ The bootstrap scripts:
 - never write to user-home or system-wide agent configuration;
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
-- expose `.agents/skills` to Claude Code and Kiro through local adapters;
+- expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
+  local adapters;
 - rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
   and `.agents/skills`.
 '@
@@ -487,6 +489,13 @@ $codexConfig = @'
 # Repository-local Codex configuration.
 # Personal or machine-wide defaults belong outside this repository.
 project_doc_max_bytes = 65536
+'@
+
+$grokConfig = @'
+# Repository-local Grok Build configuration.
+# Project scope supports mcp_servers, plugins, and permission rules only.
+# Personal or machine-wide defaults belong in ~/.grok/config.toml.
+# Grok Build reads the root AGENTS.md natively.
 '@
 
 $geminiSettings = @'
@@ -534,6 +543,7 @@ New-Directory -RepositoryRoot $repoRoot -RelativePath ".agent-kit"
 New-Directory -RepositoryRoot $repoRoot -RelativePath ".claude"
 New-Directory -RepositoryRoot $repoRoot -RelativePath ".codex"
 New-Directory -RepositoryRoot $repoRoot -RelativePath ".gemini"
+New-Directory -RepositoryRoot $repoRoot -RelativePath ".grok"
 New-Directory -RepositoryRoot $repoRoot -RelativePath ".kiro\settings"
 New-Directory -RepositoryRoot $repoRoot -RelativePath ".kimi-code"
 
@@ -548,6 +558,7 @@ Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".agent-kit\README.md" -Co
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".claude\settings.json" -Content $claudeSettings
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".codex\config.toml" -Content $codexConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".gemini\settings.json" -Content $geminiSettings
+Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".grok\config.toml" -Content $grokConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "opencode.jsonc" -Content $openCodeConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath "kilo.jsonc" -Content $kiloConfig
 Write-NewFile -RepositoryRoot $repoRoot -RelativePath ".kiro\settings\mcp.json" -Content $kiroMcpConfig
@@ -565,10 +576,17 @@ Set-SkillAdapter `
     -RelativeTargetDirectory ".kiro\skills" `
     -Mode $SkillMode
 
+Set-SkillAdapter `
+    -RepositoryRoot $repoRoot `
+    -ToolName "Grok Build" `
+    -RelativeTargetDirectory ".grok\skills" `
+    -Mode $SkillMode
+
 # 어댑터 경로(스킬 중복 커밋 방지)와 Kimi Code의 머신별 설정 파일은 항상 무시합니다.
 Add-GitignoreEntries -RepositoryRoot $repoRoot -Entries @(
     ".claude/skills",
     ".kiro/skills",
+    ".grok/skills",
     ".kimi-code/local.toml"
 )
 
@@ -576,6 +594,6 @@ Write-Host ""
 Write-Info "완료되었습니다."
 Write-Info "공통 지침: AGENTS.md"
 Write-Info "공통 스킬: .agents/skills/"
-Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code"
+Write-Info "적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build"
 Write-Info "도구별 설정은 모두 현재 저장소 안에만 생성되었습니다."
 Write-Info "기존 설정 파일은 덮어쓰지 않았습니다."

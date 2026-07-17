@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CLIS, CLI_IDS } from '../lib/clis.mjs'
 import { readJson } from '../lib/jsonfile.mjs'
@@ -42,4 +43,12 @@ test('kilo는 .kilocode/mcp.json에 streamable-http를 쓴다', () => {
   CLIS.kilo.add(repo, 'n', HTTP)
   const entry = readJson(join(repo, '.kilocode/mcp.json')).mcpServers.n
   assert.equal(entry.type, 'streamable-http')
+})
+
+test('grok은 .grok/config.toml에 mcp_servers 테이블을 쓴다', () => {
+  const repo = makeTempRepo()
+  CLIS.grok.add(repo, 'n', HTTP)
+  const text = readFileSync(join(repo, '.grok/config.toml'), 'utf8')
+  assert.match(text, /\[mcp_servers\.n\]/)
+  assert.match(text, /url = "https:\/\/mcp\.notion\.com\/mcp"/)
 })

@@ -10,5 +10,7 @@ The bootstrap scripts:
 - never write to user-home or system-wide agent configuration;
 - preserve existing configuration files;
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
-- expose `.agents/skills` to Claude Code and Kiro through local adapters;
-- rely on Kilo Code's native support for `AGENTS.md` and `.agents/skills`.
+- expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
+  local adapters;
+- rely on the native support of Kilo Code and Kimi Code for `AGENTS.md`
+  and `.agents/skills`.
