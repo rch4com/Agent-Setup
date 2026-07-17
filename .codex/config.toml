@@ -1,0 +1,3 @@
+# Repository-local Codex configuration.
+# Personal or machine-wide defaults belong outside this repository.
+project_doc_max_bytes = 65536

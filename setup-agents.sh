@@ -74,6 +74,12 @@ if ! REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
 fi
 REPO_ROOT="$(realpath "$REPO_ROOT")"
 
+# Git Bash(MSYS)에서 git이 반환한 드라이브 형식(D:/...) 경로를 POSIX 형식으로
+# 정규화합니다. 링크 해석 결과(/d/...)와 형식이 다르면 경로 검사가 오탐합니다.
+if command -v cygpath >/dev/null 2>&1; then
+  REPO_ROOT="$(cygpath -u "$REPO_ROOT")"
+fi
+
 info "저장소 루트: $REPO_ROOT"
 info "글로벌 설정 경로는 읽거나 수정하지 않습니다."
 

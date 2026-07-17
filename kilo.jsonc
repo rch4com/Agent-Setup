@@ -1,0 +1,8 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  // Project-local Kilo Code configuration.
+  // Kilo Code automatically loads ./AGENTS.md and ./.agents/skills/.
+  "commit_message": {
+    "prompt": ".gitmessage.txt 템플릿을 따른다. 형식은 <타입>(<영역>): <주제>이며 타입은 영어 소문자 키워드(feat, fix, docs 등)를 사용한다. 주제와 본문은 반드시 한국어로 작성한다. 주제는 50자 이내·현재형·마침표 금지, 본문은 한 줄 72자 이내로 왜 변경했는지 설명한다."
+  }
+}

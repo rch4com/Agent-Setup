@@ -1,0 +1,12 @@
+{
+  "skills": {
+    "enabled": true
+  },
+  "security": {
+    "folderTrust": {
+      "enabled": true
+    },
+    "disableAlwaysAllow": true,
+    "enablePermanentToolApproval": false
+  }
+}
