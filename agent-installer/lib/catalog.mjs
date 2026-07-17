@@ -39,7 +39,13 @@ export function makeExec(dryRun, log = console.log) {
       return { ok: true, output: '' }
     }
     try {
-      const output = execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+      const output = execFileSync(cmd, args, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        // Windows에서는 npx/claude가 .cmd 심이라 shell 경유가 필요하다.
+        shell: process.platform === 'win32',
+        ...opts,
+      })
       return { ok: true, output }
     } catch (err) {
       return { ok: false, output: String(err.stderr ?? err.message) }
