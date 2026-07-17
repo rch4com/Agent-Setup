@@ -146,25 +146,50 @@ kilo.jsonc
 
 ## 선택 항목 설치기 (agent-installer)
 
-플러그인·MCP·스킬을 체크박스로 골라 설치/제거합니다.
+플러그인·MCP·스킬을 체크박스로 골라 설치/제거하는 콘솔 도구입니다.
+체크하고 Submit하면 설치되고, 다시 실행하면 실제 환경을 스캔해 설치된
+항목이 미리 체크되어 표시되며, 체크를 해제하면 제거됩니다.
 
 ```bash
-node agent-installer/install.mjs            # 대화형
-node agent-installer/install.mjs --dry-run  # 변경 없이 확인
-node agent-installer/install.mjs --list     # 현재 상태만 출력
+cd agent-installer && npm install && cd ..    # 최초 1회 (의존성 설치)
+
+node agent-installer/install.mjs              # 대화형: 체크 = 설치, 해제 = 제거
+node agent-installer/install.mjs --list       # 현재 상태만 출력
+node agent-installer/install.mjs --dry-run    # 변경 없이 수행 내용 확인
+node agent-installer/install.mjs --set mcp.notion,plugin.bkit
+                                              # 비대화형: 지정 집합을 목표 상태로
+node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드시 명시,
+                                              #  값을 생략하면 오류로 종료)
 ```
 
-- 설치 상태는 파일에 저장되지 않고 실행 시 실제 설정을 스캔해 판정합니다.
-- 항목 추가는 `agent-installer/lib/items/`에 파일 하나를 추가하면 됩니다.
-- MCP는 7개 CLI 프로젝트 설정에 동시 등록됩니다.
-- `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다
-  (최초 1회 `npm install` 필요).
+### 설치 가능한 항목
+
+| 구분 | 항목 | 비고 |
+|---|---|---|
+| 플러그인 | `plugin.superpowers`, `plugin.bkit` | Claude Code 전용, `--scope project` 설치. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 7개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
+| MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
+| 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치 |
+| 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리) |
+
+### 동작 원칙
+
+- 상태 파일이 없습니다 — 실행할 때마다 실제 설정 파일을 스캔해 판정하므로
+  수동으로 설치·제거해도 항상 정확히 반영됩니다.
+- 일부 CLI에만 등록된 MCP는 `(일부 설치됨)`으로 표시되고, 체크를 유지한 채
+  Submit하면 누락된 CLI에만 보완 설치됩니다.
+- 기존 설정 파일의 다른 키·주석은 보존하며, 변경 내용은 `git diff`로
+  확인할 수 있습니다.
+- 새 항목 추가 = `agent-installer/lib/items/`에 파일 1개
+  (`defineMcp`/`definePlugin`/`defineSkill` 팩토리 사용, MCP는 5줄이면 충분).
+- `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다.
 
 ## 팀 저장소에 넣을 파일
 
 ```text
 setup-agents.ps1
 setup-agents.sh
+agent-installer/          # node_modules 제외 (.gitignore 처리됨)
 AGENTS.md
 CLAUDE.md
 GEMINI.md
