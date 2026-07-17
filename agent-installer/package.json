@@ -1,0 +1,15 @@
+{
+  "name": "agent-installer",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node install.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "jsonc-parser": "^3.3.1",
+    "smol-toml": "^1.3.1"
+  }
+}

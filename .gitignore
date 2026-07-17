@@ -435,3 +435,6 @@ FodyWeavers.xsd
 .omc/
 .bkit/
 .kimi-code/local.toml
+
+# agent-installer dependencies
+agent-installer/node_modules/
