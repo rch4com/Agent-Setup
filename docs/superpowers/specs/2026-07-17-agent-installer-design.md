@@ -19,7 +19,7 @@ plugin, MCP, skill을 체크박스로 골라 설치하는 콘솔 대화 도구�
 | MCP 등록 대상 | 7개 CLI 프로젝트 설정에 동시 등록 (Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code) |
 | 구현 기술 | Node.js + @clack/prompts (체크박스 멀티셀렉트 UI) |
 | 상태 유지 | **순수 환경 스캔(stateless)** — 상태 파일 없음, 실제 설정 파일이 곧 상태 |
-| 플러그인 설치 | claude CLI 호출 방식 (`claude plugin install <name>@<marketplace> --scope project`), claude 명령 부재 시 해당 항목만 실패 처리 후 안내 |
+| 플러그인 설치 | claude CLI 호출(A) 시도 → 실패 시 `.claude/settings.json` 직접 기록(B)으로 폴백. 폴백 시 실제 다운로드는 다음 Claude Code 실행 때 이루어짐을 리포트에 명시 |
 | 독립 실행 | `agent-installer/` 폴더 하나가 자기완결 — 다른 저장소에 통째로 복사해도 동작 |
 
 ## 초기 카탈로그 항목
@@ -104,12 +104,16 @@ export default {
 
 ## 항목별 메커니즘
 
-### 플러그인 (claude CLI 호출)
+### 플러그인 (A: claude CLI 호출 → 실패 시 B: 설정 직접 기록 폴백)
 
-- 설치: `claude plugin marketplace add <repo>` → `claude plugin install <name>@<marketplace> --scope project`
-- 제거: `claude plugin uninstall <name>@<marketplace>`
-- 감지: `.claude/settings.json`의 `enabledPlugins`에 `<name>@<marketplace>` 존재 여부
-- claude 명령 부재 시: 해당 항목만 실패 처리, "Claude Code 설치 필요" 안내. 다른 항목은 계속 진행.
+- 설치(A, 기본): `claude plugin marketplace add <repo>` → `claude plugin install <name>@<marketplace> --scope project`. 다운로드·검증까지 즉시 완료.
+- 설치(B, 폴백): claude 명령이 없거나 A가 실패하면 `.claude/settings.json`에 직접 기록:
+  - `enabledPlugins`에 `<name>@<marketplace>` 추가
+  - `extraKnownMarketplaces`에 마켓플레이스 GitHub 소스 추가
+  - 리포트에 상태를 구분해 표시: `설정 기록됨 — 다음 Claude Code 실행 시 다운로드됩니다` (A 성공 시에는 `설치 완료`)
+- 제거: claude 명령이 있으면 `claude plugin uninstall <name>@<marketplace>`, 없으면 `enabledPlugins`에서 항목 제거(해당 마켓플레이스를 쓰는 다른 플러그인이 없으면 `extraKnownMarketplaces` 항목도 제거).
+- 감지: `.claude/settings.json`의 `enabledPlugins`에 `<name>@<marketplace>` 존재 여부 (A/B 어느 쪽으로 설치했든 동일하게 판정됨).
+- B 폴백의 쓰기도 실패한 경우에만 항목 실패로 리포트. 다른 항목은 계속 진행.
 
 ### MCP (설정 파일 보존적 편집)
 
@@ -140,7 +144,7 @@ CLI별 프로젝트 설정 위치와 키:
 ## 테스트
 
 - 스크래치 git 저장소 E2E: 비대화형 모드로 설치 → 재스캔 installed 판정 → 제거 → absent 판정.
-- `node:test` 단위 테스트: writers(JSONC/TOML 보존 병합·삭제), detect 판정(installed/partial/absent), 카탈로그 검증(unsupported 사유 누락 시 오류).
+- `node:test` 단위 테스트: writers(JSONC/TOML 보존 병합·삭제), detect 판정(installed/partial/absent), 카탈로그 검증(unsupported 사유 누락 시 오류), 플러그인 B 폴백 쓰기(enabledPlugins·extraKnownMarketplaces 추가/제거).
 - 이 저장소에서 `--dry-run` 확인.
 
 ## 구현 단계에서 확인할 외부 사실
