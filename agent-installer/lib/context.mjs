@@ -44,14 +44,19 @@ export function repoPathStrict(root, rel) {
   }
 
   let realProbe
-  let realRoot
   try {
     realProbe = realpathSync(probe)
-    realRoot = realpathSync(root)
   } catch (err) {
     // 경합으로 사라졌거나(ENOENT) 링크가 순환하는(ELOOP) 경우다.
     // 원인을 알 수 없는 raw 예외 대신 진단 가능한 메시지로 바꾼다.
     throw new Error(`경로를 확인할 수 없습니다: ${probe} (${err.code ?? err.message})`)
+  }
+
+  let realRoot
+  try {
+    realRoot = realpathSync(root)
+  } catch (err) {
+    throw new Error(`경로를 확인할 수 없습니다: ${root} (${err.code ?? err.message})`)
   }
   if (realProbe !== realRoot && !realProbe.startsWith(realRoot + sep)) {
     throw new Error(`저장소 내부 경로가 외부 링크를 통해 이탈합니다: ${probe} -> ${realProbe}`)

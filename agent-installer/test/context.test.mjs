@@ -54,6 +54,14 @@ test('repoPathStrict: 경로 확인에 실패하면 진단 가능한 오류를 �
   const missingRoot = join(makeTempRepo(), 'never-created')
   assert.throws(
     () => repoPathStrict(missingRoot, 'a.txt'),
-    /경로를 확인할 수 없습니다/,
+    (err) => {
+      assert.match(err.message, /경로를 확인할 수 없습니다/)
+      // 실패한 것은 root다 — 멀쩡한 조상 경로가 아니라 이 경로가 지목되어야 한다.
+      assert.ok(
+        err.message.includes('never-created'),
+        `실패한 경로가 메시지에 없다: ${err.message}`,
+      )
+      return true
+    },
   )
 })
