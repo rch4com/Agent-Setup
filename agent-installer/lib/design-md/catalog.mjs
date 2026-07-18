@@ -27,10 +27,21 @@ export function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
+// 경로 세그먼트 하나로 안전한 이름인지 본다. 한글 등 유니코드는 허용하되
+// 경로 구분자·상위 이동·Windows 금지 문자·제어문자는 막는다.
+// (name은 원격 README 파싱이나 디렉터리 스캔에서 오므로 신뢰 경계 밖이다.)
+export function isSafeSegment(text) {
+  const value = String(text ?? '')
+  // 선행·후행 점은 숨김 파일이자 Windows에서 다루기 어려운 이름이다('.', '..' 포함).
+  if (!value || value.startsWith('.') || value.endsWith('.')) return false
+  // eslint-disable-next-line no-control-regex
+  return !/[\\/:*?"<>|\x00-\x1f]/.test(value)
+}
+
 // 설치·번들 경로는 제공자별로 스코프한다: design-md/<provider>/<name>/DESIGN.md.
 // 동명 항목이 여러 제공자에 있어도 충돌 없이 공존한다.
 function designPaths(root, providerId, name) {
-  if (/[\\/]/.test(providerId) || /[\\/]/.test(name)) {
+  if (!isSafeSegment(providerId) || !isSafeSegment(name)) {
     throw new Error(`잘못된 design.md 식별자: ${providerId}/${name}`)
   }
   const dir = repoPath(root, `design-md/${providerId}/${name}`)
@@ -46,6 +57,7 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
     id: `design.${providerId}.${name}`,
     category: 'design',
     providerId,
+    local: provider.local === true, // 디렉터리 스캔으로 찾은 로컬(사내) 정의
     name,
     label,
     designCategory: category,
@@ -84,20 +96,59 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
   }
 }
 
-// 캐시 카탈로그 → item 배열. 알 수 없는 프로바이더 엔트리는 건너뛴다.
-// id가 제공자별로 유일하므로 동명 항목이 붕괴하지 않는다. (provider, name)순 정렬.
-export function buildItems(catalog, { fetchImpl, providers = PROVIDERS } = {}) {
-  const byId = new Map(providers.map((p) => [p.id, p]))
-  const items = []
-  const seen = new Set()
-  for (const [providerId, block] of Object.entries(catalog.providers ?? {})) {
-    const provider = byId.get(providerId) ?? getProvider(providerId)
+// 큐레이션된 카탈로그 값이 우선, 비어 있으면 스캔에서 얻은 값으로 채운다.
+function mergeEntry(scanned, curated) {
+  if (!scanned) return curated
+  const pick = (a, b) => (a != null && String(a).trim() !== '' ? a : b)
+  return {
+    ...scanned,
+    ...curated,
+    label: pick(curated.label, scanned.label),
+    category: pick(curated.category, scanned.category),
+    description: pick(curated.description, scanned.description),
+  }
+}
+
+// 카탈로그 + 디렉터리 스캔 소스 → item 배열.
+// 디렉터리로 발견한 소스는 프로바이더 등록 없이도 목록에 오르고(사내 오프라인 정의),
+// 등록된 프로바이더가 있으면 그쪽(네트워크·웹 미리보기 지원)을 쓴다.
+// 카탈로그에만 있고 프로바이더도 스캔 결과도 없는 엔트리는 다룰 방법이 없어 건너뛴다.
+// id가 소스별로 유일하므로 동명 항목이 붕괴하지 않는다. (provider, name)순 정렬.
+export function buildItems(catalog, { fetchImpl, providers = PROVIDERS, sources = [] } = {}) {
+  const registered = new Map(providers.map((p) => [p.id, p]))
+  const blocks = new Map() // sourceId → { provider, entries: Map<name, entry> }
+
+  const blockFor = (id, provider) => {
+    let block = blocks.get(id)
+    if (!block) {
+      block = { provider, entries: new Map() }
+      blocks.set(id, block)
+    }
+    return block
+  }
+
+  // 1) 디렉터리 스캔 — 등록 여부와 무관하게 목록에 올린다.
+  for (const source of sources) {
+    const provider = registered.get(source.id) ?? getProvider(source.id) ?? source.provider
     if (!provider) continue
-    for (const entry of block.entries ?? []) {
-      const item = defineDesignMd(entry, provider, { fetchImpl })
-      if (seen.has(item.id)) continue
-      seen.add(item.id)
-      items.push(item)
+    const block = blockFor(source.id, provider)
+    for (const entry of source.entries ?? []) block.entries.set(entry.name, entry)
+  }
+
+  // 2) 카탈로그 — 라벨·카테고리·설명을 보강하고, 아직 없는 항목을 추가한다.
+  for (const [providerId, catalogBlock] of Object.entries(catalog.providers ?? {})) {
+    const provider = registered.get(providerId) ?? getProvider(providerId) ?? blocks.get(providerId)?.provider
+    if (!provider) continue
+    const block = blockFor(providerId, provider)
+    for (const entry of catalogBlock.entries ?? []) {
+      block.entries.set(entry.name, mergeEntry(block.entries.get(entry.name), entry))
+    }
+  }
+
+  const items = []
+  for (const block of blocks.values()) {
+    for (const entry of block.entries.values()) {
+      items.push(defineDesignMd(entry, block.provider, { fetchImpl }))
     }
   }
   return items.sort((a, b) => a.providerId.localeCompare(b.providerId) || a.name.localeCompare(b.name))

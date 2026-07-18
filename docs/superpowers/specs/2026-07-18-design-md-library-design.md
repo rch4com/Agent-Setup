@@ -31,6 +31,8 @@
 | 미리보기 | **브라우저로 getdesign.md 페이지 오픈(OS 레벨).** `https://getdesign.md/<name>/design-md` (사이트 자체 라이트/다크·Live Preview 제공). 다운로드 불필요 |
 | 항목 모델 | design.md도 item 인터페이스(`detect/install/uninstall`)를 따르되 `lib/items/`가 아니라 캐시 인덱스에서 런타임 생성 → `engine.mjs` 재사용 |
 | 오프라인 번들 | 74개 DESIGN.md를 `lib/design-md/cache/<provider>/<name>/DESIGN.md`에 동봉. 설치는 번들 우선(네트워크 0), 없으면 폴백. 업데이트/동기화는 `fresh`로 네트워크 최신. `npm run refresh-bundle`로 재생성 |
+| 디렉터리 스캔 | **프로바이더 없이 디렉터리 구조만으로 검색·리스트업.** `cache/` 하위와 `--design-dir`/`AGENT_INSTALLER_DESIGN_MD_DIRS`로 지정한 외부 경로를 스캔해 `<소스>/<카테고리…>/<이름>/DESIGN.md`를 항목으로 만든다. 사내 오프라인 정의를 코드 수정 없이 포함하기 위한 경로 |
+| 로컬 메타데이터 | 경로 + 파일 내용에서 추출. frontmatter(`title`/`category`/`description`) 우선, 없으면 첫 제목 → 라벨, 첫 문단 → 설명, 중간 경로 → 카테고리(없으면 `사내`, 번들은 `기타`) |
 
 ## 아키텍처
 
@@ -42,7 +44,8 @@ agent-installer/
    ├─ context.mjs                  # repoPath 안전 가드 (재사용)
    └─ design-md/
       ├─ catalog.json              # 번들 캐시 인덱스 (동봉·커밋, 새로고침이 덮어씀)
-      ├─ catalog.mjs               # 인덱스 로드/저장, defineDesignMd(entry, provider)
+      ├─ catalog.mjs               # 인덱스 로드/저장, defineDesignMd, buildItems(카탈로그+스캔 병합)
+      ├─ scan.mjs                  # 디렉터리 스캔: 소스 발견·메타데이터 추출·디렉터리 프로바이더
       ├─ flow.mjs                  # 대화형 UI: 탭/검색/미리보기/동기화 (@clack/prompts)
       ├─ open.mjs                  # makeOpener(주입 가능) + openPreview(webUrl)
       ├─ cache/<provider>/<name>/DESIGN.md  # 오프라인 번들 (동봉·커밋, npm run refresh-bundle)
@@ -72,6 +75,39 @@ agent-installer/
   tree엔 있으나 README에 없는 항목은 `기타`.
 - getdesign.md 등은 같은 인터페이스로 추후 추가(v1 범위 밖).
 - `fetch`는 **주입 가능**(기본 전역 fetch) → 테스트에서 가짜로 대체, 실네트워크 없음.
+- **디렉터리 프로바이더**(`makeDirProvider`)는 스캔 결과로 런타임 생성된다. `webUrl`은
+  `null`(웹 미리보기 없음), `fetchFile`은 로컬 파일을 돌려준다 — 디렉터리가 곧 원본이라
+  `fresh` 업데이트도 네트워크를 타지 않는다.
+
+### 디렉터리 스캔 (scan.mjs)
+
+```text
+<소스 루트>/<카테고리…>/<이름>/DESIGN.md
+```
+
+- 소스 루트 = `lib/design-md/cache/` 하위 디렉터리 각각 + `--design-dir`(반복 지정,
+  `<소스id>=<경로>` 형식 가능) + `AGENT_INSTALLER_DESIGN_MD_DIRS`(OS 경로 구분자).
+- design 파일이 있는 폴더가 리프(항목)다 — 그 안쪽으로는 더 내려가지 않는다.
+  파일명은 `DESIGN.md`/`design.md`를 대소문자 없이 인식한다(사내 문서는 소문자가 흔하고,
+  대소문자를 구분하는 파일시스템에서 누락되면 안 된다). 최대 깊이 5,
+  숨김·`node_modules`·`.git`은 건너뛴다. 디렉터리당 `readdir` 1회만 쓴다.
+- 메타데이터는 파일 앞 4KB만 읽어 추출한다: frontmatter → 첫 제목 → 첫 문단 순서.
+  단 getdesign.md 형식은 디자인 토큰 전체가 frontmatter라 수 KB에 이르므로, 닫는
+  구분자가 창을 넘으면 64KB까지 늘려 다시 읽는다. 그래도 닫히지 않으면 본문 후보를
+  비워 `version: alpha` 같은 frontmatter 줄이 설명으로 새지 않게 한다.
+  frontmatter는 최상위 키만 본다(들여쓴 줄은 중첩 토큰). 코드펜스 안쪽·표·목록·인용은
+  설명 후보에서 제외한다.
+- 소스 id는 설치 경로에 쓰이므로 경로 위험 문자만 걷어내고 유니코드(한글)는 보존한다.
+  겹치면 `-2` 접미사. **등록된 프로바이더 id는 번들 전용**이라 외부 경로가 그 id를
+  요구하면 비켜 간다 — 그러지 않으면 로컬 파일 대신 네트워크로 나가고 사내 이름이
+  외부 URL로 새어 나간다.
+- 소스 안에서 이름은 유일해야 한다(설치 경로가 `design-md/<소스>/<이름>/`). 카테고리만
+  다른 동명 항목은 카테고리를 접두사로 붙여(`웹-버튼`) 둘 다 보존하고 로그로 알린다.
+- **병합 규칙**(`buildItems`): 스캔이 먼저 항목을 만들고, 카탈로그가 라벨·카테고리·
+  설명을 덮어쓴다(빈 값은 스캔 값 유지). 등록된 프로바이더가 있으면 그쪽을 쓰고
+  (네트워크·웹 미리보기 유지), 없으면 디렉터리 프로바이더를 쓴다. 카탈로그에만 있고
+  프로바이더도 디렉터리도 없는 엔트리는 다룰 방법이 없어 건너뛴다.
+- `--sync=catalog`는 등록된 프로바이더만 갱신하므로 사내 항목을 지우지 않는다.
 
 ### 캐시 인덱스 (`catalog.json`)
 
@@ -174,6 +210,7 @@ export function makeOpener(dryRun, log) {
   이름 중복 시 `provider/name` 필요)
 - `node install.mjs design --sync=installed|catalog|stale`
 - `node install.mjs design --preview stripe,vercel` (getdesign.md 페이지 오픈)
+- `node install.mjs design --list --design-dir 사내=//nas/design` (반복 지정 가능)
 - `--dry-run`
 
 ## 오류 처리·안전

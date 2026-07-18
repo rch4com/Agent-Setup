@@ -1,7 +1,8 @@
 import * as p from '@clack/prompts'
 import { scan, planChanges, apply } from '../engine.mjs'
-import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens } from './catalog.mjs'
+import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens, CATALOG_PATH } from './catalog.mjs'
 import { PROVIDERS } from './providers/index.mjs'
+import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부', absent: '미설치' }
@@ -41,7 +42,7 @@ function printList(states, log) {
     byProvider.get(s.item.providerId).push(s)
   }
   for (const [pid, group] of byProvider) {
-    log(`[${pid}]`)
+    log(`[${pid}${group[0].item.local ? ' · 로컬' : ''}]`)
     for (const s of group) {
       log(`  ${STATUS_LABEL[s.status].padEnd(4)} ${s.item.name} — ${s.item.label} [${s.item.designCategory}]`)
     }
@@ -81,7 +82,7 @@ async function installedItems(root, items) {
   return out
 }
 
-async function refreshCatalog({ dryRun, fetchImpl, log }) {
+async function refreshCatalog({ dryRun, fetchImpl, log, catalogFile = CATALOG_PATH }) {
   const next = { updatedAt: new Date().toISOString(), providers: {} }
   for (const provider of PROVIDERS) {
     try {
@@ -94,7 +95,7 @@ async function refreshCatalog({ dryRun, fetchImpl, log }) {
   }
   const total = allEntries(next).length
   if (total === 0) { log('가져온 항목이 없어 카탈로그를 갱신하지 않습니다.'); return { total: 0 } }
-  if (!dryRun) saveCatalog(next)
+  if (!dryRun) saveCatalog(next, catalogFile)
   log(dryRun ? `  [dry-run] ${total}개로 갱신 예정` : `카탈로그 갱신됨: ${total}개`)
   return { total }
 }
@@ -126,6 +127,19 @@ async function findStale(root, items, { log }) {
   return stale
 }
 
+// 실제로 항목이 있는 소스만 라벨로 표기한다(등록 프로바이더 → 카탈로그 → 스캔 순).
+function describeSources(items, catalog, sources) {
+  const labels = new Map()
+  for (const [id, block] of Object.entries(catalog.providers ?? {})) {
+    if (block.label) labels.set(id, block.label)
+  }
+  for (const source of sources) if (!labels.has(source.id)) labels.set(source.id, source.label)
+  for (const provider of PROVIDERS) if (provider.label) labels.set(provider.id, provider.label)
+
+  const present = [...new Set(items.map((i) => i.providerId))]
+  return present.map((id) => labels.get(id) ?? id).join(', ') || '(없음)'
+}
+
 // ── 진입점 ────────────────────────────────────────────────────────
 
 export async function runDesign(root, opts = {}) {
@@ -138,12 +152,21 @@ export async function runDesign(root, opts = {}) {
     interactive = false,
     fetchImpl = fetch,
     log = console.log,
+    designDirs = [],
+    env = process.env,
+    catalogFile = CATALOG_PATH,
   } = opts
   const opener = opts.opener ?? makeOpener(dryRun, log)
 
-  const catalog = loadCatalog()
-  const items = buildItems(catalog, { fetchImpl })
-  const sourceLabel = Object.values(catalog.providers ?? {}).map((p) => p.label ?? '').filter(Boolean).join(', ') || '(없음)'
+  const catalog = loadCatalog(catalogFile)
+  // 디렉터리 스캔이 먼저다 — 프로바이더 등록 없이도 사내 정의가 목록에 오른다.
+  const sources = opts.sources ?? discoverSources({
+    ...(opts.bundleDir ? { bundleDir: opts.bundleDir } : {}),
+    extraDirs: [...extraDirsFromEnv(env), ...designDirs],
+    log,
+  })
+  const items = buildItems(catalog, { fetchImpl, sources })
+  const sourceLabel = describeSources(items, catalog, sources)
 
   if (list) {
     printList(await scan(root, items), log)
@@ -154,7 +177,7 @@ export async function runDesign(root, opts = {}) {
     return
   }
   if (sync != null) {
-    await runSync(root, items, catalog, { op: sync, dryRun, fetchImpl, log, interactive: false })
+    await runSync(root, items, catalog, { op: sync, dryRun, fetchImpl, log, interactive: false, catalogFile })
     return
   }
   if (set != null) {
@@ -165,10 +188,10 @@ export async function runDesign(root, opts = {}) {
   if (!interactive) { printList(await scan(root, items), log); return }
 
   const multiProvider = new Set(items.map((i) => i.providerId)).size > 1
-  await interactiveLoop(root, items, catalog, { dryRun, fetchImpl, log, opener, sourceLabel, multiProvider })
+  await interactiveLoop(root, items, catalog, { dryRun, fetchImpl, log, opener, sourceLabel, multiProvider, catalogFile })
 }
 
-async function runSync(root, items, catalog, { op, dryRun, fetchImpl, log, interactive }) {
+async function runSync(root, items, catalog, { op, dryRun, fetchImpl, log, interactive, catalogFile }) {
   let chosen = op
   if (!chosen && interactive) {
     chosen = await p.select({
@@ -181,7 +204,7 @@ async function runSync(root, items, catalog, { op, dryRun, fetchImpl, log, inter
     })
     if (p.isCancel(chosen)) return
   }
-  if (chosen === 'catalog') { await refreshCatalog({ dryRun, fetchImpl, log }); return }
+  if (chosen === 'catalog') { await refreshCatalog({ dryRun, fetchImpl, log, catalogFile }); return }
   if (chosen === 'installed') { await updateInstalled(root, items, { dryRun, log }); return }
   if (chosen === 'stale') {
     const stale = await findStale(root, items, { log })
@@ -236,7 +259,7 @@ async function interactiveLoop(root, items, catalog, ctx) {
         await previewBrowse(root, scope, ctx)
       }
     } else if (action === 'sync') {
-      await runSync(root, items, catalog, { op: null, dryRun: ctx.dryRun, fetchImpl: ctx.fetchImpl, log: ctx.log, interactive: true })
+      await runSync(root, items, catalog, { op: null, dryRun: ctx.dryRun, fetchImpl: ctx.fetchImpl, log: ctx.log, interactive: true, catalogFile: ctx.catalogFile })
     }
   }
   p.outro('완료')

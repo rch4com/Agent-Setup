@@ -235,6 +235,42 @@ node agent-installer/install.mjs design --sync=stale     # 원본과 달라진 �
 - **중복 처리**: `--set`·`--preview`는 `이름` 또는 `제공자/이름`을 받습니다. 같은 이름이
   여러 제공자에 있으면 `제공자/이름`으로 지정해야 합니다.
 - 소스 추가 = `agent-installer/lib/design-md/providers/`에 프로바이더 1개 등록.
+  다만 아래처럼 **디렉터리만 놓아도** 프로바이더 없이 목록에 오릅니다.
+
+#### 사내 오프라인 DESIGN.md 포함하기
+
+프로바이더 코드를 쓰지 않고 **디렉터리 구조만으로** 검색·리스트업됩니다.
+`DESIGN.md`가 든 폴더가 곧 하나의 항목이고, 그 위 경로가 카테고리입니다.
+
+```text
+<소스>/<카테고리…>/<이름>/DESIGN.md
+```
+
+두 가지 방법 중 편한 쪽을 쓰면 됩니다.
+
+```bash
+# 1) 번들 캐시에 그대로 넣기 — 인스톨러를 복사하면 함께 따라갑니다
+agent-installer/lib/design-md/cache/사내/핀테크/checkout/DESIGN.md
+
+# 2) 외부 경로 지정 — 사내 공유 드라이브·별도 저장소를 그대로 연결
+node agent-installer/install.mjs design --list --design-dir 사내=//nas/design
+export AGENT_INSTALLER_DESIGN_MD_DIRS="사내=//nas/design"   # 경로 구분자: Windows `;`, POSIX `:`
+```
+
+- 파일명은 `DESIGN.md`·`design.md` 어느 쪽이든 됩니다(대소문자 무시).
+- 라벨·카테고리·설명은 **경로 + 파일 내용**에서 자동으로 채웁니다. frontmatter의
+  `title`/`name`/`category`/`description`이 있으면 우선하고(디자인 토큰이 담긴 수 KB짜리
+  frontmatter도 읽습니다), 없으면 첫 제목이 라벨, 첫 문단이 설명, 중간 경로가
+  카테고리(없으면 `사내`)가 됩니다.
+- 같은 이름이 카테고리만 다르게 있으면(`웹/버튼`, `모바일/버튼`) 뒤에 온 쪽에
+  카테고리를 접두사로 붙여(`웹-버튼`) 둘 다 보존하고 그 사실을 알립니다.
+- 로컬 정의는 네트워크를 쓰지 않습니다. 설치는 파일 복사이고, `--sync=installed`도
+  같은 디렉터리를 원본으로 삼습니다. getdesign.md 페이지가 없으므로 미리보기는
+  안내만 표시합니다.
+- `--design-dir <경로>`처럼 이름을 생략하면 폴더명이 소스 id가 되고, 겹치거나
+  등록된 제공자 id와 충돌하면 `-2` 같은 접미사가 붙습니다(사내 항목이 외부
+  네트워크로 새지 않도록). `--sync=catalog`는 원격 제공자만 갱신하므로
+  사내 항목을 지우지 않습니다.
 
 ## 팀 저장소에 넣을 파일
 

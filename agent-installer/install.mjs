@@ -29,10 +29,29 @@ function requireValue(argv, name) {
   return value
 }
 
+// 반복 지정 가능한 플래그 값 수집: `--flag <값>` 과 `--flag=<값>` 둘 다 받는다.
+function collectValues(argv, name) {
+  const values = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === name) {
+      const value = argv[i + 1]
+      if (value === undefined || value.startsWith('--')) throw new Error(`${name} 뒤에 값이 필요합니다.`)
+      values.push(value)
+      i++
+    } else if (argv[i].startsWith(`${name}=`)) {
+      const value = argv[i].slice(name.length + 1)
+      if (!value) throw new Error(`${name} 뒤에 값이 필요합니다.`)
+      values.push(value)
+    }
+  }
+  return values
+}
+
 // `design` 서브커맨드 플래그 파싱.
 function parseDesignArgs(argv) {
   const dryRun = argv.includes('--dry-run')
   const list = argv.includes('--list')
+  const designDirs = collectValues(argv, '--design-dir')
   let set = null
   if (argv.includes('--set')) {
     const value = argv[argv.indexOf('--set') + 1]
@@ -51,10 +70,10 @@ function parseDesignArgs(argv) {
     sync = m[1]
   }
   const interactive = !list && set === null && preview === null && sync === null
-  return { dryRun, list, set, preview, sync, interactive }
+  return { dryRun, list, set, preview, sync, interactive, designDirs }
 }
 
-async function runClassic(root, { dryRun, listOnly, setArg }) {
+async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
   const items = await loadItems()
   const states = await scan(root, items)
 
@@ -78,7 +97,7 @@ async function runClassic(root, { dryRun, listOnly, setArg }) {
       ],
     })
     if (p.isCancel(mode)) { p.cancel('취소되었습니다.'); return }
-    if (mode === 'design') { await runDesign(root, { interactive: true, dryRun }); return }
+    if (mode === 'design') { await runDesign(root, { interactive: true, dryRun, designDirs }); return }
 
     const byCategory = { plugin: '플러그인', mcp: 'MCP 서버', skill: '스킬' }
     const selection = await p.groupMultiselect({
@@ -139,7 +158,7 @@ async function main() {
     setArg = value
   }
 
-  await runClassic(root, { dryRun, listOnly, setArg })
+  await runClassic(root, { dryRun, listOnly, setArg, designDirs: collectValues(argv, '--design-dir') })
 }
 
 main().catch((err) => { console.error(err.message); process.exit(1) })
