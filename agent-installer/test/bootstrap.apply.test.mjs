@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { ensureDirs, ensureFiles } from '../lib/bootstrap/apply.mjs'
@@ -44,9 +44,18 @@ test('ensureFiles: 기존 파일은 내용을 보지 않고 보존한다', () =>
 // existsSync는 깨진 링크에 false를 반환한다 — 덮어쓰면 사용자 의도를 파괴한다.
 test('ensureFiles: 깨진 심볼릭 링크도 존재로 보아 보존한다', () => {
   const root = makeTempRepo()
-  symlinkSync(join(root, 'does-not-exist'), join(root, 'kilo.jsonc'))
+  // 디렉터리 junction은 Windows에서 권한 없이 만들어진다(파일 심볼릭 링크와 달리).
+  // 대상을 지워 깨진 링크로 만든다 — existsSync는 false, lstatSync는 성공하는 상태다.
+  const victim = join(root, 'link-target')
+  mkdirSync(victim)
+  symlinkSync(victim, join(root, 'kilo.jsonc'), 'junction')
+  rmSync(victim, { recursive: true, force: true })
+
+  assert.equal(existsSync(join(root, 'kilo.jsonc')), false, '깨진 링크여야 한다')
+
   const results = ensureFiles(root, [{ path: 'kilo.jsonc', template: '{}' }], ctx(makeCapture()))
   assert.equal(results[0].action, 'keep')
+  assert.equal(existsSync(join(root, 'link-target')), false, '템플릿이 링크를 통해 쓰이지 않아야 한다')
 })
 
 test('ensureFiles: 부모 디렉터리를 함께 만든다', () => {

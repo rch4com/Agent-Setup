@@ -44,12 +44,25 @@ export function repoPathStrict(root, rel) {
   }
 
   let realProbe
+  let realProbeSearchPath = probe
   try {
-    realProbe = realpathSync(probe)
+    realProbe = realpathSync(realProbeSearchPath)
   } catch (err) {
-    // 경합으로 사라졌거나(ENOENT) 링크가 순환하는(ELOOP) 경우다.
-    // 원인을 알 수 없는 raw 예외 대신 진단 가능한 메시지로 바꾼다.
-    throw new Error(`경로를 확인할 수 없습니다: ${probe} (${err.code ?? err.message})`)
+    // 깨진 심볼릭 링크(ENOENT)나 순환 링크(ELOOP)인 경우, 조상을 따라가며 실제 경로를 찾는다.
+    if (err.code === 'ENOENT' || err.code === 'ELOOP') {
+      const parent = dirname(realProbeSearchPath)
+      if (parent === realProbeSearchPath) {
+        throw new Error(`경로를 확인할 수 없습니다: ${probe} (${err.code ?? err.message})`)
+      }
+      try {
+        realProbe = realpathSync(parent)
+        realProbeSearchPath = parent
+      } catch {
+        throw new Error(`경로를 확인할 수 없습니다: ${probe} (${err.code ?? err.message})`)
+      }
+    } else {
+      throw new Error(`경로를 확인할 수 없습니다: ${probe} (${err.code ?? err.message})`)
+    }
   }
 
   let realRoot
