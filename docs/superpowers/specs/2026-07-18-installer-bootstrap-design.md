@@ -90,12 +90,19 @@ export const MANIFEST = {
   ],
 
   ignore: ['.claude/skills', '.kiro/skills', '.grok/skills', '.kimi-code/local.toml'],
+
+  // 완료 리포트의 "적용 도구" 줄을 만든다. 여기 없으면 리포트가 조용히 낡는다.
+  tools: [
+    'Claude Code', 'Codex', 'Gemini CLI', 'OpenCode', 'Kilo Code',
+    'Kiro', 'Kimi Code', 'Grok Build', 'Antigravity',
+  ],
 }
 ```
 
-도구 추가는 `dirs` 한 줄 + `files` 한 줄이 전부다. Antigravity처럼 별도 설정 없이
-루트 `AGENTS.md`와 `.agents/skills`를 그대로 읽는 도구는 매니페스트에 아무것도
-추가하지 않는다 — 현재 성질 그대로다.
+도구 추가는 매니페스트에 항목을 더하는 것이 기본이고, 도구별 설정 파일이
+필요하면 `templates.mjs`에 템플릿 상수를 함께 더한다. Antigravity처럼 별도 설정
+없이 루트 `AGENTS.md`와 `.agents/skills`를 그대로 읽는 도구는 `tools`에만
+추가하면 된다 — 현재 성질 그대로다.
 
 ## 실행기 (apply.mjs)
 
