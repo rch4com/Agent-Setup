@@ -7,6 +7,12 @@ import {
 // 저장소 부트스트랩이 만들 대상 선언.
 // 도구 추가 = dirs 한 줄 + files 한 줄. 실행 로직은 apply.mjs·adapter.mjs에 있다.
 export const MANIFEST = {
+  // 완료 리포트에 그대로 나열되는 도구 이름. 순서가 출력 순서다.
+  tools: [
+    'Claude Code', 'Codex', 'Gemini CLI', 'OpenCode', 'Kilo Code',
+    'Kiro', 'Kimi Code', 'Grok Build', 'Antigravity',
+  ],
+
   dirs: [
     '.agents/skills', '.agent-kit', '.claude', '.codex',
     '.gemini', '.grok', '.kiro/settings', '.kimi-code',

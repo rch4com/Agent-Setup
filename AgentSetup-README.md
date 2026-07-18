@@ -71,7 +71,9 @@ repository/
 (`./setup-agents.sh`, `pwsh -File ./setup-agents.ps1`). 두 런처는 실제 로직을
 담고 있지 않은 얇은 실행기이며, 부트스트랩 로직은 전부
 `agent-installer/lib/bootstrap/`에 있습니다. 새 도구를 추가하려면
-`agent-installer/lib/bootstrap/manifest.mjs` 한 곳만 고치면 됩니다.
+`agent-installer/lib/bootstrap/manifest.mjs`에 항목을 추가하고, 도구별
+설정 파일이 필요하면 `agent-installer/lib/bootstrap/templates.mjs`에
+템플릿을 더합니다.
 
 대화형 메뉴는 `--menu`(Linux) / `-Menu`(Windows)로 켜며, **이때만**
 `npm install --prefix agent-installer`가 내부적으로 먼저 실행됩니다(의존성이

@@ -229,8 +229,15 @@ pwsh -File ./setup-agents.ps1 -SkillMode Copy -DryRun
 
 ## 오류 처리
 
-- 항목 단위로 실패를 격리한다. 하나가 실패해도 나머지를 계속 진행하고 마지막에
-  모아 보고한다 — 기존 `apply`의 패턴과 같다.
+- **어댑터 루프만 항목 단위로 실패를 격리한다.** `flow.mjs`의 어댑터 순회에만
+  `try/catch`가 있어, 도구 하나의 어댑터 구성이 실패해도 나머지 어댑터를 계속
+  진행하고 마지막에 모아 보고한다.
+- **`ensureDirs`·`ensureFiles`·`ensureBlocks`·`ensureIgnore`는 격리하지 않는다.**
+  `repoPathStrict`가 경로 방어 위반(저장소 밖 이탈)을 던지면 `runBootstrap`
+  전체가 즉시 중단된다. 이는 원본 bash의 `safe_path`가 `exit 1`로 죽던 동작,
+  원본 `setup-agents.ps1`이 `$ErrorActionPreference = "Stop"`으로 전체를
+  멈추던 동작과 동일하다 — 부트스트랩은 추가 전용이라 중단 시점까지 만든
+  파일에 손상이 없고, 원인을 고치고 재실행하면 이어서 완성된다.
 - 실패가 하나라도 있으면 종료 코드를 0이 아닌 값으로 둔다.
 - Node 미설치는 스크립트가 설치 안내와 함께 종료한다.
 - Git 저장소 밖 실행은 기존 `findRepoRoot`가 그대로 막는다.

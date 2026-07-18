@@ -11,6 +11,14 @@ test('MANIFEST는 다섯 종류를 모두 선언한다', () => {
   assert.ok(Array.isArray(MANIFEST.ignore) && MANIFEST.ignore.length > 0)
 })
 
+test('MANIFEST.tools는 비어 있지 않은 문자열 배열이다', () => {
+  assert.ok(Array.isArray(MANIFEST.tools) && MANIFEST.tools.length > 0)
+  for (const tool of MANIFEST.tools) {
+    assert.equal(typeof tool, 'string', `도구 이름은 문자열이어야 한다: ${tool}`)
+    assert.ok(tool.trim().length > 0, '빈 문자열 도구 이름 금지')
+  }
+})
+
 test('경로는 저장소 상대 경로이고 중복이 없다', () => {
   const paths = [
     ...MANIFEST.dirs,

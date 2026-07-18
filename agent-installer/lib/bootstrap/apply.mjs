@@ -33,9 +33,10 @@ export function ensureDirs(root, dirs, { dryRun = false, log }) {
   return dirs.map((rel) => {
     // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
     if (pathExists(repoPath(root, rel))) return { ok: true, action: 'skip', path: rel }
-    log(`디렉터리 생성: ${rel}`)
     // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
+    // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const target = repoPathStrict(root, rel)
+    log(`디렉터리 생성: ${rel}`)
     if (!dryRun) mkdirSync(target, { recursive: true })
     return { ok: true, action: 'create', path: rel }
   })
@@ -48,8 +49,9 @@ export function ensureFiles(root, files, { dryRun = false, log }) {
       log(`기존 파일 유지: ${rel}`)
       return { ok: true, action: 'keep', path: rel }
     }
-    log(`파일 생성: ${rel}`)
+    // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const target = repoPathStrict(root, rel)
+    log(`파일 생성: ${rel}`)
     if (!dryRun) writeText(target, template)
     return { ok: true, action: 'create', path: rel }
   })
@@ -61,9 +63,10 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
   return blocks.map(({ path: rel, block }) => {
     // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
     if (!pathExists(repoPath(root, rel))) {
-      log(`파일 생성: ${rel}`)
       // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
+      // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
       const target = repoPathStrict(root, rel)
+      log(`파일 생성: ${rel}`)
       if (!dryRun) writeText(target, block)
       return { ok: true, action: 'create', path: rel }
     }
@@ -82,11 +85,12 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
       return { ok: true, action: 'skip', path: rel }
     }
 
-    log(`관리 블록 추가: ${rel}`)
     // 생성 분기와 같은 형태로: 검사는 dry-run 여부와 무관하게 항상 하고,
     // 실제 쓰기만 !dryRun으로 막는다. dry-run 안에 검사를 가두면 저장소 밖으로
     // 이탈하는 기존 파일에 대해 오류 없이 append 예정이라고 보고하게 된다.
+    // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const strictTarget = repoPathStrict(root, rel)
+    log(`관리 블록 추가: ${rel}`)
     if (!dryRun) {
       // 기존 마지막 줄을 닫고 빈 줄 하나를 띄운 뒤 블록을 붙인다.
       const separator = text.endsWith('\n') ? '\n' : '\n\n'

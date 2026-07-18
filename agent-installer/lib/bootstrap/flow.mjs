@@ -45,7 +45,7 @@ export function runBootstrap(root, opts = {}) {
   say('완료되었습니다.')
   say('공통 지침: AGENTS.md')
   say('공통 스킬: .agents/skills/')
-  say('적용 도구: Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build, Antigravity')
+  say(`적용 도구: ${manifest.tools.join(', ')}`)
   say('도구별 설정은 모두 현재 저장소 안에만 생성되었습니다.')
   say('기존 설정 파일은 덮어쓰지 않았습니다.')
 
