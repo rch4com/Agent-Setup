@@ -168,20 +168,57 @@ async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
   if (failed.length > 0) process.exitCode = 1
 }
 
-// `bootstrap` 서브커맨드 플래그 파싱.
-function parseBootstrapArgs(argv) {
-  const dryRun = argv.includes('--dry-run')
-  let skillMode = 'auto'
+// `bootstrap` 서브커맨드 사용법. install.mjs와 두 런처(setup-agents.sh/.ps1) 모두에서 안내한다.
+const BOOTSTRAP_USAGE = `사용법: node install.mjs bootstrap [--skill-mode auto|link|copy] [--dry-run]
 
-  const flag = argv.find((a) => a === '--skill-mode' || a.startsWith('--skill-mode='))
-  if (flag) {
-    const value = flag.includes('=') ? flag.slice('--skill-mode='.length) : argv[argv.indexOf(flag) + 1]
-    if (!['auto', 'link', 'copy'].includes(value)) {
-      throw new Error('--skill-mode는 auto, link, copy 중 하나여야 합니다.')
+옵션:
+  --skill-mode auto|link|copy  스킬 연결 방식을 지정합니다. (기본값: auto)
+                                  auto: 심볼릭 링크를 먼저 시도하고, 실패하면 복사로 전환합니다.
+                                  link: 심볼릭 링크만 시도합니다. 실패하면 오류로 종료합니다.
+                                  copy: 항상 복제본을 만듭니다.
+  --dry-run                    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
+  -h, --help                   이 도움말을 출력하고 종료합니다.
+
+런처로도 사용할 수 있습니다:
+  ./setup-agents.sh [옵션]
+  pwsh -File ./setup-agents.ps1 [옵션]
+  --menu (또는 -Menu)를 주면 의존성을 설치하고 대화형 메뉴를 엽니다.`
+
+// `bootstrap` 서브커맨드에 허용되는 플래그: --dry-run, --skill-mode(+값)/--skill-mode=값, -h/--help.
+// 그 외 인자는 거부한다 — 조용히 삼켜지는 것을 막기 위해서다.
+function parseBootstrapArgs(argv) {
+  let dryRun = false
+  let skillMode = 'auto'
+  let help = false
+
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '-h' || a === '--help') {
+      help = true
+    } else if (a === '--dry-run') {
+      dryRun = true
+    } else if (a === '--skill-mode') {
+      const value = argv[i + 1]
+      if (value === undefined || value.startsWith('--')) {
+        throw new Error(`--skill-mode 뒤에 값이 필요합니다 (auto, link, copy 중 하나).\n\n${BOOTSTRAP_USAGE}`)
+      }
+      if (!['auto', 'link', 'copy'].includes(value)) {
+        throw new Error(`--skill-mode는 auto, link, copy 중 하나여야 합니다: ${value}\n\n${BOOTSTRAP_USAGE}`)
+      }
+      skillMode = value
+      i++
+    } else if (a.startsWith('--skill-mode=')) {
+      const value = a.slice('--skill-mode='.length)
+      if (!['auto', 'link', 'copy'].includes(value)) {
+        throw new Error(`--skill-mode는 auto, link, copy 중 하나여야 합니다: ${value}\n\n${BOOTSTRAP_USAGE}`)
+      }
+      skillMode = value
+    } else {
+      throw new Error(`알 수 없는 인자입니다: ${a}\n\n${BOOTSTRAP_USAGE}`)
     }
-    skillMode = value
   }
-  return { dryRun, skillMode }
+
+  return { dryRun, skillMode, help }
 }
 
 async function main() {
@@ -189,7 +226,12 @@ async function main() {
   const root = findRepoRoot()
 
   if (argv[0] === 'bootstrap') {
-    const { failed } = runBootstrap(root, parseBootstrapArgs(argv.slice(1)))
+    const opts = parseBootstrapArgs(argv.slice(1))
+    if (opts.help) {
+      console.log(BOOTSTRAP_USAGE)
+      return
+    }
+    const { failed } = runBootstrap(root, opts)
     if (failed.length > 0) process.exitCode = 1
     return
   }

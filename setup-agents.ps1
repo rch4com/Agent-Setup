@@ -22,7 +22,9 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 
 if ($Menu) {
     & npm install --prefix $installer --silent
-    & node (Join-Path $installer "install.mjs")
+    $menuArgs = @()
+    if ($DryRun) { $menuArgs += "--dry-run" }
+    & node (Join-Path $installer "install.mjs") @menuArgs
     exit $LASTEXITCODE
 }
 
