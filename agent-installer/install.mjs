@@ -5,17 +5,24 @@ import { runBootstrap } from './lib/bootstrap/flow.mjs'
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
 
 // 의존성 모듈은 필요한 분기에서만 가져온다 — bootstrap은 npm install 없이 돈다.
-async function loadPrompts() {
+const DEPS_HINT =
+  '이 기능에는 의존성이 필요합니다. 다음 중 하나를 실행하세요:\n' +
+  '  ./setup-agents.sh --menu\n' +
+  '  npm install --prefix agent-installer'
+
+// 의존성이 없을 때 Node의 원시 메시지 대신 설치 방법을 안내한다.
+export async function withDeps(load) {
   try {
-    return await import('@clack/prompts')
+    return await load()
   } catch (err) {
     if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
-    throw new Error(
-      '대화형 메뉴에는 의존성이 필요합니다. 다음 중 하나를 실행하세요:\n' +
-      '  ./setup-agents.sh --menu\n' +
-      '  npm install --prefix agent-installer',
-    )
+    throw new Error(DEPS_HINT)
   }
+}
+
+// @clack/prompts는 대화형 분기에서만 필요하다.
+async function loadPrompts() {
+  return withDeps(() => import('@clack/prompts'))
 }
 
 function hint(item, state) {
@@ -85,8 +92,8 @@ function parseDesignArgs(argv) {
 }
 
 async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
-  const { loadItems } = await import('./lib/catalog.mjs')
-  const { scan, planChanges, apply } = await import('./lib/engine.mjs')
+  const { loadItems } = await withDeps(() => import('./lib/catalog.mjs'))
+  const { scan, planChanges, apply } = await withDeps(() => import('./lib/engine.mjs'))
   const items = await loadItems()
   const states = await scan(root, items)
 
@@ -112,9 +119,13 @@ async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
       ],
     })
     if (p.isCancel(mode)) { p.cancel('취소되었습니다.'); return }
-    if (mode === 'bootstrap') { runBootstrap(root, { dryRun }); return }
+    if (mode === 'bootstrap') {
+      const { failed } = runBootstrap(root, { dryRun })
+      if (failed.length > 0) process.exitCode = 1
+      return
+    }
     if (mode === 'design') {
-      const { runDesign } = await import('./lib/design-md/flow.mjs')
+      const { runDesign } = await withDeps(() => import('./lib/design-md/flow.mjs'))
       await runDesign(root, { interactive: true, dryRun, designDirs })
       return
     }
@@ -184,7 +195,7 @@ async function main() {
   }
 
   if (argv[0] === 'design') {
-    const { runDesign } = await import('./lib/design-md/flow.mjs')
+    const { runDesign } = await withDeps(() => import('./lib/design-md/flow.mjs'))
     await runDesign(root, parseDesignArgs(argv.slice(1)))
     return
   }
