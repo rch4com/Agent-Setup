@@ -16,9 +16,15 @@ export function pathExists(target) {
   }
 }
 
-// 두 OS가 같은 파일을 만들도록 항상 LF + 끝 개행 1개로 쓴다.
+// 두 OS가 같은 파일을 만들도록 항상 LF + 끝 개행 1개로 정규화한다.
+// writeText(새 파일)와 ensureBlocks의 덧붙이기(기존 파일) 양쪽에서 쓴다 —
+// 덧붙이기도 이 정규화를 거치지 않으면 CRLF가 LF 파일에 새어 들어간다.
+function normalizeBody(text) {
+  return text.replace(/\r\n/g, '\n').trim() + '\n'
+}
+
 function writeText(file, text) {
-  const body = text.replace(/\r\n/g, '\n').trim() + '\n'
+  const body = normalizeBody(text)
   mkdirSync(dirname(file), { recursive: true })
   writeFileSync(file, body, { encoding: 'utf8' })
 }
@@ -77,20 +83,25 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
     }
 
     log(`관리 블록 추가: ${rel}`)
+    // 생성 분기와 같은 형태로: 검사는 dry-run 여부와 무관하게 항상 하고,
+    // 실제 쓰기만 !dryRun으로 막는다. dry-run 안에 검사를 가두면 저장소 밖으로
+    // 이탈하는 기존 파일에 대해 오류 없이 append 예정이라고 보고하게 된다.
+    const strictTarget = repoPathStrict(root, rel)
     if (!dryRun) {
-      // 실제 쓰기 전에 엄격 검사를 한다.
-      const strictTarget = repoPathStrict(root, rel)
       // 기존 마지막 줄을 닫고 빈 줄 하나를 띄운 뒤 블록을 붙인다.
       const separator = text.endsWith('\n') ? '\n' : '\n\n'
-      appendFileSync(strictTarget, separator + block.trim() + '\n', { encoding: 'utf8' })
+      appendFileSync(strictTarget, separator + normalizeBody(block), { encoding: 'utf8' })
     }
     return { ok: true, action: 'append', path: rel }
   })
 }
 
 export function ensureIgnore(root, entries, { dryRun = false, log }) {
-  // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
-  const target = repoPath(root, '.gitignore')
+  // ensureDirs/ensureFiles/ensureBlocks와 달리 경로가 '.gitignore' 하나로 고정돼
+  // 있고, 함수 자체의 목적이 "항목을 보장한다"는 쓰기 의도이므로 존재 확인과
+  // 쓰기 판단을 나누지 않고 맨 앞에서 한 번만 엄격 검사한다. ensureGitignoreEntries
+  // (lib/gitignore.mjs)는 repoPath만 쓰므로, 저장소 밖 이탈 차단은 여기서 해야 한다.
+  const target = repoPathStrict(root, '.gitignore')
   const text = pathExists(target) ? readFileSync(target, 'utf8') : ''
   const lines = new Set(text.split(/\r?\n/))
   const missing = entries.filter((e) => !lines.has(e))
@@ -102,7 +113,6 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
 
   log(`.gitignore 항목 추가: ${missing.join(', ')}`)
   if (!dryRun) {
-    // 실제 쓰기 전에 엄격 검사를 한다 (ensureGitignoreEntries 내부에서 repoPath 사용).
     ensureGitignoreEntries(root, missing)
   }
   return missing.map((e) => ({ ok: true, action: 'append', path: e }))

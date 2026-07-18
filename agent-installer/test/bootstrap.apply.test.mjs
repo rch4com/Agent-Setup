@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, rmSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, rmSync, statSync, mkdtempSync } from 'node:fs'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { ensureDirs, ensureFiles, ensureBlocks, ensureIgnore } from '../lib/bootstrap/apply.mjs'
 
@@ -176,4 +177,45 @@ test('ensureBlocks: 깨진 심볼릭 링크에서 읽기 실패 시 경고로 �
   assert.equal(results[0].action, 'warn', '읽기 실패는 경고로 처리해야 한다')
   assert.ok(results[0].message, '메시지가 있어야 한다')
   assert.match(cap.text(), /경고/)
+})
+
+// 아래 세 테스트는 저장소 밖을 가리키는 링크를 통한 이탈을 실제 쓰기 경로에서
+// 거부하는지 검증한다. 디렉터리 junction을 쓰는 이유는 context.test.mjs와 같다:
+// Windows에서 권한 없이 만들 수 있고, POSIX에서는 세 번째 인자가 무시된다.
+
+test('ensureBlocks: 생성 분기가 링크를 통한 저장소 이탈을 거부한다 (실제 실행)', () => {
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-'))
+  // <root>/.evil -> <outside> : 어휘적으로는 저장소 안이지만 실제로는 밖이다.
+  symlinkSync(outside, join(root, '.evil'), 'junction')
+
+  assert.throws(
+    () => ensureBlocks(root, [{ path: '.evil/CLAUDE.md', block: BLOCK }], ctx(makeCapture())),
+    /외부 링크/,
+  )
+})
+
+test('ensureBlocks: 덧붙이기 분기가 dry-run에서도 링크를 통한 이탈을 거부한다', () => {
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-'))
+  // 링크 대상 쪽에 마커 없는 파일을 미리 만들어 덧붙이기 분기로 들어가게 한다.
+  writeFileSync(join(outside, 'CLAUDE.md'), '기존 내용\n')
+  symlinkSync(outside, join(root, '.evil'), 'junction')
+
+  assert.throws(
+    () => ensureBlocks(root, [{ path: '.evil/CLAUDE.md', block: BLOCK }], ctx(makeCapture(), true)),
+    /외부 링크/,
+  )
+})
+
+test('ensureIgnore: 링크를 통한 저장소 이탈을 거부한다', () => {
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-'))
+  // .gitignore 자리 자체가 저장소 밖을 가리키는 junction이다.
+  symlinkSync(outside, join(root, '.gitignore'), 'junction')
+
+  assert.throws(
+    () => ensureIgnore(root, ['.claude/skills'], ctx(makeCapture())),
+    /외부 링크/,
+  )
 })
