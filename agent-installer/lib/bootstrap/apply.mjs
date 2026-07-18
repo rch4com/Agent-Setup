@@ -96,6 +96,11 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
   })
 }
 
+// 원본 setup-agents.ps1의 Add-GitignoreEntries·setup-agents.sh의
+// ensure_gitignore_entries가 항목을 추가할 때 앞에 넣는 안내 주석.
+// 헤더가 이미 있으면 다시 넣지 않는다 — 원본과 글자 단위로 같아야 한다.
+const IGNORE_HEADER = '# agent-kit: local skill adapters (do not commit duplicated skills)'
+
 export function ensureIgnore(root, entries, { dryRun = false, log }) {
   // ensureDirs/ensureFiles/ensureBlocks와 달리 경로가 '.gitignore' 하나로 고정돼
   // 있고, 함수 자체의 목적이 "항목을 보장한다"는 쓰기 의도이므로 존재 확인과
@@ -113,7 +118,11 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
 
   log(`.gitignore 항목 추가: ${missing.join(', ')}`)
   if (!dryRun) {
-    ensureGitignoreEntries(root, missing)
+    // 헤더가 아직 없을 때만 항목들보다 먼저 넣는다. ensureGitignoreEntries는
+    // 넘긴 항목 중 파일에 없는 줄만 추가하므로, 헤더도 그 목록의 맨 앞에
+    // 끼워 넣으면 "없을 때만 추가, 있으면 그대로"가 자연히 성립한다.
+    const toAdd = lines.has(IGNORE_HEADER) ? missing : [IGNORE_HEADER, ...missing]
+    ensureGitignoreEntries(root, toAdd)
   }
   return missing.map((e) => ({ ok: true, action: 'append', path: e }))
 }

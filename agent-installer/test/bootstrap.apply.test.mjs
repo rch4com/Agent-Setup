@@ -152,6 +152,31 @@ test('ensureIgnore: 모두 있으면 파일을 바꾸지 않는다', () => {
   assert.equal(results[0].action, 'skip')
 })
 
+// 원본 setup-agents.ps1/.sh의 Add-GitignoreEntries/ensure_gitignore_entries가
+// 항목 추가 시 앞에 넣는 헤더. 글자 단위로 원본과 같아야 한다.
+const IGNORE_HEADER = '# agent-kit: local skill adapters (do not commit duplicated skills)'
+
+test('ensureIgnore: 헤더가 없으면 항목보다 먼저 들어간다', () => {
+  const root = makeTempRepo()
+  ensureIgnore(root, ['.claude/skills', '.kiro/skills'], ctx(makeCapture()))
+
+  const lines = readFileSync(join(root, '.gitignore'), 'utf8').split('\n')
+  const headerIndex = lines.indexOf(IGNORE_HEADER)
+  const firstEntryIndex = lines.indexOf('.claude/skills')
+
+  assert.notEqual(headerIndex, -1, '헤더가 있어야 한다')
+  assert.ok(headerIndex < firstEntryIndex, '헤더가 항목보다 먼저 나와야 한다')
+})
+
+test('ensureIgnore: 헤더가 이미 있으면 중복 추가하지 않는다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), IGNORE_HEADER + '\n.claude/skills\n')
+  ensureIgnore(root, ['.claude/skills', '.kiro/skills'], ctx(makeCapture()))
+
+  const lines = readFileSync(join(root, '.gitignore'), 'utf8').split('\n')
+  assert.equal(lines.filter((l) => l === IGNORE_HEADER).length, 1, '헤더 중복 추가 금지')
+})
+
 test('블록·ignore도 dry-run에서 바꾸지 않는다', () => {
   const root = makeTempRepo()
   ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture(), true))
