@@ -49,3 +49,11 @@ test('repoPathStrict: 아직 없는 하위 경로는 조상 기준으로 검사�
     join(root, 'not', 'created', 'yet.txt'),
   )
 })
+
+test('repoPathStrict: 경로 확인에 실패하면 진단 가능한 오류를 던진다', () => {
+  const missingRoot = join(makeTempRepo(), 'never-created')
+  assert.throws(
+    () => repoPathStrict(missingRoot, 'a.txt'),
+    /경로를 확인할 수 없습니다/,
+  )
+})
