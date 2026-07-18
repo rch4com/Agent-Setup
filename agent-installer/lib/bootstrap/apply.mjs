@@ -1,8 +1,9 @@
 // 매니페스트 선언을 실제 파일시스템 변경으로 옮기는 실행기.
 // 추가 전용 — 여기에는 삭제 경로가 없다.
-import { lstatSync, mkdirSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, writeFileSync, readFileSync, appendFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
+import { ensureGitignoreEntries } from '../gitignore.mjs'
 
 // existsSync는 깨진 심볼릭 링크에 false를 반환한다. 그대로 쓰면 사용자가 만든
 // 링크를 덮어쓰게 되므로 lstat으로 "항목이 있는가"를 본다.
@@ -46,4 +47,63 @@ export function ensureFiles(root, files, { dryRun = false, log }) {
     if (!dryRun) writeText(target, template)
     return { ok: true, action: 'create', path: rel }
   })
+}
+
+const BEGIN_MARKER = '<!-- agent-kit:begin -->'
+
+export function ensureBlocks(root, blocks, { dryRun = false, log }) {
+  return blocks.map(({ path: rel, block }) => {
+    // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
+    if (!pathExists(repoPath(root, rel))) {
+      log(`파일 생성: ${rel}`)
+      // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
+      const target = repoPathStrict(root, rel)
+      if (!dryRun) writeText(target, block)
+      return { ok: true, action: 'create', path: rel }
+    }
+
+    const target = repoPath(root, rel)
+    let text
+    try {
+      text = readFileSync(target, 'utf8')
+    } catch (err) {
+      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다 (${err.code ?? err.message})`)
+      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    }
+
+    if (text.includes(BEGIN_MARKER)) {
+      log(`관리 블록 확인: ${rel}`)
+      return { ok: true, action: 'skip', path: rel }
+    }
+
+    log(`관리 블록 추가: ${rel}`)
+    if (!dryRun) {
+      // 실제 쓰기 전에 엄격 검사를 한다.
+      const strictTarget = repoPathStrict(root, rel)
+      // 기존 마지막 줄을 닫고 빈 줄 하나를 띄운 뒤 블록을 붙인다.
+      const separator = text.endsWith('\n') ? '\n' : '\n\n'
+      appendFileSync(strictTarget, separator + block.trim() + '\n', { encoding: 'utf8' })
+    }
+    return { ok: true, action: 'append', path: rel }
+  })
+}
+
+export function ensureIgnore(root, entries, { dryRun = false, log }) {
+  // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
+  const target = repoPath(root, '.gitignore')
+  const text = pathExists(target) ? readFileSync(target, 'utf8') : ''
+  const lines = new Set(text.split(/\r?\n/))
+  const missing = entries.filter((e) => !lines.has(e))
+
+  if (missing.length === 0) {
+    log(`.gitignore 항목 확인: ${entries.join(', ')}`)
+    return entries.map((e) => ({ ok: true, action: 'skip', path: e }))
+  }
+
+  log(`.gitignore 항목 추가: ${missing.join(', ')}`)
+  if (!dryRun) {
+    // 실제 쓰기 전에 엄격 검사를 한다 (ensureGitignoreEntries 내부에서 repoPath 사용).
+    ensureGitignoreEntries(root, missing)
+  }
+  return missing.map((e) => ({ ok: true, action: 'append', path: e }))
 }

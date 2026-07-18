@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
-import { ensureDirs, ensureFiles } from '../lib/bootstrap/apply.mjs'
+import { ensureDirs, ensureFiles, ensureBlocks, ensureIgnore } from '../lib/bootstrap/apply.mjs'
 
 const ctx = (cap, dryRun = false) => ({ dryRun, log: cap.log })
 
@@ -88,4 +88,92 @@ test('dry-run은 파일시스템을 바꾸지 않는다', () => {
 test('저장소 밖 경로는 거부한다', () => {
   const root = makeTempRepo()
   assert.throws(() => ensureDirs(root, ['../escape'], ctx(makeCapture())), /저장소 밖/)
+})
+
+const BLOCK = '<!-- agent-kit:begin -->\n@AGENTS.md\n<!-- agent-kit:end -->'
+
+test('ensureBlocks: 파일이 없으면 블록만으로 만든다', () => {
+  const root = makeTempRepo()
+  const results = ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture()))
+
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), BLOCK + '\n')
+  assert.equal(results[0].action, 'create')
+})
+
+test('ensureBlocks: 기존 내용을 보존하고 뒤에 덧붙인다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'CLAUDE.md'), '# 내 지침\n')
+  const results = ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
+  assert.ok(text.startsWith('# 내 지침\n'), '기존 내용이 보존되어야 한다')
+  assert.ok(text.includes(BLOCK), '블록이 추가되어야 한다')
+  assert.equal(results[0].action, 'append')
+})
+
+test('ensureBlocks: 마커가 이미 있으면 중복 추가하지 않는다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'CLAUDE.md'), '# 내 지침\n\n' + BLOCK + '\n')
+  const before = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
+  const results = ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture()))
+
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), before)
+  assert.equal(results[0].action, 'skip')
+})
+
+test('ensureBlocks: 끝 개행이 없어도 블록이 줄 경계에서 시작한다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'CLAUDE.md'), '개행 없이 끝남')
+  ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
+  assert.ok(text.includes('개행 없이 끝남\n'), '기존 마지막 줄이 닫혀야 한다')
+  assert.ok(text.includes('\n' + BLOCK), '블록이 줄 처음에서 시작해야 한다')
+})
+
+test('ensureIgnore: 없는 항목만 추가한다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.claude/skills\n')
+  ensureIgnore(root, ['.claude/skills', '.kiro/skills'], ctx(makeCapture()))
+
+  const lines = readFileSync(join(root, '.gitignore'), 'utf8').split('\n')
+  assert.equal(lines.filter((l) => l === '.claude/skills').length, 1, '중복 추가 금지')
+  assert.ok(lines.includes('.kiro/skills'))
+})
+
+test('ensureIgnore: 모두 있으면 파일을 바꾸지 않는다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.claude/skills\n.kiro/skills\n')
+  const before = readFileSync(join(root, '.gitignore'), 'utf8')
+  const results = ensureIgnore(root, ['.claude/skills', '.kiro/skills'], ctx(makeCapture()))
+
+  assert.equal(readFileSync(join(root, '.gitignore'), 'utf8'), before)
+  assert.equal(results[0].action, 'skip')
+})
+
+test('블록·ignore도 dry-run에서 바꾸지 않는다', () => {
+  const root = makeTempRepo()
+  ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture(), true))
+  ensureIgnore(root, ['.claude/skills'], ctx(makeCapture(), true))
+
+  assert.equal(existsSync(join(root, 'CLAUDE.md')), false)
+  assert.equal(existsSync(join(root, '.gitignore')), false)
+})
+
+test('ensureBlocks: 깨진 심볼릭 링크에서 읽기 실패 시 경고로 처리한다', () => {
+  const root = makeTempRepo()
+  // 디렉터리 junction으로 깨진 링크를 만든다 (Windows와 POSIX 호환)
+  const victim = join(root, 'link-target')
+  mkdirSync(victim)
+  symlinkSync(victim, join(root, 'CLAUDE.md'), 'junction')
+  rmSync(victim, { recursive: true, force: true })
+
+  assert.equal(existsSync(join(root, 'CLAUDE.md')), false, '깨진 링크여야 한다')
+
+  const cap = makeCapture()
+  const results = ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(cap))
+
+  assert.equal(results[0].action, 'warn', '읽기 실패는 경고로 처리해야 한다')
+  assert.ok(results[0].message, '메시지가 있어야 한다')
+  assert.match(cap.text(), /경고/)
 })
