@@ -1,11 +1,22 @@
 #!/usr/bin/env node
-import * as p from '@clack/prompts'
 import { findRepoRoot } from './lib/context.mjs'
-import { loadItems } from './lib/catalog.mjs'
-import { scan, planChanges, apply } from './lib/engine.mjs'
-import { runDesign } from './lib/design-md/flow.mjs'
+import { runBootstrap } from './lib/bootstrap/flow.mjs'
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
+
+// 의존성 모듈은 필요한 분기에서만 가져온다 — bootstrap은 npm install 없이 돈다.
+async function loadPrompts() {
+  try {
+    return await import('@clack/prompts')
+  } catch (err) {
+    if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
+    throw new Error(
+      '대화형 메뉴에는 의존성이 필요합니다. 다음 중 하나를 실행하세요:\n' +
+      '  ./setup-agents.sh --menu\n' +
+      '  npm install --prefix agent-installer',
+    )
+  }
+}
 
 function hint(item, state) {
   const parts = []
@@ -74,6 +85,8 @@ function parseDesignArgs(argv) {
 }
 
 async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
+  const { loadItems } = await import('./lib/catalog.mjs')
+  const { scan, planChanges, apply } = await import('./lib/engine.mjs')
   const items = await loadItems()
   const states = await scan(root, items)
 
@@ -88,16 +101,23 @@ async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
     const known = new Set(items.map((i) => i.id))
     for (const id of selectedIds) if (!known.has(id)) throw new Error(`알 수 없는 항목: ${id}`)
   } else {
+    const p = await loadPrompts()
     p.intro(`agent-installer${dryRun ? ' (dry-run)' : ''} — 저장소: ${root}`)
     const mode = await p.select({
       message: '무엇을 관리할까요?',
       options: [
+        { value: 'bootstrap', label: '저장소 부트스트랩 (지침 · 스킬 · 도구별 설정)' },
         { value: 'agents', label: '에이전트 설치 (plugin · mcp · skill)' },
         { value: 'design', label: 'design.md 라이브러리' },
       ],
     })
     if (p.isCancel(mode)) { p.cancel('취소되었습니다.'); return }
-    if (mode === 'design') { await runDesign(root, { interactive: true, dryRun, designDirs }); return }
+    if (mode === 'bootstrap') { runBootstrap(root, { dryRun }); return }
+    if (mode === 'design') {
+      const { runDesign } = await import('./lib/design-md/flow.mjs')
+      await runDesign(root, { interactive: true, dryRun, designDirs })
+      return
+    }
 
     const byCategory = { plugin: '플러그인', mcp: 'MCP 서버', skill: '스킬' }
     const selection = await p.groupMultiselect({
@@ -137,11 +157,34 @@ async function runClassic(root, { dryRun, listOnly, setArg, designDirs = [] }) {
   if (failed.length > 0) process.exitCode = 1
 }
 
+// `bootstrap` 서브커맨드 플래그 파싱.
+function parseBootstrapArgs(argv) {
+  const dryRun = argv.includes('--dry-run')
+  let skillMode = 'auto'
+
+  const flag = argv.find((a) => a === '--skill-mode' || a.startsWith('--skill-mode='))
+  if (flag) {
+    const value = flag.includes('=') ? flag.slice('--skill-mode='.length) : argv[argv.indexOf(flag) + 1]
+    if (!['auto', 'link', 'copy'].includes(value)) {
+      throw new Error('--skill-mode는 auto, link, copy 중 하나여야 합니다.')
+    }
+    skillMode = value
+  }
+  return { dryRun, skillMode }
+}
+
 async function main() {
   const argv = process.argv.slice(2)
   const root = findRepoRoot()
 
+  if (argv[0] === 'bootstrap') {
+    const { failed } = runBootstrap(root, parseBootstrapArgs(argv.slice(1)))
+    if (failed.length > 0) process.exitCode = 1
+    return
+  }
+
   if (argv[0] === 'design') {
+    const { runDesign } = await import('./lib/design-md/flow.mjs')
     await runDesign(root, parseDesignArgs(argv.slice(1)))
     return
   }
