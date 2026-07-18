@@ -1,0 +1,26 @@
+# 줄바꿈 정책
+#
+# 이 저장소는 Windows·macOS·Linux에서 함께 쓰이고, 각자의 core.autocrlf
+# 설정이 달라도 결과가 같아야 한다. 저장소에 들어가는 내용은 항상 LF로
+# 정규화하고, 워킹트리 표기는 실행 환경이 요구하는 쪽에 맞춘다.
+
+# 기본: 텍스트로 판별되면 저장소에는 LF로 저장한다.
+# 워킹트리 표기는 각자의 core.autocrlf를 따른다.
+* text=auto
+
+# POSIX 셸 스크립트는 워킹트리에서도 LF여야 한다.
+# CRLF면 `set -Eeuo pipefail<CR>`처럼 CR이 인자에 섞여 실행이 깨진다.
+*.sh text eol=lf
+
+# Windows에서 실행하는 스크립트는 CRLF로 둔다.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 바이너리 — diff·줄바꿈 변환 대상에서 제외한다.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
