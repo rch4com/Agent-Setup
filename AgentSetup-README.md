@@ -65,6 +65,27 @@ repository/
   (`~/.gemini/config/mcp_config.json`)에서만 설정하고 프로젝트 스코프 MCP
   파일이 없어 이 스크립트가 관리하는 범위 밖입니다.
 
+## 부트스트랩 실행 방법
+
+기본 실행은 아래 Windows/Linux 절 그대로입니다
+(`./setup-agents.sh`, `pwsh -File ./setup-agents.ps1`). 두 런처는 실제 로직을
+담고 있지 않은 얇은 실행기이며, 부트스트랩 로직은 전부
+`agent-installer/lib/bootstrap/`에 있습니다. 새 도구를 추가하려면
+`agent-installer/lib/bootstrap/manifest.mjs` 한 곳만 고치면 됩니다.
+
+대화형 메뉴는 `--menu`(Linux) / `-Menu`(Windows)로 켜며, **이때만**
+`npm install --prefix agent-installer`가 내부적으로 먼저 실행됩니다(의존성이
+이미 설치돼 있으면 즉시 통과합니다). 그 밖의 모든 실행(기본 부트스트랩,
+`-DryRun`, `-Help` 등)은 Node.js 표준 라이브러리만으로 동작하며 `npm install`이
+필요 없습니다.
+
+설치기를 거치지 않고 직접 부를 수도 있습니다.
+
+```bash
+node agent-installer/install.mjs bootstrap --dry-run
+node agent-installer/install.mjs bootstrap --help
+```
+
 ## 안전 원칙
 
 - 반드시 Git 저장소 안에서만 실행됩니다.
@@ -113,6 +134,12 @@ pwsh -File .\setup-agents.ps1 -SkillMode Copy
 pwsh -File .\setup-agents.ps1 -DryRun
 ```
 
+사용법 확인 (파일을 만들지 않습니다):
+
+```powershell
+pwsh -File .\setup-agents.ps1 -Help   # -h로 축약 가능
+```
+
 ## Linux
 
 ```bash
@@ -137,6 +164,12 @@ Claude, Kiro, Grok Build의 스킬 어댑터 방식:
 
 ```bash
 ./setup-agents.sh --dry-run
+```
+
+사용법 확인 (파일을 만들지 않습니다):
+
+```bash
+./setup-agents.sh --help   # -h도 동일
 ```
 
 ## 기존 파일 처리
@@ -165,8 +198,9 @@ kilo.jsonc
 플러그인·MCP·스킬을 체크박스로 골라 설치/제거하는 콘솔 도구입니다.
 체크하고 Submit하면 설치되고, 다시 실행하면 실제 환경을 스캔해 설치된
 항목이 미리 체크되어 표시되며, 체크를 해제하면 제거됩니다.
-대화형으로 실행하면 첫 화면에서 **에이전트 설치**와 **design.md 라이브러리**
-중 무엇을 관리할지 먼저 고릅니다.
+대화형으로 실행하면 첫 화면에서 **저장소 부트스트랩**·**에이전트 설치**·
+**design.md 라이브러리** 중 무엇을 관리할지 먼저 고릅니다(`--menu`/`-Menu`로
+진입).
 
 ```bash
 cd agent-installer && npm install && cd ..    # 최초 1회 (의존성 설치)

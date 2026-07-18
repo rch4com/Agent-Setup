@@ -14,16 +14,19 @@ These instructions apply only to this repository.
 
 ## Repository commands
 
-This is a script-only repository (no install or build step).
+Bootstrap logic lives in `agent-installer`; the shell scripts are launchers.
 
-- Install: none
+- Install: none for bootstrap (Node standard library only).
+  `npm install --prefix agent-installer` for the interactive menu.
 - Build: none
-- Test: `pwsh -File ./setup-agents.ps1 -DryRun` and `bash ./setup-agents.sh --dry-run`
+- Test: `cd agent-installer && npm test`
 - Lint: `bash -n ./setup-agents.sh`
-- Full verification: run both dry-run commands above; for behavior changes,
-  run both scripts twice in a scratch Git repository and confirm the second
-  run is idempotent and `git status` stages no `.claude/skills`,
-  `.kiro/skills`, or `.grok/skills` entries.
+- Full verification: run `cd agent-installer && npm test`, then smoke-test both
+  launchers with `bash ./setup-agents.sh --dry-run` and
+  `pwsh -File ./setup-agents.ps1 -DryRun`. For behavior changes, run both
+  launchers twice in a scratch Git repository and confirm the second run is
+  idempotent and `git status` stages no `.claude/skills`, `.kiro/skills`, or
+  `.grok/skills` entries.
 
 ## Commit messages
 
