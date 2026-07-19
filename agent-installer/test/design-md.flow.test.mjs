@@ -1,10 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch, makeCapture, recordingOpener } from './helpers.mjs'
 import { runDesign } from '../lib/design-md/flow.mjs'
 import { makeOpener, openPreview } from '../lib/design-md/open.mjs'
+import { scanDesignDir, makeDirProvider } from '../lib/design-md/scan.mjs'
 import { awesomeDesignMd } from '../lib/design-md/providers/awesome-design-md.mjs'
 
 // 번들 catalog.json(실제 74개)을 쓰되 네트워크는 가짜 fetch로 대체한다.
@@ -106,4 +108,23 @@ test('openPreview: webUrl 없으면 안내하고 실패', () => {
   const r = openPreview(() => ({ ok: true }), { label: 'X', webUrl: null }, cap.log)
   assert.equal(r.ok, false)
   assert.match(cap.text(), /미리보기 URL/)
+})
+
+test('openPreview: webUrl이 없으면 previewPath(로컬 파일)로 폴백', () => {
+  const opener = recordingOpener()
+  const r = openPreview(opener, { label: 'X', webUrl: null, previewPath: 'C:/x/DESIGN.md' }, () => {})
+  assert.equal(r.ok, true)
+  assert.deepEqual(opener.targets, ['C:/x/DESIGN.md'])
+})
+
+test('--preview: 로컬(디렉터리) 항목은 원본 파일을 연다', async () => {
+  const src = mkdtempSync(join(tmpdir(), 'design-local-'))
+  mkdirSync(join(src, 'faux'))
+  writeFileSync(join(src, 'faux', 'DESIGN.md'), '# Faux\n\n사내 디자인')
+  const entries = scanDesignDir(src)
+  const provider = makeDirProvider({ id: 'local-src', label: 'local-src', dir: src, entries })
+  const sources = [{ id: 'local-src', dir: src, label: 'local-src', bundled: false, entries, provider }]
+  const opener = recordingOpener()
+  await runDesign(makeTempRepo(), { preview: 'faux', opener, log() {}, fetchImpl: fileFetch('x'), sources })
+  assert.deepEqual(opener.targets, [join(src, 'faux', 'DESIGN.md')])
 })

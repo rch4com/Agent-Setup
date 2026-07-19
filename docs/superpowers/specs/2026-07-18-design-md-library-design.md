@@ -34,7 +34,7 @@
 | 카탈로그 획득 | **번들 캐시 인덱스 + 동기화 갱신.** `catalog.json`을 동봉, "카탈로그 새로고침"이 소스에서 재생성 |
 | 동기화 | 3작업: 설치본 업데이트 · 카탈로그 새로고침 · 오래된 항목 감지/알림 |
 | 탐색 UI | 탭(카테고리 select) + 검색(텍스트→매칭 멀티셀렉트). 보이는 집합 안에서만 diff |
-| 미리보기 | **브라우저로 getdesign.md 페이지 오픈(OS 레벨).** `https://getdesign.md/<name>/design-md` (사이트 자체 라이트/다크·Live Preview 제공). 다운로드 불필요 |
+| 미리보기 | **브라우저로 getdesign.md 페이지 오픈(OS 레벨).** `https://getdesign.md/<name>/design-md` (사이트 자체 라이트/다크·Live Preview 제공). 다운로드 불필요. 웹 페이지가 없는 로컬(디렉터리) 항목은 원본 DESIGN.md 파일을 기본 앱으로 연다 |
 | 항목 모델 | design.md도 item 인터페이스(`detect/install/uninstall`)를 따르되 `lib/items/`가 아니라 캐시 인덱스에서 런타임 생성 → `engine.mjs` 재사용 |
 | 오프라인 번들 | 74개 DESIGN.md를 `lib/design-md/cache/<provider>/<name>/DESIGN.md`에 동봉. 설치는 번들 우선(네트워크 0), 없으면 폴백. 업데이트/동기화는 `fresh`로 네트워크 최신. `npm run refresh-bundle`로 재생성 |
 | 디렉터리 스캔 | **프로바이더 없이 디렉터리 구조만으로 검색·리스트업.** `cache/` 하위와 `--design-dir`/`AGENT_INSTALLER_DESIGN_MD_DIRS`로 지정한 외부 경로를 스캔해 `<소스>/<카테고리…>/<이름>/DESIGN.md`를 항목으로 만든다. 사내 오프라인 정의를 코드 수정 없이 포함하기 위한 경로 |
@@ -82,8 +82,8 @@ agent-installer/
 - getdesign.md 등은 같은 인터페이스로 추후 추가(v1 범위 밖).
 - `fetch`는 **주입 가능**(기본 전역 fetch) → 테스트에서 가짜로 대체, 실네트워크 없음.
 - **디렉터리 프로바이더**(`makeDirProvider`)는 스캔 결과로 런타임 생성된다. `webUrl`은
-  `null`(웹 미리보기 없음), `fetchFile`은 로컬 파일을 돌려준다 — 디렉터리가 곧 원본이라
-  `fresh` 업데이트도 네트워크를 타지 않는다.
+  `null`(웹 미리보기 없음)이라 미리보기는 원본 파일(`previewPath`)을 열고, `fetchFile`은
+  로컬 파일을 돌려준다 — 디렉터리가 곧 원본이라 `fresh` 업데이트도 네트워크를 타지 않는다.
 
 ### 디렉터리 스캔 (scan.mjs)
 

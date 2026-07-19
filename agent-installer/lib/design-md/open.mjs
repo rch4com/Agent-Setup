@@ -20,14 +20,14 @@ export function makeOpener(dryRun, log = console.log) {
   }
 }
 
-// 항목의 getdesign.md 미리보기 페이지를 연다. 실패 시 URL을 안내한다.
+// 항목의 미리보기를 연다: 웹 URL이 있으면 그 페이지, 로컬 항목은 원본 파일을 기본 앱으로.
 export function openPreview(opener, item, log = console.log) {
-  const url = item.webUrl
-  if (!url) {
+  const target = item.webUrl ?? item.previewPath ?? null
+  if (!target) {
     log(`  ${item.label}: 미리보기 URL이 없습니다.`)
     return { ok: false }
   }
-  const r = opener(url)
-  if (!r.ok) log(`  ${item.label}: 브라우저 열기 실패 — 직접 여세요: ${url}`)
+  const r = opener(target)
+  if (!r.ok) log(`  ${item.label}: 열기 실패 — 직접 여세요: ${target}`)
   return r
 }

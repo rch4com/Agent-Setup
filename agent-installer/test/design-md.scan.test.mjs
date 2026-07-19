@@ -376,7 +376,7 @@ test('--sync=catalog 후에도 로컬 항목이 남는다', async () => {
   assert.match(cap.text(), /stripe — Stripe/) // 새로고침 결과도 함께 보인다
 })
 
-test('로컬 항목 --preview는 안내만 하고 브라우저를 열지 않는다', async () => {
+test('로컬 항목 --preview는 원본 파일을 연다', async () => {
   const dir = tempDir()
   putDesign(dir, ['local-only'], '# L\n')
   const cap = makeCapture()
@@ -390,6 +390,6 @@ test('로컬 항목 --preview는 안내만 하고 브라우저를 열지 않는�
     designDirs: [`acme=${dir}`],
     env: {},
   })
-  assert.deepEqual(targets, [])
-  assert.match(cap.text(), /미리보기 URL/)
+  assert.equal(targets.length, 1)
+  assert.match(targets[0], /local-only[\\/]DESIGN\.md$/)
 })

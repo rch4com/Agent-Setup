@@ -63,6 +63,8 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
     designCategory: category,
     description,
     webUrl: provider.webUrl(name),
+    // 로컬(디렉터리) 항목은 웹 페이지가 없다 — 미리보기는 원본 파일을 연다.
+    previewPath: provider.local === true ? provider.fileUrl(name) : null,
 
     async detect({ root }) {
       return { status: existsSync(designPaths(root, providerId, name).file) ? 'installed' : 'absent' }
