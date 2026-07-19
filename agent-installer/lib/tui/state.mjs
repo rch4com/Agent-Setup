@@ -18,8 +18,7 @@ export function createState(rows, { selectedIds = [], query = '' } = {}) {
 
 // 공백으로 나눈 토큰 AND 부분일치.
 // 빈 검색어는 전체 통과다 — 여기서는 빈 검색어가 곧 초기 화면이다.
-// (design-md/flow.mjs의 matchSearch는 반대로 빈 검색어를 전체 불일치로 본다.
-//  거기서는 빈 Enter가 전체 선택으로 새는 것을 막아야 했다.)
+// 필터는 selected를 건드리지 않으므로, 빈 검색어가 전체 선택으로 새는 일이 없다.
 export function filterRows(rows, query) {
   const tokens = String(query ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   if (tokens.length === 0) return rows

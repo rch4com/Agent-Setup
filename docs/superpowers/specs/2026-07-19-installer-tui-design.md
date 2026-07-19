@@ -78,10 +78,11 @@ agent-installer/
 { rows, query, cursor, selected: Set<id>, offset }
 ```
 
-- `filter(rows, query)` — 토큰 AND 매칭. 빈 검색어는 전체 통과.
-  (design-md/flow.mjs의 `matchSearch`와 달리 빈 검색어를 **전체 통과**로 본다.
-  거기서는 빈 Enter가 전체 선택으로 새는 것을 막아야 했지만, 여기서는 빈 검색어가
-  곧 초기 화면이다.)
+- `filter(rows, query)` — 토큰 AND 매칭. 빈 검색어는 **전체 통과**다(빈 검색어가 곧
+  초기 화면이므로). 옛 `matchSearch`는 반대로 빈 검색어를 전체 불일치로 봐야 했는데,
+  거기서는 검색 결과가 곧 멀티셀렉트 후보라 빈 Enter가 전체 선택으로 샜기 때문이다.
+  여기서는 필터가 `selected`를 건드리지 않아 그 경로 자체가 없다. 그래서 `matchSearch`는
+  이관하지 않고 삭제했다.
 - `visibleRows(state)` — 필터 결과에 섹션 헤더를 끼워 넣은 렌더 목록. 비는 섹션은
   헤더째 빠진다.
 - `move(state, delta)` — 커서 이동. **섹션 헤더는 건너뛴다.** 양 끝에서 멈춘다(순환 없음).
