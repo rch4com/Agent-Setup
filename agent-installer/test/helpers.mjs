@@ -1,12 +1,23 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const INSTALL_MJS = join(dirname(fileURLToPath(import.meta.url)), '..', 'install.mjs')
 
 export function makeTempRepo() {
   const dir = mkdtempSync(join(tmpdir(), 'agent-installer-test-'))
   execFileSync('git', ['init', '-q', dir])
   return dir
+}
+
+// install.mjs를 실제 프로세스로 돌린다.
+// timeout은 필수다 — 비TTY 폴백이 깨지면 설치기가 키 입력을 기다리며 영원히 멈추고,
+// 그 사실은 CI가 멈춰 죽을 때에야 드러난다. 시간 초과는 status=null로 나타난다.
+// input을 주면 stdin이 파이프가 되어 TTY가 아니게 된다 — CI와 같은 조건이다.
+export function runInstaller(cwd, args, { timeout = 30000, input = '' } = {}) {
+  return spawnSync(process.execPath, [INSTALL_MJS, ...args], { cwd, encoding: 'utf8', timeout, input })
 }
 
 // URL 부분일치로 응답을 돌려주는 가짜 fetch. 매칭 없으면 404.

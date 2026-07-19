@@ -1,17 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
-import { makeTempRepo } from './helpers.mjs'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const INSTALL_MJS = join(__dirname, '..', 'install.mjs')
-
-function runInstaller(cwd, args) {
-  return spawnSync(process.execPath, [INSTALL_MJS, ...args], { cwd, encoding: 'utf8' })
-}
+import { join } from 'node:path'
+import { makeTempRepo, runInstaller } from './helpers.mjs'
 
 function noBootstrapFilesCreated(root) {
   return !existsSync(join(root, 'AGENTS.md')) &&
