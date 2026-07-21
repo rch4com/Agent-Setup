@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildRows, agentHint, designHint, installedIds, SECTION_ORDER } from '../lib/tui/rows.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
-import { createState, setQuery, setTab } from '../lib/tui/state.mjs'
+import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 
@@ -128,11 +128,12 @@ test('render: 검색 결과가 없으면 다른 탭을 보라고 안내한다', 
   assert.equal(lines.join('\n').includes('이 탭에는 일치하는 항목이 없습니다'), true)
 })
 
-test('render: 검색 모드는 입력 커서로 드러난다 — 스페이스의 뜻이 모드마다 다르기 때문이다', () => {
+test('render: 검색칸 포커스는 입력 커서(▌)로 드러난다 — 스페이스의 뜻이 포커스마다 다르기 때문이다', () => {
   const rows = buildRows({ agentStates: AGENT_STATES })
-  const s = setQuery(createState(rows), 'sup')
-  assert.ok(render(s, { width: 80, height: 24, searchMode: true })[2].includes('sup▌'))
-  assert.ok(!render(s, { width: 80, height: 24 })[2].includes('▌'))
+  const searchFocus = setFocus(setQuery(createState(rows), 'sup'), 'search')
+  const listFocus = setQuery(createState(rows), 'sup') // 기본 포커스는 목록
+  assert.ok(render(searchFocus, { width: 80, height: 24 })[2].includes('sup▌'))
+  assert.ok(!render(listFocus, { width: 80, height: 24 })[2].includes('▌'))
 })
 
 test('render: 커서 행에만 표식이 붙는다', () => {

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  createState, filterRows, setQuery, move, moveTab, setTab, toggle, toggleVisible,
+  createState, filterRows, setQuery, setFocus, move, moveTab, setTab, toggle, toggleVisible,
   currentRow, displayList, scroll, replaceRows, tabsOf, tabCounts, activeTab,
 } from '../lib/tui/state.mjs'
 
@@ -83,6 +83,37 @@ test('탭을 옮기면 커서는 첫 행으로 돌아간다', () => {
   s = move(s, 2)
   assert.equal(s.cursor, 2)
   assert.equal(moveTab(s, 1).cursor, 0)
+})
+
+// ── 포커스(검색칸/목록) ───────────────────────────────────────────
+
+test('처음에는 목록에 포커스가 있다 — 곧바로 이동·선택·실행이 되게', () => {
+  assert.equal(createState(ROWS).focus, 'list')
+})
+
+test('setFocus는 포커스만 바꾸고 커서·선택·검색어는 건드리지 않는다', () => {
+  let s = setQuery(move(createState(ROWS, { selectedIds: ['plugin.a'] }), 0), '')
+  s = setTab(s, 1)
+  s = toggle(s) // plugin.a 해제
+  const before = { cursor: s.cursor, query: s.query, tab: activeTab(s), sel: [...s.selected] }
+  s = setFocus(s, 'search')
+  assert.equal(s.focus, 'search')
+  assert.equal(s.cursor, before.cursor)
+  assert.equal(s.query, before.query)
+  assert.equal(activeTab(s), before.tab)
+  assert.deepEqual([...s.selected], before.sel)
+})
+
+test('setFocus는 같은 값이면 상태를 새로 만들지 않는다', () => {
+  const s = createState(ROWS)
+  assert.equal(setFocus(s, 'list'), s)
+})
+
+test('탭·검색을 바꿔도 포커스는 유지된다', () => {
+  let s = setFocus(createState(ROWS), 'search')
+  assert.equal(setQuery(s, 'a').focus, 'search')
+  assert.equal(moveTab(s, 1).focus, 'search')
+  assert.equal(setTab(s, 2).focus, 'search')
 })
 
 // ── 커서·선택 ─────────────────────────────────────────────────────

@@ -13,19 +13,29 @@ export function tabsOf(rows) {
   return out
 }
 
-export function createState(rows, { selectedIds = [], query = '', tabIndex = 0 } = {}) {
+// 포커스는 두 곳 중 하나에 있다: 'search'(검색 입력칸) 또는 'list'(항목 목록).
+// 어느 쪽이 포커스인지가 Space·타이핑의 뜻을 가른다 — 검색칸에서는 글자가
+// 검색어(스페이스 포함)로, 목록에서는 Space가 선택으로 동작한다.
+// 흔한 TUI의 두-존(zone) 모델이다.
+export function createState(rows, { selectedIds = [], query = '', tabIndex = 0, focus = 'list' } = {}) {
   const tabs = tabsOf(rows)
   const index = clamp(tabIndex, 0, Math.max(0, tabs.length - 1))
   return {
     rows,
     tabs,
     tabIndex: index,
+    focus,
     query,
     filtered: visibleRows(rows, query, tabs[index]),
     selected: new Set(selectedIds),
     cursor: 0,
     offset: 0,
   }
+}
+
+// 포커스를 검색칸/목록으로 옮긴다. 커서·선택·검색어는 건드리지 않는다.
+export function setFocus(state, focus) {
+  return focus === state.focus ? state : { ...state, focus }
 }
 
 // 공백으로 나눈 토큰 AND 부분일치.

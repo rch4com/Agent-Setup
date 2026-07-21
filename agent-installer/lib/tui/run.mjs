@@ -6,7 +6,7 @@ import { makeOpener, openPreview } from '../design-md/open.mjs'
 import { CATALOG_PATH } from '../design-md/catalog.mjs'
 import { collectRows, installedIds } from './rows.mjs'
 import {
-  createState, setQuery, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
+  createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
 } from './state.mjs'
 import { render, renderReview, bodyHeight } from './render.mjs'
 
@@ -51,13 +51,11 @@ function printPlain(rows, log) {
   }
 }
 
-// 검색어로 넣을 수 있는 글자인가.
-// 스페이스는 **어느 모드에서도** 검색어가 아니다 — Space는 언제나 선택 토글이다.
-// 모드에 따라 Space의 뜻이 달라지면, 검색해서 찾자마자 Space를 누르는
-// 가장 자연스러운 순서에서 선택이 조용히 검색어로 삼켜진다.
-// 그 대가로 대화형 검색은 한 단어다(filterRows의 토큰 AND는 그대로 남는다).
-function isTypable(key) {
-  return Boolean(key.str) && !key.ctrl && !key.meta && key.str > ' ' && key.str !== ESC
+// 화면에 찍히는 글자인가(스페이스 포함). 검색칸 포커스에서 검색어로 들어갈 후보다.
+// 스페이스의 뜻은 포커스가 가른다: 검색칸에서는 검색어, 목록에서는 선택.
+// 그래서 목록에서 타이핑으로 검색칸에 올라갈 때는 호출부에서 스페이스를 뺀다.
+function isPrintable(key) {
+  return Boolean(key.str) && !key.ctrl && !key.meta && key.str >= ' ' && key.str !== ESC
 }
 
 export async function runTui(root, opts = {}) {
@@ -83,11 +81,10 @@ export async function runTui(root, opts = {}) {
     return { interactive: false }
   }
 
-  let state = createState(collected.rows, { selectedIds: installedIds(collected.rows) })
+  // 처음엔 목록에 포커스를 둔다 — 곧바로 화살표 이동·Space 선택·Enter 실행이 되게.
+  // 타이핑하면 검색칸으로 올라간다.
+  let state = createState(collected.rows, { selectedIds: installedIds(collected.rows), focus: 'list' })
   let status = ''
-  // 검색은 명시적 모드다. 그래야 탐색 중 스페이스를 선택 토글로 쓸 수 있고,
-  // 검색 중에는 스페이스가 그대로 검색어(토큰 AND 구분자)로 들어간다.
-  let searchMode = false
 
   emitKeypressEvents(stdin)
   stdin.setRawMode(true)
@@ -100,7 +97,7 @@ export async function runTui(root, opts = {}) {
   const paint = () => {
     const height = stdout.rows ?? 24
     state = scroll(state, bodyHeight(height))
-    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, searchMode }))
+    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
@@ -124,7 +121,6 @@ export async function runTui(root, opts = {}) {
     state = replaceRows(state, collected.rows, installedIds(collected.rows))
   }
 
-  // 선택 토글은 두 모드에서 뜻이 같아야 한다 — 이것이 달라지면 검색 직후의 Space가 사라진다.
   const select = () => {
     const row = currentRow(state)
     if (row?.kind !== 'item') return '이 행은 Enter로 실행합니다.'
@@ -132,7 +128,7 @@ export async function runTui(root, opts = {}) {
     return ''
   }
 
-  // 미리보기는 두 모드에서 모두 통해야 한다 — 검색으로 찾은 직후가 가장 열어 보고 싶은 순간이다.
+  // 미리보기는 두 포커스에서 모두 통해야 한다 — 검색으로 찾은 직후가 가장 열어 보고 싶은 순간이다.
   const preview = () => {
     const row = currentRow(state)
     if (row?.kind !== 'item' || !row.previewTarget) return '이 항목은 미리보기를 제공하지 않습니다.'
@@ -160,34 +156,40 @@ export async function runTui(root, opts = {}) {
 
       if (key.ctrl && key.name === 'c') break
 
-      // ── 검색 모드: 타이핑이 곧 검색어다. 스페이스도 여기서는 검색어로 들어간다.
-      if (searchMode) {
-        if (key.name === 'escape') { searchMode = false; state = setQuery(state, ''); continue }
-        if (key.name === 'return' || key.name === 'enter') {
-          searchMode = false
-          status = state.query ? `'${state.query}'로 걸렀습니다. Esc로 해제합니다.` : ''
+      // ── 검색칸에 포커스: 타이핑이 곧 검색어다(스페이스 포함, 두 단어 검색 가능).
+      if (state.focus === 'search') {
+        // Esc: 검색어가 있으면 지우고 검색칸에 남는다. 이미 비었으면 목록으로 내려간다.
+        if (key.name === 'escape') {
+          state = state.query ? setQuery(state, '') : setFocus(state, 'list')
           continue
         }
+        // Enter·↓: 검색을 마치고 목록으로 내려간다. 결과의 첫 항목이 커서다.
+        if (key.name === 'return' || key.name === 'enter' || key.name === 'down') { state = setFocus(state, 'list'); continue }
         if (key.name === 'backspace') { state = setQuery(state, state.query.slice(0, -1)); continue }
-        if (key.name === 'up') { state = move(state, -1); continue }
-        if (key.name === 'down') { state = move(state, 1); continue }
         if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }
-        if (key.name === 'space') { status = select(); continue }
-        if (key.ctrl && key.name === 'a') { state = toggleVisible(state); continue }
         if (key.ctrl && key.name === 'o') { status = preview(); continue }
-        if (isTypable(key)) state = setQuery(state, state.query + key.str)
+        if (isPrintable(key)) state = setQuery(state, state.query + key.str)
         continue
       }
 
-      // ── 탐색 모드
+      // ── 목록에 포커스
       if (key.name === 'escape') {
         if (state.query) { state = setQuery(state, ''); continue }
         break
       }
 
-      if (key.str === '/') { searchMode = true; continue }
+      // / 또는 글자를 누르면 검색칸으로 올라가 타이핑을 시작한다. 스페이스는 선택이므로 제외한다.
+      if (key.str === '/') { state = setFocus(state, 'search'); continue }
+      if (key.name !== 'space' && isPrintable(key)) {
+        state = setQuery(setFocus(state, 'search'), state.query + key.str)
+        continue
+      }
 
-      if (key.name === 'up' || (key.ctrl && key.name === 'p')) { state = move(state, -1); continue }
+      // 맨 위에서 ↑를 누르면 검색칸으로 되돌아간다 — 목록과 검색칸이 위아래로 이어진 느낌.
+      if (key.name === 'up' || (key.ctrl && key.name === 'p')) {
+        state = state.cursor === 0 ? setFocus(state, 'search') : move(state, -1)
+        continue
+      }
       if (key.name === 'down' || (key.ctrl && key.name === 'n')) { state = move(state, 1); continue }
       if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24)); continue }
       if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24)); continue }
@@ -240,12 +242,6 @@ export async function runTui(root, opts = {}) {
         })
         await recollect()
         continue
-      }
-
-      // 글자 키를 바로 누르면 검색 모드로 들어간다 — type-to-filter 감각을 유지한다.
-      if (isTypable(key)) {
-        searchMode = true
-        state = setQuery(state, state.query + key.str)
       }
     }
   } finally {

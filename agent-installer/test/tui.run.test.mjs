@@ -36,79 +36,76 @@ async function drive(keys, opts = {}) {
     }),
   ])
   clearTimeout(timer)
-  return { result, frames, screen: frames.join(''), log: cap.text() }
+  // 마지막으로 그려진 목록 화면(검토 화면 등 제외)만 따로 뽑아 포커스 검증에 쓴다.
+  const lastListFrame = frames.filter((f) => f.includes('검색 ›')).pop() ?? ''
+  return { result, frames, screen: frames.join(''), lastListFrame, log: cap.text() }
 }
 
 const type = (text) => [...text].map((str) => ({ str, name: str }))
 const TAB = { name: 'tab' }
+const DOWN = { name: 'down' }
+const UP = { name: 'up' }
 const SPACE = { str: ' ', name: 'space' }
 const ENTER = { name: 'return' }
 const ESC = { name: 'escape' }
+const CC = { name: 'c', ctrl: true }
 const ANY = { str: 'x', name: 'x' } // "계속하려면 아무 키나"
+// 검색칸+검색어 상태에서도 확실히 빠져나오도록 세 번: 검색어 지우기 → 목록으로 → 종료.
+const QUIT = [ESC, ESC, ESC]
 // 작업 → PLUGIN → MCP. 탭 순서는 SECTION_ORDER가 고정한다.
 const TO_MCP = [TAB, TAB]
+const TO_DESIGN = [TAB, TAB, TAB, TAB]
 
-test('타이핑하면 검색 모드로 들어가고, Esc 두 번이면(비우고 나서) 빠져나온다', async () => {
-  const { result, screen } = await drive([...type('zzz'), ESC, ESC])
+test('Ctrl+C는 즉시 빠져나온다', async () => {
+  const { result } = await drive([CC])
   assert.equal(result.interactive, true)
+})
+
+test('타이핑하면 검색칸으로 올라가고(▌) 결과가 걸러진다', async () => {
+  const { screen } = await drive([...type('zzz'), ...QUIT])
+  assert.equal(screen.includes('zzz▌'), true, '검색칸 포커스로 올라가지 않았다')
   assert.equal(screen.includes('이 탭에는 일치하는 항목이 없습니다'), true)
 })
 
-test('Ctrl+C는 즉시 빠져나온다', async () => {
-  const { result } = await drive([{ name: 'c', ctrl: true }])
-  assert.equal(result.interactive, true)
-})
-
 test('Tab은 탭을 옮긴다 — 활성 표시가 따라 움직인다', async () => {
-  const { frames } = await drive([TAB, ESC])
+  const { frames } = await drive([TAB, ...QUIT])
   assert.equal(frames.some((f) => f.includes('[작업')), true, '첫 화면이 작업 탭이 아니다')
   assert.equal(frames.some((f) => f.includes('[PLUGIN')), true, 'Tab 뒤에 PLUGIN 탭이 활성이 아니다')
 })
 
-test('Space로 선택하고 Enter로 제출하면 검토 화면을 거쳐 일괄 적용된다', async () => {
+test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적용', async () => {
   const { screen, log } = await drive([
     ...TO_MCP,
-    ...type('supabase'), // 검색 모드 진입 — MCP 탭 안에서 걸러진다
-    ENTER,               // 검색 확정(검색어 유지, 탐색 모드로)
+    ...type('supabase'), // 검색칸 포커스로 올라가 걸러진다
+    DOWN,                // 목록으로 내려간다(첫 결과가 커서)
     SPACE,               // 선택
     ENTER,               // 제출 → 검토 화면
     ENTER,               // 적용
     ANY,                 // "계속하려면 아무 키나"
-    ESC, ESC,
+    ...QUIT,
   ])
   assert.equal(screen.includes('제출 검토'), true, '검토 화면이 뜨지 않았다')
-  assert.equal(log.includes('적용할 변경'), true)
   assert.equal(log.includes('설치 Supabase'), true)
 })
 
-// 회귀: Space가 검색 모드에서 검색어로 삼켜지면, 검색해서 찾자마자 선택하는
-// 가장 자연스러운 순서에서 아무것도 선택되지 않은 채 "변경할 항목이 없습니다"만 나온다.
-// 겉보기에는 설치(파일 복사)가 안 되는 것처럼 보인다.
-test('검색 직후 Space로 바로 선택된다 — 모드와 무관하게 Space는 언제나 선택이다', async () => {
-  const { screen, log } = await drive([
-    ...TO_MCP,
-    ...type('supabase'), // 검색 모드로 진입한 상태 그대로
-    SPACE,               // Enter로 빠져나오지 않고 곧바로 선택
-    ENTER,               // 검색 확정
-    ENTER,               // 제출 → 검토 화면
-    ENTER,               // 적용
-    ANY, ESC, ESC,
-  ])
-  assert.equal(screen.includes('변경할 항목이 없습니다'), false, 'Space가 선택되지 않고 삼켜졌다')
-  assert.equal(log.includes('설치 Supabase'), true)
+// 이 UX의 핵심: 검색칸에서는 스페이스가 검색어로 들어가 두 단어 검색이 된다.
+test('검색칸에서 Space는 검색어에 들어간다 — 두 단어 검색이 가능하다', async () => {
+  const { lastListFrame, screen } = await drive([...TO_MCP, ...type('supabase'), SPACE, ...type('mcp'), CC])
+  assert.equal(lastListFrame.includes('supabase mcp▌'), true, `두 단어가 검색어로 들어가지 않았다: ${lastListFrame.match(/검색 › [^\n]*/)?.[0]}`)
+  assert.equal(screen.includes('Supabase'), true, '두 단어 검색 결과가 비었다')
 })
 
-test('검색 중 Space는 검색어에 들어가지 않는다 — 검색은 한 단어다', async () => {
-  const { screen } = await drive([...TO_MCP, ...type('sup'), SPACE, SPACE, ESC, ESC])
-  assert.equal(/검색 › sup\s+▌/.test(screen), false, `검색어에 공백이 섞였다: ${screen.match(/검색 › [^\n]*/g)?.pop()}`)
+test('목록 맨 위에서 ↑를 누르면 검색칸으로 되돌아간다', async () => {
+  const { lastListFrame } = await drive([...TO_MCP, ...type('sup'), DOWN, UP, CC])
+  assert.equal(lastListFrame.includes('▌'), true, '맨 위 ↑가 검색칸으로 포커스를 되돌리지 않았다')
 })
 
 test('검토 화면에서 Esc는 취소한다 — 아무것도 적용되지 않는다', async () => {
   const { screen, log } = await drive([
-    ...TO_MCP, ...type('supabase'), ENTER, SPACE,
+    ...TO_MCP, ...type('supabase'), DOWN, SPACE,
     ENTER, // 제출 → 검토 화면
     ESC,   // 취소
-    ESC, ESC,
+    ...QUIT,
   ])
   assert.equal(screen.includes('제출 검토'), true)
   assert.equal(screen.includes('제출을 취소했습니다'), true)
@@ -116,38 +113,37 @@ test('검토 화면에서 Esc는 취소한다 — 아무것도 적용되지 않�
 })
 
 test('변경이 없으면 Enter가 검토 화면으로 들어가지 않는다', async () => {
-  const { screen, log } = await drive([...TO_MCP, ENTER, ESC])
+  const { screen, log } = await drive([...TO_MCP, ENTER, ...QUIT])
   assert.equal(screen.includes('변경할 항목이 없습니다'), true)
   assert.equal(screen.includes('제출 검토'), false)
   assert.equal(log.includes('적용할 변경'), false)
 })
 
 test('액션 행에서 Enter는 그 작업을 실행한다', async () => {
-  // 커서는 처음에 작업 탭의 부트스트랩 행에 있다.
-  const { log } = await drive([ENTER, ANY, ESC])
+  // 커서는 처음에 작업 탭의 부트스트랩 행에 있다(목록 포커스).
+  const { log } = await drive([ENTER, ANY, ...QUIT])
   assert.equal(log.includes('공통 지침'), true, `부트스트랩이 실행되지 않았다: ${log}`)
 })
 
 test('액션 행에서 Space는 체크되지 않는다 — 제거 개념이 없는 작업이다', async () => {
-  const { screen } = await drive([SPACE, ESC])
+  const { screen } = await drive([SPACE, ...QUIT])
   assert.equal(screen.includes('[×] 부트스트랩'), false)
   assert.equal(screen.includes('Enter로 실행합니다'), true)
 })
 
 test('Ctrl+A는 지금 탭에서 보이는 항목을 한 번에 켜고 끈다', async () => {
-  const { screen } = await drive([...TO_MCP, { name: 'a', ctrl: true }, ESC])
+  const { screen } = await drive([...TO_MCP, { name: 'a', ctrl: true }, ...QUIT])
   assert.equal(screen.includes('모두 선택'), true)
 })
 
 test('Ctrl+O는 커서 항목을 열고, 미리보기가 없는 항목은 안내만 한다', async () => {
   const opener = recordingOpener()
-  // DESIGN.MD 탭까지 이동(작업 → PLUGIN → MCP → SKILL → DESIGN.MD).
-  await drive([TAB, TAB, TAB, TAB, ...type('stripe'), { name: 'o', ctrl: true }, ESC, ESC], { opener })
+  await drive([...TO_DESIGN, ...type('stripe'), { name: 'o', ctrl: true }, ...QUIT], { opener })
   assert.equal(opener.targets.length, 1)
   assert.equal(opener.targets[0].includes('stripe'), true)
 
   const bare = recordingOpener()
-  const noPreview = await drive([...TO_MCP, ...type('supabase'), { name: 'o', ctrl: true }, ESC, ESC], { opener: bare })
+  const noPreview = await drive([...TO_MCP, ...type('supabase'), { name: 'o', ctrl: true }, ...QUIT], { opener: bare })
   assert.deepEqual(bare.targets, [])
   assert.equal(noPreview.screen.includes('미리보기를 제공하지 않습니다'), true)
 })

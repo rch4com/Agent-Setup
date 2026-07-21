@@ -92,21 +92,23 @@ export function tabBar(state, { width: limit, color = false, searching = false }
     .join('')
 }
 
-// 검색줄. 입력 중임을 커서(▌)로 드러낸다 — 스페이스가 토글이 아니라 검색어로
-// 들어가는 유일한 상황이므로, 지금 어느 모드인지가 화면에 보여야 한다.
-function searchLine(state, { limit, searchMode, paint }) {
+// 검색줄 = 하나의 입력칸이다. 포커스가 여기 있으면 입력 커서(▌)로 드러내고,
+// 컬러에서는 줄 전체를 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
+// 이 상태에서만 스페이스가 선택이 아니라 검색어로 들어가기 때문이다.
+function searchLine(state, { limit, color, paint }) {
   const prefix = '검색 › '
   const room = Math.max(0, limit - width(prefix))
-  if (searchMode) return `${prefix}${cut(`${state.query}▌`, room)}`
+  if (state.focus === 'search') {
+    const text = `${prefix}${cut(`${state.query}▌`, room)}`
+    return color ? `${REVERSE}${pad(text, limit)}${RESET}` : text
+  }
   if (state.query) return `${prefix}${cut(state.query, room)}`
-  return `${prefix}${paint(DIM, cut('/ 또는 글자를 눌러 이 탭에서 검색', room))}`
+  return `${prefix}${paint(DIM, cut('타이핑하면 검색 · ↓ 로 목록', room))}`
 }
 
 export function render(state, opts = {}) {
   // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
-  const {
-    width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', searchMode = false,
-  } = opts
+  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '' } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
   const w = Math.max(24, columns - 1)
@@ -123,7 +125,7 @@ export function render(state, opts = {}) {
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
     tabBar(state, { width: w, color, searching }),
-    searchLine(state, { limit: w, searchMode, paint }),
+    searchLine(state, { limit: w, color, paint }),
     '',
   ]
 
@@ -150,8 +152,11 @@ export function render(state, opts = {}) {
     for (let i = window.length; i < body; i++) lines.push('')
   }
 
+  const hint = state.focus === 'search'
+    ? '입력=검색어(스페이스 포함)   ↓ 목록으로   Tab 탭이동   Esc 검색해제'
+    : 'Space 선택   ↑↓ 이동(맨 위 ↑=검색칸)   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기'
   lines.push('')
-  lines.push(paint(DIM, cut(status || 'Space 선택  Tab 탭이동  Enter 실행/제출  Ctrl+A 전체  Ctrl+O 미리보기  Esc 종료', w)))
+  lines.push(paint(DIM, cut(status || hint, w)))
   return lines
 }
 

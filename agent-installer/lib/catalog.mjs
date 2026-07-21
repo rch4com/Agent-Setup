@@ -42,8 +42,10 @@ export function makeExec(dryRun, log = console.log) {
     const shell = opts.shell ?? process.platform === 'win32'
     // shell 모드에서 Node는 명령과 인자를 공백으로 이어붙일 뿐 quote하지 않으므로 직접 감싼다.
     const quote = (s) => (/[\s"]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s)
-    const file = shell ? quote(cmd) : cmd
-    const fileArgs = shell ? args.map(quote) : args
+    // shell + 인자 배열을 함께 넘기면 Node가 DEP0190으로 경고한다(인자가 quote 없이 이어붙기 때문).
+    // 어차피 우리가 직접 quote하므로, 완성된 한 줄 명령을 넘기고 인자 배열은 비운다.
+    // 이렇게 해도 셸에 전달되는 명령 문자열은 예전과 바이트 단위로 같다.
+    const [file, fileArgs] = shell ? [[cmd, ...args].map(quote).join(' '), []] : [cmd, args]
     try {
       const output = execFileSync(file, fileArgs, {
         encoding: 'utf8',
