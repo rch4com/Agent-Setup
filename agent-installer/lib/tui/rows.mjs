@@ -15,6 +15,8 @@ const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', abse
 const DESIGN_STATUS = { installed: '설치됨', partial: '일부', absent: '미설치' }
 
 export const ACTION_SECTION = '작업'
+// scan.mjs의 BUNDLE_CATEGORY와 같은 값이다 — 카테고리를 못 얻은 항목이 모이는 자리.
+export const CATCH_ALL_CATEGORY = '기타'
 export const SECTION_ORDER = [ACTION_SECTION, 'PLUGIN', 'MCP', 'SKILL', 'DESIGN.MD']
 
 function short(text, n = 60) {
@@ -46,11 +48,14 @@ export function designHint(state, multiProvider = false) {
   return parts.filter(Boolean).join(' · ')
 }
 
-function itemRow({ id, section, label, hint, status, previewTarget = null, item, extra = '' }) {
+// group = 탭 **안쪽**의 소분류 헤더. design.md만 76개라 카테고리로 갈라야 읽힌다.
+// 나머지 탭은 항목이 적어 그룹 없이 평평하게 둔다.
+function itemRow({ id, section, label, hint, status, previewTarget = null, item, extra = '', group = null }) {
   return {
     kind: 'item',
     id,
     section,
+    group,
     label,
     hint,
     status,
@@ -65,6 +70,7 @@ function actionRow({ id, label, hint, run }) {
     kind: 'action',
     id,
     section: ACTION_SECTION,
+    group: null,
     label,
     hint,
     status: 'absent',
@@ -137,18 +143,28 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
     }),
   )
 
-  const designs = designStates.map((s) =>
-    itemRow({
-      id: s.item.id,
-      section: 'DESIGN.MD',
-      label: s.item.label,
-      hint: designHint(s, multiProvider),
-      status: s.status,
-      previewTarget: s.item.webUrl ?? s.item.previewPath ?? null,
-      item: s.item,
-      extra: `${s.item.name} ${s.item.providerId}`,
-    }),
-  )
+  // 카테고리 → 라벨 순으로 정렬한다. 그룹 헤더는 인접한 같은 group을 하나로 묶으므로
+  // 정렬이 흐트러지면 같은 카테고리가 여러 번 쪼개져 나온다.
+  const designs = designStates
+    .map((s) =>
+      itemRow({
+        id: s.item.id,
+        section: 'DESIGN.MD',
+        group: s.item.designCategory || CATCH_ALL_CATEGORY,
+        label: s.item.label,
+        hint: designHint(s, multiProvider),
+        status: s.status,
+        previewTarget: s.item.webUrl ?? s.item.previewPath ?? null,
+        item: s.item,
+        extra: `${s.item.name} ${s.item.providerId}`,
+      }),
+    )
+    // 분류 못 한 항목을 모아 둔 '기타'는 맨 뒤로 보낸다 — catch-all이 목록 머리를 차지하면
+    // 실제 카테고리를 훑기 전에 잡동사니부터 읽게 된다.
+    .sort((a, b) =>
+      (a.group === CATCH_ALL_CATEGORY ? 1 : 0) - (b.group === CATCH_ALL_CATEGORY ? 1 : 0)
+      || a.group.localeCompare(b.group)
+      || a.label.localeCompare(b.label))
 
   const rows = [...actions, ...agents, ...designs]
   // 섹션 순서를 고정한다 — displayList가 인접한 같은 섹션을 하나로 묶기 때문이다.

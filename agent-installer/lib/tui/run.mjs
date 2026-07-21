@@ -5,8 +5,10 @@ import { planChanges, apply } from '../engine.mjs'
 import { makeOpener, openPreview } from '../design-md/open.mjs'
 import { CATALOG_PATH } from '../design-md/catalog.mjs'
 import { collectRows, installedIds } from './rows.mjs'
-import { createState, setQuery, move, toggle, scroll, currentRow, replaceRows } from './state.mjs'
-import { render, bodyHeight } from './render.mjs'
+import {
+  createState, setQuery, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
+} from './state.mjs'
+import { render, renderReview, bodyHeight } from './render.mjs'
 
 const ESC = String.fromCharCode(27)
 const HIDE_CURSOR = `${ESC}[?25l`
@@ -49,6 +51,15 @@ function printPlain(rows, log) {
   }
 }
 
+// 검색어로 넣을 수 있는 글자인가.
+// 스페이스는 **어느 모드에서도** 검색어가 아니다 — Space는 언제나 선택 토글이다.
+// 모드에 따라 Space의 뜻이 달라지면, 검색해서 찾자마자 Space를 누르는
+// 가장 자연스러운 순서에서 선택이 조용히 검색어로 삼켜진다.
+// 그 대가로 대화형 검색은 한 단어다(filterRows의 토큰 AND는 그대로 남는다).
+function isTypable(key) {
+  return Boolean(key.str) && !key.ctrl && !key.meta && key.str > ' ' && key.str !== ESC
+}
+
 export async function runTui(root, opts = {}) {
   const {
     dryRun = false,
@@ -74,6 +85,9 @@ export async function runTui(root, opts = {}) {
 
   let state = createState(collected.rows, { selectedIds: installedIds(collected.rows) })
   let status = ''
+  // 검색은 명시적 모드다. 그래야 탐색 중 스페이스를 선택 토글로 쓸 수 있고,
+  // 검색 중에는 스페이스가 그대로 검색어(토큰 AND 구분자)로 들어간다.
+  let searchMode = false
 
   emitKeypressEvents(stdin)
   stdin.setRawMode(true)
@@ -82,11 +96,11 @@ export async function runTui(root, opts = {}) {
   stdout.write(ALT_ON + HIDE_CURSOR)
 
   const color = !env.NO_COLOR && stdout.isTTY
+  const draw = (lines) => stdout.write(HOME + lines.map((l) => l + CLEAR_LINE).join('\n') + '\n' + CLEAR_DOWN)
   const paint = () => {
     const height = stdout.rows ?? 24
     state = scroll(state, bodyHeight(height))
-    const lines = render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status })
-    stdout.write(HOME + lines.map((l) => l + CLEAR_LINE).join('\n') + '\n' + CLEAR_DOWN)
+    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, searchMode }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
@@ -110,6 +124,34 @@ export async function runTui(root, opts = {}) {
     state = replaceRows(state, collected.rows, installedIds(collected.rows))
   }
 
+  // 선택 토글은 두 모드에서 뜻이 같아야 한다 — 이것이 달라지면 검색 직후의 Space가 사라진다.
+  const select = () => {
+    const row = currentRow(state)
+    if (row?.kind !== 'item') return '이 행은 Enter로 실행합니다.'
+    state = toggle(state)
+    return ''
+  }
+
+  // 미리보기는 두 모드에서 모두 통해야 한다 — 검색으로 찾은 직후가 가장 열어 보고 싶은 순간이다.
+  const preview = () => {
+    const row = currentRow(state)
+    if (row?.kind !== 'item' || !row.previewTarget) return '이 항목은 미리보기를 제공하지 않습니다.'
+    const notes = []
+    openPreview(opener, row.item, (m) => notes.push(String(m).trim()))
+    return notes.length > 0 ? notes.join(' ') : `열었습니다: ${row.previewTarget}`
+  }
+
+  // 제출 검토 — 적용 직전에 변경 목록을 보여 주고 Enter/Esc만 받는다.
+  const review = async (changes) => {
+    for (;;) {
+      draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color }))
+      const key = await keys.next()
+      if (key.ctrl && key.name === 'c') return 'quit'
+      if (key.name === 'escape') return 'cancel'
+      if (key.name === 'return' || key.name === 'enter') return 'apply'
+    }
+  }
+
   try {
     for (;;) {
       paint()
@@ -118,18 +160,58 @@ export async function runTui(root, opts = {}) {
 
       if (key.ctrl && key.name === 'c') break
 
+      // ── 검색 모드: 타이핑이 곧 검색어다. 스페이스도 여기서는 검색어로 들어간다.
+      if (searchMode) {
+        if (key.name === 'escape') { searchMode = false; state = setQuery(state, ''); continue }
+        if (key.name === 'return' || key.name === 'enter') {
+          searchMode = false
+          status = state.query ? `'${state.query}'로 걸렀습니다. Esc로 해제합니다.` : ''
+          continue
+        }
+        if (key.name === 'backspace') { state = setQuery(state, state.query.slice(0, -1)); continue }
+        if (key.name === 'up') { state = move(state, -1); continue }
+        if (key.name === 'down') { state = move(state, 1); continue }
+        if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }
+        if (key.name === 'space') { status = select(); continue }
+        if (key.ctrl && key.name === 'a') { state = toggleVisible(state); continue }
+        if (key.ctrl && key.name === 'o') { status = preview(); continue }
+        if (isTypable(key)) state = setQuery(state, state.query + key.str)
+        continue
+      }
+
+      // ── 탐색 모드
       if (key.name === 'escape') {
         if (state.query) { state = setQuery(state, ''); continue }
         break
       }
 
+      if (key.str === '/') { searchMode = true; continue }
+
       if (key.name === 'up' || (key.ctrl && key.name === 'p')) { state = move(state, -1); continue }
       if (key.name === 'down' || (key.ctrl && key.name === 'n')) { state = move(state, 1); continue }
       if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24)); continue }
       if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24)); continue }
-      if (key.name === 'backspace') { state = setQuery(state, state.query.slice(0, -1)); continue }
 
-      if (key.name === 'tab') {
+      // 탭 이동 — Tab/Shift+Tab, 좌우 화살표.
+      if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }
+      if (key.name === 'right') { state = moveTab(state, 1); continue }
+      if (key.name === 'left') { state = moveTab(state, -1); continue }
+
+      // 선택 토글 — 액션 행에서는 아무 일도 하지 않는다(제거 개념이 없다).
+      if (key.name === 'space') { status = select(); continue }
+
+      // 지금 탭에서 보이는 항목 전체 토글.
+      if (key.ctrl && key.name === 'a') {
+        const before = state.selected.size
+        state = toggleVisible(state)
+        status = `${activeTab(state)} 탭의 보이는 항목을 ${state.selected.size >= before ? '모두 선택' : '모두 해제'}했습니다.`
+        continue
+      }
+
+      if (key.ctrl && key.name === 'o') { status = preview(); continue }
+
+      if (key.name === 'return' || key.name === 'enter') {
+        // 액션 행은 그 자리에서 실행한다. 나머지는 제출(검토 → 일괄 적용)이다.
         const row = currentRow(state)
         if (row?.kind === 'action') {
           await suspend(async () => {
@@ -137,41 +219,32 @@ export async function runTui(root, opts = {}) {
             await pause()
           })
           await recollect()
-        } else {
-          state = toggle(state)
+          continue
         }
-        continue
-      }
 
-      if (key.ctrl && key.name === 'o') {
-        const row = currentRow(state)
-        if (row?.kind !== 'item' || !row.previewTarget) { status = '이 항목은 미리보기를 제공하지 않습니다.'; continue }
-        const notes = []
-        openPreview(opener, row.item, (m) => notes.push(String(m).trim()))
-        status = notes.length > 0 ? notes.join(' ') : `열었습니다: ${row.previewTarget}`
-        continue
-      }
-
-      if (key.name === 'return' || key.name === 'enter') {
         const changes = planChanges(itemStates(state.rows), state.selected)
         if (changes.length === 0) { status = '변경할 항목이 없습니다.'; continue }
-        const applied = await suspend(async () => {
+
+        const verdict = await review(changes)
+        if (verdict === 'quit') break
+        if (verdict === 'cancel') { status = '제출을 취소했습니다.'; continue }
+
+        await suspend(async () => {
           log(`\n적용할 변경 ${changes.length}건${dryRun ? ' (dry-run)' : ''}:`)
           for (const c of changes) log(`  ${ACTION_LABEL[c.action]} ${c.item.label}`)
-          if (!(await confirm('진행할까요?'))) { log('취소했습니다.'); await pause(); return false }
           const results = await apply(root, changes, { dryRun, log })
           for (const r of results) log(`  ${r.ok ? '✔' : '✖'} ${ACTION_LABEL[r.action]} ${r.item.label}${r.message ? ` — ${r.message}` : ''}`)
           if (results.some((r) => !r.ok)) process.exitCode = 1
           log('\n설정 파일 변경 내용은 git diff로 확인할 수 있습니다.')
           await pause()
-          return true
         })
-        if (applied) await recollect()
+        await recollect()
         continue
       }
 
-      // 나머지는 전부 검색어다 — 글자 키를 단축키로 쓰면 "docker"를 검색할 수 없다.
-      if (key.str && !key.ctrl && !key.meta && key.str >= ' ') {
+      // 글자 키를 바로 누르면 검색 모드로 들어간다 — type-to-filter 감각을 유지한다.
+      if (isTypable(key)) {
+        searchMode = true
         state = setQuery(state, state.query + key.str)
       }
     }

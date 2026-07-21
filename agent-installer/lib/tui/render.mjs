@@ -1,6 +1,6 @@
 // 순수 렌더 — 상태와 크기를 받아 화면 줄 배열을 돌려준다.
 // 커서 이동·지우기 같은 제어 시퀀스는 run.mjs가 맡는다.
-import { displayList } from './state.mjs'
+import { displayList, tabCounts, activeTab } from './state.mjs'
 
 const ESC = String.fromCharCode(27)
 const DIM = `${ESC}[2m`
@@ -8,8 +8,8 @@ const BOLD = `${ESC}[1m`
 const REVERSE = `${ESC}[7m`
 const RESET = `${ESC}[0m`
 
-// 머리글·검색줄·구분 공백·바닥글이 차지하는 줄 수.
-const CHROME = 5
+// 머리글·탭줄·검색줄·구분 공백·바닥글이 차지하는 줄 수.
+const CHROME = 6
 const LABEL_WIDTH = 24
 
 export function bodyHeight(height) {
@@ -64,23 +64,66 @@ function checkbox(row, selected) {
   return `[${selected.has(row.id) ? MARK.on : MARK.off}]`
 }
 
+// 탭 줄. 검색 중이면 탭마다 적중 수를 보여 준다 —
+// 검색은 활성 탭 안으로만 걸리므로, 다른 탭에 결과가 있다는 사실을 여기서 알린다.
+// 폭이 모자라면 활성 탭 하나 + 위치 표시로 줄인다(줄바꿈은 화면을 무너뜨린다).
+export function tabBar(state, { width: limit, color = false, searching = false } = {}) {
+  const counts = tabCounts(state)
+  if (counts.length === 0) return ''
+  const active = activeTab(state)
+
+  const segs = counts.map(({ tab, shown, total }) => ({
+    tab,
+    text: searching ? `${tab} ${shown}/${total}` : `${tab} ${total}`,
+    active: tab === active,
+    empty: searching && shown === 0,
+  }))
+
+  const SEP = '  '
+  const plain = segs.map((s) => s.text).join(SEP)
+  if (width(plain) > limit) {
+    const i = segs.findIndex((s) => s.active)
+    const compact = `‹ ${segs[i]?.text ?? ''} ›  ${i + 1}/${segs.length}`
+    return color ? `${BOLD}${cut(compact, limit)}${RESET}` : cut(compact, limit)
+  }
+  if (!color) return segs.map((s) => (s.active ? `[${s.text}]` : ` ${s.text} `)).join('')
+  return segs
+    .map((s) => (s.active ? `${REVERSE} ${s.text} ${RESET}` : s.empty ? `${DIM} ${s.text} ${RESET}` : ` ${s.text} `))
+    .join('')
+}
+
+// 검색줄. 입력 중임을 커서(▌)로 드러낸다 — 스페이스가 토글이 아니라 검색어로
+// 들어가는 유일한 상황이므로, 지금 어느 모드인지가 화면에 보여야 한다.
+function searchLine(state, { limit, searchMode, paint }) {
+  const prefix = '검색 › '
+  const room = Math.max(0, limit - width(prefix))
+  if (searchMode) return `${prefix}${cut(`${state.query}▌`, room)}`
+  if (state.query) return `${prefix}${cut(state.query, room)}`
+  return `${prefix}${paint(DIM, cut('/ 또는 글자를 눌러 이 탭에서 검색', room))}`
+}
+
 export function render(state, opts = {}) {
-  const { width = 80, height = 24, repo = '', dryRun = false, color = false, status = '' } = opts
+  // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
+  const {
+    width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', searchMode = false,
+  } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
-  const w = Math.max(24, width - 1)
+  const w = Math.max(24, columns - 1)
   const paint = (code, text) => (color ? `${code}${text}${RESET}` : text)
 
-  const installed = state.rows.filter((r) => r.kind === 'item' && r.status !== 'absent').length
-  const items = state.rows.filter((r) => r.kind === 'item').length
+  const items = state.rows.filter((r) => r.kind === 'item')
+  const picked = items.filter((r) => state.selected.has(r.id)).length
 
   const title = `agent-installer${dryRun ? ' (dry-run)' : ''}`
-  const counts = `설치 ${installed} / 전체 ${items}`
+  const counts = `선택 ${picked} / 전체 ${items.length}`
   const head = cut(`${title}  ${counts}  ${repo}`, w)
+  const searching = String(state.query ?? '').trim() !== ''
 
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
-    state.query ? `검색 › ${cut(state.query, Math.max(0, w - 7))}` : `검색 › ${paint(DIM, '타이핑하면 걸러집니다')}`,
+    tabBar(state, { width: w, color, searching }),
+    searchLine(state, { limit: w, searchMode, paint }),
     '',
   ]
 
@@ -88,7 +131,7 @@ export function render(state, opts = {}) {
   const all = displayList(state)
 
   if (all.length === 0) {
-    lines.push(paint(DIM, '  일치하는 항목이 없습니다.'))
+    lines.push(paint(DIM, cut(searching ? '  이 탭에는 일치하는 항목이 없습니다. Tab으로 다른 탭을 보세요.' : '  항목이 없습니다.', w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
     const window = all.slice(state.offset, state.offset + body)
@@ -108,6 +151,37 @@ export function render(state, opts = {}) {
   }
 
   lines.push('')
-  lines.push(paint(DIM, cut(status || 'Tab 선택/실행   Ctrl+O 브라우저   Enter 적용   Esc 종료', w)))
+  lines.push(paint(DIM, cut(status || 'Space 선택  Tab 탭이동  Enter 실행/제출  Ctrl+A 전체  Ctrl+O 미리보기  Esc 종료', w)))
+  return lines
+}
+
+const CHANGE_MARK = { install: '+', complete: '±', uninstall: '−' }
+const CHANGE_LABEL = { install: '설치', complete: '보완 설치', uninstall: '제거' }
+
+// 제출 검토 화면 — 적용 직전에 무엇이 바뀌는지만 보여 준다.
+// 목록이 길면 잘라내고 남은 건수를 알린다(스크롤 대신) — 여기서 길을 잃을 이유는 없다.
+export function renderReview(changes, opts = {}) {
+  const { width: columns = 80, height = 24, dryRun = false, color = false } = opts
+  const w = Math.max(24, columns - 1)
+  const paint = (code, text) => (color ? `${code}${text}${RESET}` : text)
+
+  const title = `제출 검토 — 변경 ${changes.length}건${dryRun ? ' (dry-run)' : ''}`
+  const lines = [color ? `${BOLD}${cut(title, w)}${RESET}` : cut(title, w), '']
+
+  const body = bodyHeight(height)
+  const room = Math.max(1, body - 1)
+  const shown = changes.slice(0, room)
+  for (const c of shown) {
+    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(CHANGE_LABEL[c.action] ?? c.action, 10)} ${c.item.label}`, w))
+  }
+  if (changes.length > shown.length) {
+    lines.push(paint(DIM, cut(`  …외 ${changes.length - shown.length}건`, w)))
+  } else {
+    lines.push('')
+  }
+  for (let i = shown.length + 1; i < body; i++) lines.push('')
+
+  lines.push('')
+  lines.push(paint(DIM, cut('Enter 적용   Esc 취소', w)))
   return lines
 }
