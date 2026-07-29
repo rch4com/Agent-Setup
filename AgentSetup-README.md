@@ -77,8 +77,13 @@ repository/
   개인 오버라이드인 `.github/copilot/settings.local.json`은 `.gitignore`에
   추가됩니다. Copilot CLI는 `.github/mcp.json`과 함께 루트 `.mcp.json`(Claude
   Code가 쓰는 파일)도 읽으며, 같은 이름의 서버가 양쪽에 있으면 `.mcp.json`이
-  우선합니다. 이 스크립트는 두 파일에 같은 내용을 쓰므로 평소에는 차이가
-  없지만, 한쪽만 손으로 고치면 우선순위 때문에 반영되지 않을 수 있습니다.
+  우선합니다. 원격(HTTP) 서버는 두 파일에 같은 내용(`type: "http"`)이 들어가
+  차이가 없지만, **stdio 서버는 형식이 다릅니다** — `.mcp.json`에는 Claude
+  Code 형식인 `type: "stdio"`가, `.github/mcp.json`에는 Copilot 형식인
+  `type: "local"`이 기록됩니다. 우선순위 때문에 Copilot CLI가 보는 것은
+  `.mcp.json` 쪽이므로, stdio MCP(`mcp.codebase-memory`)가 Copilot CLI에서
+  붙지 않으면 `.mcp.json`의 해당 항목을 `type: "local"`로 바꾸거나 지우고
+  `.github/mcp.json`만 남기세요.
 - **VS Code Copilot:** `.agents/skills`를 네이티브로 읽고, 루트 `AGENTS.md`는
   `.vscode/settings.json`의 `chat.useAgentsMdFile` 키로 켭니다(키가 없을 때만
   추가하고 기존 값은 보존합니다). 프로젝트 MCP는 `.vscode/mcp.json`이며,
@@ -112,6 +117,10 @@ node agent-installer/install.mjs bootstrap --help
 
 ## 안전 원칙
 
+아래는 **부트스트랩**(`setup-agents.sh` / `.ps1`)이 지키는 규칙입니다.
+선택 항목 설치기가 네트워크와 외부 명령을 쓰는 범위는 그 아래
+[설치기가 실행하는 것](#설치기가-실행하는-것)에 따로 적었습니다.
+
 - 반드시 Git 저장소 안에서만 실행됩니다.
 - `git rev-parse --show-toplevel`로 저장소 루트를 찾습니다.
 - 저장소 루트 밖의 경로에는 쓰기를 거부합니다.
@@ -131,6 +140,26 @@ node agent-installer/install.mjs bootstrap --help
 - `.vscode/settings.json`에는 `chat.useAgentsMdFile` 키가 **없을 때만**
   추가하며, 기존 키·주석·값은 그대로 둡니다.
 - 반복 실행할 수 있습니다.
+
+## 설치기가 실행하는 것
+
+부트스트랩과 달리 선택 항목 설치기는 네트워크를 쓰고 외부 명령을 실행합니다.
+무엇을 고르면 무엇이 실행되는지 미리 알 수 있도록 적어 둡니다.
+
+| 항목 | 실행되는 것 |
+|---|---|
+| `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. `claude` 명령이 없으면 `.claude/settings.json`에 기록만 하고, 다음 Claude Code 실행 시 다운로드됩니다 |
+| `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
+| `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
+| design.md | `raw.githubusercontent.com`에서 `DESIGN.md`를 내려받습니다(문서 파일이며 실행되지 않습니다). 동봉 번들에 있으면 네트워크를 쓰지 않습니다 |
+
+- 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.
+  세 항목 모두 제3자 코드를 이 저장소 안에서 실행합니다.
+- 네트워크 호출에는 20초 시간 제한이 걸려 있습니다.
+- `--dry-run`을 붙이면 무엇이 실행·기록될지만 출력하고 아무것도 바꾸지
+  않습니다.
+- MCP 항목은 설정 파일에 URL·명령만 기록합니다. 인증(OAuth)은 각 CLI를
+  처음 쓸 때 진행되며 토큰은 이 저장소에 저장되지 않습니다.
 
 ## Windows
 

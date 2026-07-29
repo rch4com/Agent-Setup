@@ -1,7 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { MANIFEST } from '../lib/bootstrap/manifest.mjs'
 import * as templates from '../lib/bootstrap/templates.mjs'
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('MANIFEST는 여섯 종류를 모두 선언한다', () => {
   assert.ok(Array.isArray(MANIFEST.dirs) && MANIFEST.dirs.length > 0)
@@ -119,6 +124,31 @@ test('VS Code가 AGENTS.md를 읽도록 설정 키를 보장한다', () => {
   assert.ok(entry, '.vscode/settings.json 항목이 있어야 한다')
   assert.equal(entry.key, 'chat.useAgentsMdFile')
   assert.equal(entry.value, true)
+})
+
+// 이 저장소 자신도 부트스트랩 산출물을 커밋해 두고 있어, 템플릿만 고치면
+// 두 벌이 조용히 갈라진다(실제로 .agent-kit/README.md가 그렇게 어긋났다).
+// 설치기는 자기완결이라 다른 저장소에 복사될 수 있으므로, 사본이 없으면
+// 검증을 건너뛴다 — 여기서 없다는 것은 드리프트가 아니라 다른 저장소라는 뜻이다.
+test('저장소에 커밋된 사본이 템플릿과 일치한다', () => {
+  const norm = (text) => text.replace(/\r\n/g, '\n').trim()
+  const pairs = [
+    ['.agent-kit/README.md', templates.AGENT_KIT_README],
+    ['.agents/skills/README.md', templates.SKILL_README],
+    ['.agents/skills/repository-check/SKILL.md', templates.EXAMPLE_SKILL],
+  ]
+  let checked = 0
+  for (const [rel, template] of pairs) {
+    const file = join(REPO_ROOT, rel)
+    if (!existsSync(file)) continue
+    checked++
+    assert.equal(
+      norm(readFileSync(file, 'utf8')),
+      norm(template),
+      `${rel}이 템플릿과 다르다 — 템플릿을 고쳤다면 이 사본도 갱신해야 한다`,
+    )
+  }
+  assert.ok(checked > 0 || !existsSync(join(REPO_ROOT, '.agent-kit')), '사본이 있는데 하나도 검사하지 못했다')
 })
 
 // setKey는 없는 키를 새로 만들어 버리므로, 템플릿의 최상위 키가 틀려도
