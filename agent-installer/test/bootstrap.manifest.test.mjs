@@ -3,12 +3,13 @@ import assert from 'node:assert/strict'
 import { MANIFEST } from '../lib/bootstrap/manifest.mjs'
 import * as templates from '../lib/bootstrap/templates.mjs'
 
-test('MANIFEST는 다섯 종류를 모두 선언한다', () => {
+test('MANIFEST는 여섯 종류를 모두 선언한다', () => {
   assert.ok(Array.isArray(MANIFEST.dirs) && MANIFEST.dirs.length > 0)
   assert.ok(Array.isArray(MANIFEST.files) && MANIFEST.files.length > 0)
   assert.ok(Array.isArray(MANIFEST.blocks) && MANIFEST.blocks.length > 0)
   assert.ok(Array.isArray(MANIFEST.adapters) && MANIFEST.adapters.length > 0)
   assert.ok(Array.isArray(MANIFEST.ignore) && MANIFEST.ignore.length > 0)
+  assert.ok(Array.isArray(MANIFEST.settings) && MANIFEST.settings.length > 0)
 })
 
 test('MANIFEST.tools는 비어 있지 않은 문자열 배열이다', () => {
@@ -103,4 +104,12 @@ test('VS Code가 AGENTS.md를 읽도록 설정 키를 보장한다', () => {
   assert.ok(entry, '.vscode/settings.json 항목이 있어야 한다')
   assert.equal(entry.key, 'chat.useAgentsMdFile')
   assert.equal(entry.value, true)
+})
+
+// setKey는 없는 키를 새로 만들어 버리므로, 템플릿의 최상위 키가 틀려도
+// clis.test.mjs의 add() 경로는 통과한다. 두 MCP 템플릿이 서로 다른 최상위
+// 키를 실제로 갖는지는 여기서만 검증된다 (F-2).
+test('두 Copilot MCP 템플릿의 최상위 키는 서로 다르다 (F-2)', () => {
+  assert.deepEqual(JSON.parse(templates.COPILOT_MCP_CONFIG), { mcpServers: {} })
+  assert.deepEqual(JSON.parse(templates.VSCODE_MCP_CONFIG), { servers: {} })
 })

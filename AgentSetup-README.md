@@ -75,7 +75,10 @@ repository/
   읽습니다(import 배선·어댑터 불필요). 프로젝트 MCP는 `.github/mcp.json`에
   등록하며, 팀 공유 설정 자리로 `.github/copilot/settings.json`을 만듭니다.
   개인 오버라이드인 `.github/copilot/settings.local.json`은 `.gitignore`에
-  추가됩니다.
+  추가됩니다. Copilot CLI는 `.github/mcp.json`과 함께 루트 `.mcp.json`(Claude
+  Code가 쓰는 파일)도 읽으며, 같은 이름의 서버가 양쪽에 있으면 `.mcp.json`이
+  우선합니다. 이 스크립트는 두 파일에 같은 내용을 쓰므로 평소에는 차이가
+  없지만, 한쪽만 손으로 고치면 우선순위 때문에 반영되지 않을 수 있습니다.
 - **VS Code Copilot:** `.agents/skills`를 네이티브로 읽고, 루트 `AGENTS.md`는
   `.vscode/settings.json`의 `chat.useAgentsMdFile` 키로 켭니다(키가 없을 때만
   추가하고 기존 값은 보존합니다). 프로젝트 MCP는 `.vscode/mcp.json`이며,
@@ -375,6 +378,7 @@ GEMINI.md
 .kiro/settings/mcp.json
 .kimi-code/mcp.json
 .vscode/mcp.json
+.vscode/settings.json
 opencode.jsonc
 kilo.jsonc
 ```
