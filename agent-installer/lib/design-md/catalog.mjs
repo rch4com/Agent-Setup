@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { repoPath } from '../context.mjs'
+import { repoPath, repoPathStrict } from '../context.mjs'
 import { PROVIDERS, getProvider } from './providers/index.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -48,11 +48,16 @@ export function stripControl(text) {
 
 // 설치·번들 경로는 제공자별로 스코프한다: design-md/<provider>/<name>/DESIGN.md.
 // 동명 항목이 여러 제공자에 있어도 충돌 없이 공존한다.
-function designPaths(root, providerId, name) {
+// 읽기는 어휘적 경로면 충분하다. 실제로 만들거나 지우는 경로만 링크를 통한
+// 저장소 이탈까지 검사한다 — bootstrap의 apply.mjs와 같은 규칙이다.
+// design-md가 저장소 밖을 가리키는 링크일 때 uninstall의 재귀 삭제가
+// 그 너머까지 닿는 것을 막는다.
+function designPaths(root, providerId, name, { strict = false } = {}) {
   if (!isSafeSegment(providerId) || !isSafeSegment(name)) {
     throw new Error(`잘못된 design.md 식별자: ${providerId}/${name}`)
   }
-  const dir = repoPath(root, `design-md/${providerId}/${name}`)
+  const rel = `design-md/${providerId}/${name}`
+  const dir = strict ? repoPathStrict(root, rel) : repoPath(root, rel)
   return { dir, file: join(dir, 'DESIGN.md') }
 }
 
@@ -87,14 +92,15 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
       let text = fresh ? null : provider.bundledText?.(name, 'DESIGN.md')
       if (text == null) text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
       if (text == null) throw new Error(`${providerId}/${name}: DESIGN.md 다운로드 실패`)
-      const { dir, file } = designPaths(root, providerId, name)
+      const { dir, file } = designPaths(root, providerId, name, { strict: true })
       mkdirSync(dir, { recursive: true })
       writeFileSync(file, text)
     },
 
     async uninstall({ root, dryRun }) {
-      const { dir } = designPaths(root, providerId, name)
-      if (!dryRun && existsSync(dir)) rmSync(dir, { recursive: true, force: true })
+      if (dryRun) return
+      const { dir } = designPaths(root, providerId, name, { strict: true })
+      if (existsSync(dir)) rmSync(dir, { recursive: true, force: true })
     },
 
     // 오래된 항목 감지용: 로컬과 원본 DESIGN.md 해시 비교.

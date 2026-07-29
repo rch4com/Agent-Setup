@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdtempSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch } from './helpers.mjs'
 import { defineDesignMd, buildItems, sha256, loadCatalog, saveCatalog, resolveTokens } from '../lib/design-md/catalog.mjs'
@@ -50,6 +51,23 @@ test('install은 원본 파일이 없으면 예외', async () => {
 test('경로 구분자가 든 이름은 거부한다', async () => {
   const item = defineDesignMd(entry('a/b'), provider, { fetchImpl: async () => ({}) })
   await assert.rejects(item.detect({ root: makeTempRepo() }), /잘못된 design.md 식별자/)
+})
+
+// 부트스트랩은 쓰기 경로마다 링크 이탈을 검사한다. 설치기의 design.md 경로도
+// 같은 규칙을 따라야 한다 — uninstall이 재귀 삭제를 하므로 새어 나가면
+// 저장소 밖 파일이 지워진다.
+test('design-md가 저장소 밖을 가리키는 링크면 install·uninstall이 거부한다', async () => {
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-design-'))
+  symlinkSync(outside, join(root, 'design-md'), 'junction')
+
+  const item = defineDesignMd(entry('stripe'), provider, {
+    fetchImpl: makeFetch([{ match: 'DESIGN.md', body: '# S' }]),
+  })
+  await assert.rejects(item.install({ root, dryRun: false, fresh: true }), /외부 링크/)
+  await assert.rejects(item.uninstall({ root, dryRun: false }), /외부 링크/)
+  // 읽기(detect)는 어휘적 경로로 충분하다 — 지켜야 할 쓰기가 없다.
+  assert.equal((await item.detect({ root })).status, 'absent')
 })
 
 test('buildItems: 엔트리를 item으로, 알 수 없는 프로바이더는 건너뛴다', () => {
