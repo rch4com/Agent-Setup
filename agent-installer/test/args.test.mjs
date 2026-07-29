@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  BOOTSTRAP_USAGE, requireValue, collectValues, parseSetArg,
+  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
+  requireValue, collectValues, parseSetArg,
   parseRootArgs, parseDesignArgs, parseBootstrapArgs,
 } from '../lib/args.mjs'
 
@@ -47,6 +48,18 @@ test('parseSetArg: 값이 빠지면 던진다 — 조용히 전체 제거로 읽
   assert.throws(() => parseSetArg(['--set', '--dry-run']), /--set "" 로 명시/)
 })
 
+// 등호 형식만 인식되지 않으면 목표 집합을 줬는데도 대화형 화면이 열린다.
+test('parseSetArg: 등호 형식도 받는다', () => {
+  assert.equal(parseSetArg(['--set=a,b']), 'a,b')
+  assert.equal(parseSetArg(['--set=']), '')
+  assert.equal(parseSetArg(['--dry-run', '--set=a']), 'a')
+})
+
+test('requireValue: 등호 형식도 받는다', () => {
+  assert.equal(requireValue(['--preview=stripe'], '--preview'), 'stripe')
+  assert.throws(() => requireValue(['--preview='], '--preview'), /값이 필요합니다/)
+})
+
 // ── parseRootArgs ─────────────────────────────────────────────────
 
 test('parseRootArgs: --list·--set이 없을 때만 대화형으로 간다', () => {
@@ -63,6 +76,40 @@ test('parseRootArgs: 플래그를 그대로 실어 나른다', () => {
     { dryRun: o.dryRun, listOnly: o.listOnly, setArg: o.setArg, designDirs: o.designDirs },
     { dryRun: true, listOnly: false, setArg: 'a', designDirs: ['x'] },
   )
+})
+
+// 예전에는 루트에서 --skill-mode를 읽지 않아, 런처가 넘긴 값이 조용히
+// 버려지고 대화형 부트스트랩이 늘 auto로 돌았다.
+test('parseRootArgs: --skill-mode를 두 형식 모두 받아 실어 나른다', () => {
+  assert.equal(parseRootArgs([]).skillMode, 'auto')
+  for (const mode of ['auto', 'link', 'copy']) {
+    assert.equal(parseRootArgs(['--skill-mode', mode]).skillMode, mode)
+    assert.equal(parseRootArgs([`--skill-mode=${mode}`]).skillMode, mode)
+  }
+  // 값 검증도 bootstrap과 같은 규칙을 따른다.
+  assert.throws(() => parseRootArgs(['--skill-mode', 'nope']), /auto, link, copy 중 하나/)
+  assert.throws(() => parseRootArgs(['--skill-mode']), /값이 필요합니다/)
+})
+
+// 조용히 무시되면 사용자는 명령이 먹혔다고 믿지만 아무 일도 일어나지 않는다.
+test('parseRootArgs: 모르는 인자와 오타를 거부한다', () => {
+  for (const argv of [['--lst'], ['--dryrun'], ['--totally-unknown'], ['stray'], ['--list=1']]) {
+    assert.throws(() => parseRootArgs(argv), (e) => e.message.includes(ROOT_USAGE), JSON.stringify(argv))
+  }
+})
+
+test('parseRootArgs: 등호 형식 --set은 대화형으로 새지 않는다', () => {
+  const o = parseRootArgs(['--set=mcp.notion'])
+  assert.equal(o.setArg, 'mcp.notion')
+  assert.equal(o.interactive, false)
+})
+
+test('parseRootArgs: -h/--help는 다른 검증보다 앞선다', () => {
+  for (const argv of [['-h'], ['--help'], ['--help', '--bogus']]) {
+    const o = parseRootArgs(argv)
+    assert.equal(o.help, true, JSON.stringify(argv))
+    assert.equal(o.interactive, false)
+  }
 })
 
 // ── parseDesignArgs ───────────────────────────────────────────────
@@ -96,6 +143,21 @@ test('parseDesignArgs: 값들을 그대로 실어 나른다', () => {
   assert.equal(o.preview, 'stripe,apple')
   assert.deepEqual(o.designDirs, ['a'])
   assert.equal(o.dryRun, true)
+})
+
+test('parseDesignArgs: 등호 형식 --preview·--set도 대화형으로 새지 않는다', () => {
+  assert.equal(parseDesignArgs(['--preview=stripe']).preview, 'stripe')
+  assert.equal(parseDesignArgs(['--preview=stripe']).interactive, false)
+  assert.equal(parseDesignArgs(['--set=stripe']).set, 'stripe')
+  assert.equal(parseDesignArgs(['--set=stripe']).interactive, false)
+})
+
+test('parseDesignArgs: 모르는 인자를 거부하고, --help가 앞선다', () => {
+  for (const argv of [['--syncx'], ['--previw', 'stripe'], ['--list=1']]) {
+    assert.throws(() => parseDesignArgs(argv), (e) => e.message.includes(DESIGN_USAGE), JSON.stringify(argv))
+  }
+  assert.equal(parseDesignArgs(['--help']).help, true)
+  assert.equal(parseDesignArgs(['-h']).interactive, false)
 })
 
 // ── parseBootstrapArgs ────────────────────────────────────────────

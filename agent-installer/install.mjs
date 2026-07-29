@@ -2,7 +2,10 @@
 import { findRepoRoot } from './lib/context.mjs'
 import { runBootstrap } from './lib/bootstrap/flow.mjs'
 import { withDeps } from './lib/deps.mjs'
-import { BOOTSTRAP_USAGE, parseBootstrapArgs, parseDesignArgs, parseRootArgs } from './lib/args.mjs'
+import {
+  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
+  parseBootstrapArgs, parseDesignArgs, parseRootArgs,
+} from './lib/args.mjs'
 
 // 위 정적 import는 전부 의존성 없는 모듈이다 — 부트스트랩은 npm install 없이 돌아야 하고,
 // bootstrap.isolation.test.mjs가 이 불변식을 지킨다. lib/ 나머지는 동적 import로만 닿는다.
@@ -11,9 +14,11 @@ const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', abse
 const ACTION_LABEL = { install: '설치', complete: '보완 설치', uninstall: '제거' }
 
 // 대화형 화면은 TUI가 맡는다.
-async function openTui(root, { dryRun, designDirs }) {
+async function openTui(root, { dryRun, skillMode, designDirs }) {
   const { runTui } = await withDeps(() => import('./lib/tui/run.mjs'))
-  await runTui(root, { dryRun, designDirs })
+  // skillMode는 화면 안의 '부트스트랩 실행' 작업이 쓴다. design 경로에서는
+  // 없으므로 undefined가 넘어가고 runTui의 기본값(auto)이 적용된다.
+  await runTui(root, { dryRun, skillMode, designDirs })
 }
 
 // --list / --set 전용 비대화형 경로.
@@ -61,6 +66,7 @@ async function main() {
 
   if (argv[0] === 'design') {
     const opts = parseDesignArgs(argv.slice(1))
+    if (opts.help) { console.log(DESIGN_USAGE); return }
     // 플래그 없는 `design`은 통합 화면을 연다 — DESIGN.MD 섹션이 그 안에 있다.
     if (opts.interactive) return openTui(root, opts)
     const { runDesign } = await withDeps(() => import('./lib/design-md/flow.mjs'))
@@ -69,6 +75,7 @@ async function main() {
   }
 
   const opts = parseRootArgs(argv)
+  if (opts.help) { console.log(ROOT_USAGE); return }
   if (opts.interactive) return openTui(root, opts)
   await runClassic(root, opts)
 }

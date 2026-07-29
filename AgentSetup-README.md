@@ -94,11 +94,14 @@ repository/
 설정 파일이 필요하면 `agent-installer/lib/bootstrap/templates.mjs`에
 템플릿을 더합니다.
 
-대화형 메뉴는 `--menu`(Linux) / `-Menu`(Windows)로 켜며, **이때만**
+대화형 화면은 `--tui`(Linux) / `-Tui`(Windows)로 켜며, **이때만**
 `npm install --prefix agent-installer`가 내부적으로 먼저 실행됩니다(의존성이
-이미 설치돼 있으면 즉시 통과합니다). 그 밖의 모든 실행(기본 부트스트랩,
-`-DryRun`, `-Help` 등)은 Node.js 표준 라이브러리만으로 동작하며 `npm install`이
-필요 없습니다.
+이미 설치돼 있으면 즉시 통과합니다). `--menu` / `-Menu`는 옛 이름이며 그대로
+동작합니다. 그 밖의 모든 실행(기본 부트스트랩, `-DryRun`, `-Help` 등)은
+Node.js 표준 라이브러리만으로 동작하며 `npm install`이 필요 없습니다.
+
+`--skill-mode` / `-SkillMode`는 대화형 화면에도 전달되어, 화면 안의
+`부트스트랩 실행` 작업이 같은 연결 방식을 씁니다.
 
 설치기를 거치지 않고 직접 부를 수도 있습니다.
 
@@ -259,13 +262,23 @@ SKILL·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출해 **�
 cd agent-installer && npm install && cd ..    # 최초 1회 (의존성 설치)
 
 node agent-installer/install.mjs              # 대화형: 체크 = 설치, 해제 = 제거
+node agent-installer/install.mjs --help       # 사용법 (design·bootstrap도 --help 지원)
 node agent-installer/install.mjs --list       # 현재 상태만 출력
-node agent-installer/install.mjs --dry-run    # 변경 없이 수행 내용 확인
 node agent-installer/install.mjs --set mcp.notion,plugin.bkit
                                               # 비대화형: 지정 집합을 목표 상태로
 node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드시 명시,
                                               #  값을 생략하면 오류로 종료)
+node agent-installer/install.mjs --list --dry-run
+                                              # --dry-run은 다른 플래그를 수식합니다.
+                                              #  단독으로 주면 dry-run 상태의
+                                              #  대화형 화면이 열립니다
+node agent-installer/install.mjs --design-dir 사내=//nas/design --list
+                                              # design.md 소스 추가 (반복 지정 가능)
 ```
+
+값을 받는 플래그는 `--set a,b`와 `--set=a,b` 두 형식을 모두 받습니다.
+모르는 인자나 오타(`--dryrun`)는 조용히 무시하지 않고 사용법과 함께
+오류로 종료합니다.
 
 ### 설치 가능한 항목
 

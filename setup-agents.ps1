@@ -27,7 +27,10 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 
 if ($Tui -and -not $Help) {
     & npm install --prefix $installer --silent
+    # -SkillMode도 함께 넘긴다 — 화면 안의 '부트스트랩 실행'이 그 값을 쓴다.
+    # 예전에는 여기서 버려져 대화형 경로가 늘 auto로 고정됐다.
     $tuiArgs = @()
+    if ($SkillMode) { $tuiArgs += @("--skill-mode", $SkillMode.ToLower()) }
     if ($DryRun) { $tuiArgs += "--dry-run" }
     & node (Join-Path $installer "install.mjs") @tuiArgs
     exit $LASTEXITCODE
