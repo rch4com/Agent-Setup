@@ -2,6 +2,25 @@
 
 최신 항목이 위에 옵니다. 상세 사용법은 `AgentSetup-README.md`를 참조하세요.
 
+## GitHub Copilot 지원 (2026-07-29)
+
+- GitHub Copilot CLI와 VS Code Copilot을 지원 도구에 추가. 두 도구 모두
+  루트 `AGENTS.md`와 `.agents/skills`를 네이티브로 읽어 import 배선과
+  스킬 어댑터가 필요 없음.
+- 프로젝트 MCP는 Copilot CLI가 `.github/mcp.json`(`mcpServers`, 로컬 서버는
+  `type: "local"`), VS Code가 `.vscode/mcp.json`(`servers`, 로컬 서버는
+  `type: "stdio"`). 설치기의 MCP 등록 대상이 8개에서 10개로 늘어남.
+- 팀 공유 설정 자리로 `.github/copilot/settings.json`을 만들고, 개인
+  오버라이드 `.github/copilot/settings.local.json`은 `.gitignore` 처리.
+- VS Code는 `chat.useAgentsMdFile` 설정이 있어야 `AGENTS.md`를 읽으므로
+  `.vscode/settings.json`에 키가 없을 때만 추가(기존 값은 보존).
+  이를 위해 부트스트랩에 `ensureJsonKeys` 실행기를 추가 — 외부 의존성
+  없이 텍스트 삽입으로 처리해 주석·포맷을 보존함.
+- `VisualStudio.gitignore`가 `.vscode/*`를 무시하므로 `!.vscode/mcp.json`
+  부정 항목을 함께 추가.
+- 클라우드 코딩 에이전트는 범위 밖 — 지침은 `AGENTS.md`로 이미 커버되고,
+  MCP는 저장소 파일이 아니라 GitHub 웹 설정에서 구성됨.
+
 ## Antigravity 지원 (2026-07-18)
 
 - Antigravity(Google 에이전트 IDE/CLI)를 지원 도구에 추가.

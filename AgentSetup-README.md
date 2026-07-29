@@ -1,9 +1,9 @@
 # Repository-local AI agent bootstrap
 
 Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
-Grok Build(xAI grok CLI), Antigravity(Google 에이전트 IDE/CLI)를 한
-저장소에서 함께 사용할 때 공통 지침과 공통 Agent Skills를 **저장소 범위로만**
-초기화하는 스크립트입니다.
+Grok Build(xAI grok CLI), Antigravity(Google 에이전트 IDE/CLI),
+GitHub Copilot CLI, VS Code Copilot을 한 저장소에서 함께 사용할 때 공통
+지침과 공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
 
 ## 생성되는 구조
 
@@ -25,6 +25,10 @@ repository/
 │  └─ config.toml
 ├─ .gemini/
 │  └─ settings.json
+├─ .github/
+│  ├─ mcp.json
+│  └─ copilot/
+│     └─ settings.json
 ├─ .grok/
 │  ├─ config.toml
 │  └─ skills/          # .agents/skills 링크 또는 관리되는 복제본
@@ -34,6 +38,9 @@ repository/
 │     └─ mcp.json
 ├─ .kimi-code/
 │  └─ mcp.json
+├─ .vscode/
+│  ├─ mcp.json
+│  └─ settings.json      # chat.useAgentsMdFile 키만 보장
 └─ .agent-kit/
    └─ README.md
 ```
@@ -64,6 +71,15 @@ repository/
   사용합니다(import 배선·어댑터 불필요, 신규 파일 없음). MCP는 홈 글로벌
   (`~/.gemini/config/mcp_config.json`)에서만 설정하고 프로젝트 스코프 MCP
   파일이 없어 이 스크립트가 관리하는 범위 밖입니다.
+- **GitHub Copilot CLI:** 루트 `AGENTS.md`와 `.agents/skills`를 네이티브로
+  읽습니다(import 배선·어댑터 불필요). 프로젝트 MCP는 `.github/mcp.json`에
+  등록하며, 팀 공유 설정 자리로 `.github/copilot/settings.json`을 만듭니다.
+  개인 오버라이드인 `.github/copilot/settings.local.json`은 `.gitignore`에
+  추가됩니다.
+- **VS Code Copilot:** `.agents/skills`를 네이티브로 읽고, 루트 `AGENTS.md`는
+  `.vscode/settings.json`의 `chat.useAgentsMdFile` 키로 켭니다(키가 없을 때만
+  추가하고 기존 값은 보존합니다). 프로젝트 MCP는 `.vscode/mcp.json`이며,
+  최상위 키가 `servers`로 Copilot CLI와 형식이 다릅니다.
 
 ## 부트스트랩 실행 방법
 
@@ -101,6 +117,11 @@ node agent-installer/install.mjs bootstrap --help
 - `.claude/skills`, `.kiro/skills`, `.grok/skills`를 `.gitignore`에
   추가해 어댑터(링크/복제본)가 커밋되지 않도록 합니다.
 - 머신별 설정인 `.kimi-code/local.toml`도 `.gitignore`에 추가합니다.
+- 개인 설정인 `.github/copilot/settings.local.json`도 `.gitignore`에 추가합니다.
+- `.vscode/*`를 무시하는 `.gitignore`에서도 `.vscode/mcp.json`이 커밋되도록
+  `!.vscode/mcp.json` 부정 항목을 추가합니다.
+- `.vscode/settings.json`에는 `chat.useAgentsMdFile` 키가 **없을 때만**
+  추가하며, 기존 키·주석·값은 그대로 둡니다.
 - 반복 실행할 수 있습니다.
 
 ## Windows
@@ -185,9 +206,12 @@ GEMINI.md
 .claude/settings.json
 .codex/config.toml
 .gemini/settings.json
+.github/mcp.json
+.github/copilot/settings.json
 .grok/config.toml
 .kiro/settings/mcp.json
 .kimi-code/mcp.json
+.vscode/mcp.json
 opencode.jsonc
 kilo.jsonc
 ```
@@ -243,7 +267,7 @@ node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 플러그인 | `plugin.superpowers`, `plugin.bkit`, `plugin.mattpocock-skills` | Claude Code 전용, `--scope project` 설치. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 8개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리) |
@@ -345,9 +369,12 @@ GEMINI.md
 .claude/settings.json
 .codex/config.toml
 .gemini/settings.json
+.github/mcp.json
+.github/copilot/settings.json
 .grok/config.toml
 .kiro/settings/mcp.json
 .kimi-code/mcp.json
+.vscode/mcp.json
 opencode.jsonc
 kilo.jsonc
 ```

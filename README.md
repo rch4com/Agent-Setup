@@ -1,8 +1,9 @@
 # Agent-Setup
 
 멀티 CLI 코딩 에이전트(Claude Code, Codex, Gemini CLI, OpenCode,
-Kilo Code, Kiro, Kimi Code, Grok Build, Antigravity)를 한 저장소에서 함께
-쓰기 위한 저장소 범위 부트스트랩 스크립트와 선택 항목 설치기입니다.
+Kilo Code, Kiro, Kimi Code, Grok Build, Antigravity, GitHub Copilot CLI,
+VS Code Copilot)를 한 저장소에서 함께 쓰기 위한 저장소 범위 부트스트랩
+스크립트와 선택 항목 설치기입니다.
 
 - 사용법·생성 구조·안전 원칙: [AgentSetup-README.md](AgentSetup-README.md)
 - 변경 이력: [AgentSetup-README-CHANGES.md](AgentSetup-README-CHANGES.md)

@@ -12,5 +12,7 @@ The bootstrap scripts:
 - add a small managed import block to `CLAUDE.md` and `GEMINI.md`;
 - expose `.agents/skills` to Claude Code, Kiro, and Grok Build through
   local adapters;
-- rely on the native support of Kilo Code, Kimi Code, and Antigravity for
-  `AGENTS.md` and `.agents/skills`.
+- add `chat.useAgentsMdFile` to `.vscode/settings.json` only when the key
+  is absent, so VS Code Copilot reads the shared `AGENTS.md`;
+- rely on the native support of Kilo Code, Kimi Code, Antigravity, GitHub
+  Copilot CLI, and VS Code Copilot for `AGENTS.md` and `.agents/skills`.
