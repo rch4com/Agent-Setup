@@ -76,6 +76,23 @@ export const CLIS = {
     add: (root, name, s) => appendSection(repoPath(root, '.grok/config.toml'), name, tomlLines(s)),
     remove: (root, name) => removeSection(repoPath(root, '.grok/config.toml'), name),
   },
+  copilot: {
+    label: 'GitHub Copilot CLI',
+    // Copilot CLI는 루트 .mcp.json도 읽지만(같은 이름이면 그쪽이 우선),
+    // 도구마다 자기 파일을 갖는 이 저장소의 패턴을 따라 .github/mcp.json에 쓴다.
+    ...jsonAdapter('.github/mcp.json', 'mcpServers', (s) =>
+      s.kind === 'http'
+        ? { type: 'http', url: s.url }
+        : { type: 'local', command: s.command, args: s.args }),
+  },
+  vscode: {
+    label: 'VS Code Copilot',
+    // VS Code는 최상위 키가 servers이고 로컬 서버 타입이 stdio다.
+    ...jsonAdapter('.vscode/mcp.json', 'servers', (s) =>
+      s.kind === 'http'
+        ? { type: 'http', url: s.url }
+        : { type: 'stdio', command: s.command, args: s.args }),
+  },
 }
 
 export const CLI_IDS = Object.keys(CLIS)

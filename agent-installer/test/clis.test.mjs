@@ -52,3 +52,27 @@ test('grok은 .grok/config.toml에 mcp_servers 테이블을 쓴다', () => {
   assert.match(text, /\[mcp_servers\.n\]/)
   assert.match(text, /url = "https:\/\/mcp\.notion\.com\/mcp"/)
 })
+
+test('copilot은 .github/mcp.json에 mcpServers + type:local을 쓴다', () => {
+  const repo = makeTempRepo()
+  CLIS.copilot.add(repo, 'n', HTTP)
+  CLIS.copilot.add(repo, 'c', STDIO)
+
+  const servers = readJson(join(repo, '.github/mcp.json')).mcpServers
+  assert.equal(servers.n.type, 'http')
+  assert.equal(servers.n.url, HTTP.url)
+  assert.equal(servers.c.type, 'local')
+  assert.equal(servers.c.command, 'codebase-memory-mcp')
+})
+
+test('vscode는 .vscode/mcp.json에 servers 키 + type:stdio를 쓴다', () => {
+  const repo = makeTempRepo()
+  CLIS.vscode.add(repo, 'n', HTTP)
+  CLIS.vscode.add(repo, 'c', STDIO)
+
+  const data = readJson(join(repo, '.vscode/mcp.json'))
+  assert.equal(data.mcpServers, undefined, 'VS Code는 mcpServers가 아니라 servers를 쓴다')
+  assert.equal(data.servers.n.type, 'http')
+  assert.equal(data.servers.c.type, 'stdio')
+  assert.deepEqual(data.servers.c.args, [])
+})
