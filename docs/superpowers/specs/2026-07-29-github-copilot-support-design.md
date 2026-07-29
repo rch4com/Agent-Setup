@@ -179,7 +179,27 @@ vscode: {
 
 ## 범위 밖
 
-- Copilot 클라우드 코딩 에이전트 전용 설정(`.github/workflows/copilot-setup-steps.yml` 등)
+### Copilot 클라우드 코딩 에이전트
+
+GitHub Actions 위에서 실행되는 비동기 에이전트다. 이슈를 Copilot에게 할당하면 GitHub가
+임시 개발 환경을 띄워 저장소를 클론하고 변경을 만든 뒤 초안 PR을 연다. 터미널의
+Copilot CLI, 편집기의 VS Code Copilot과 달리 실행 위치가 사용자 기기가 아니다.
+
+이번 범위에서 제외하는 이유는 **이 저장소가 관리할 수 있는 파일이 사실상 없기 때문**이다.
+
+- 지침은 이미 해결돼 있다 — 클라우드 에이전트도 루트 `AGENTS.md`를 읽는다. 부트스트랩이
+  이미 만드는 파일이라 추가 작업이 발생하지 않는다.
+- MCP는 파일이 아니다 — 저장소 **Settings → Copilot → Cloud agent** 화면에 JSON을 입력하는
+  방식이다([공식 문서](https://docs.github.com/copilot/how-tos/agents/copilot-coding-agent/extending-copilot-coding-agent-with-mcp)).
+  "저장소 범위 파일만 생성한다"는 이 저장소의 원칙으로는 다룰 수 없다.
+- 남는 `.github/workflows/copilot-setup-steps.yml`(에이전트 실행 전 의존성 설치 워크플로)은
+  프로젝트마다 빌드 절차가 달라 공용 템플릿으로 찍어낼 수 없다.
+
+즉 클라우드 에이전트는 별도 조치 없이 `AGENTS.md`의 혜택을 받고, 나머지는 GitHub 웹
+설정이라 스크립트 대상이 아니다.
+
+### 그 밖에 만들지 않는 것
+
 - `.github/agents/`(커스텀 에이전트), `.github/hooks/`, `.github/allowed_models.txt` —
   `AGENTS.md` 단일 출처 원칙과 중복되거나 팀별 선택 사항이다
 - `.github/copilot-instructions.md` — `AGENTS.md`를 네이티브로 읽으므로 불필요
