@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, symlinkSync, rmSync
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
-import { ensureDirs, ensureFiles, ensureBlocks, ensureIgnore } from '../lib/bootstrap/apply.mjs'
+import { ensureDirs, ensureFiles, ensureBlocks, ensureIgnore, ensureJsonKeys } from '../lib/bootstrap/apply.mjs'
 
 const ctx = (cap, dryRun = false) => ({ dryRun, log: cap.log })
 
@@ -241,6 +241,112 @@ test('ensureIgnore: 링크를 통한 저장소 이탈을 거부한다', () => {
 
   assert.throws(
     () => ensureIgnore(root, ['.claude/skills'], ctx(makeCapture())),
+    /외부 링크/,
+  )
+})
+
+const SETTING = { path: '.vscode/settings.json', key: 'chat.useAgentsMdFile', value: true }
+
+test('ensureJsonKeys: 파일이 없으면 키만 담아 만든다', () => {
+  const root = makeTempRepo()
+  const results = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.equal(text, '{\n  "chat.useAgentsMdFile": true\n}\n')
+  assert.equal(results[0].action, 'create')
+})
+
+test('ensureJsonKeys: 빈 객체에는 콤마 없이 삽입한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{}\n')
+
+  const results = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.deepEqual(JSON.parse(text), { 'chat.useAgentsMdFile': true }, '유효한 JSON이어야 한다')
+  assert.equal(results[0].action, 'insert')
+})
+
+test('ensureJsonKeys: 기존 키와 주석을 보존하고 앞에 삽입한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  // 팀 규약\n  "editor.tabSize": 2\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.ok(text.includes('// 팀 규약'), '주석이 보존되어야 한다')
+  assert.ok(text.includes('"editor.tabSize": 2'), '기존 키가 보존되어야 한다')
+  assert.match(text, /\{\n {2}"chat\.useAgentsMdFile": true,\n/, '콤마와 함께 첫 키로 삽입되어야 한다')
+})
+
+test('ensureJsonKeys: 키가 이미 있으면 값이 false여도 건드리지 않는다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  const before = '{\n  "chat.useAgentsMdFile": false\n}\n'
+  writeFileSync(join(root, '.vscode/settings.json'), before)
+
+  const results = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  assert.equal(readFileSync(join(root, '.vscode/settings.json'), 'utf8'), before)
+  assert.equal(results[0].action, 'skip')
+})
+
+test('ensureJsonKeys: 두 번 실행해도 한 번만 삽입한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  "editor.tabSize": 2\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+  const after = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  const second = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  assert.equal(readFileSync(join(root, '.vscode/settings.json'), 'utf8'), after, '멱등해야 한다')
+  assert.equal(second[0].action, 'skip')
+})
+
+test('ensureJsonKeys: 루트 앞 주석 속 중괄호에 속지 않는다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '// 예: { "a": 1 }\n{\n  "editor.tabSize": 2\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.ok(text.startsWith('// 예: { "a": 1 }\n{\n  "chat.useAgentsMdFile": true,\n'), `주석 뒤 루트에 삽입해야 한다: ${text}`)
+})
+
+test('ensureJsonKeys: 루트 객체가 없으면 경고로 처리한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '// 내용 없음\n')
+
+  const cap = makeCapture()
+  const results = ensureJsonKeys(root, [SETTING], ctx(cap))
+
+  assert.equal(results[0].action, 'warn')
+  assert.equal(readFileSync(join(root, '.vscode/settings.json'), 'utf8'), '// 내용 없음\n')
+  assert.match(cap.text(), /경고/)
+})
+
+test('ensureJsonKeys: dry-run은 파일시스템을 바꾸지 않는다', () => {
+  const root = makeTempRepo()
+  const cap = makeCapture()
+  ensureJsonKeys(root, [SETTING], ctx(cap, true))
+
+  assert.equal(existsSync(join(root, '.vscode/settings.json')), false)
+  assert.match(cap.text(), /파일 생성/)
+})
+
+test('ensureJsonKeys: 링크를 통한 저장소 이탈을 거부한다', () => {
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-'))
+  writeFileSync(join(outside, 'settings.json'), '{}\n')
+  symlinkSync(outside, join(root, '.evil'), 'junction')
+
+  assert.throws(
+    () => ensureJsonKeys(root, [{ ...SETTING, path: '.evil/settings.json' }], ctx(makeCapture())),
     /외부 링크/,
   )
 })

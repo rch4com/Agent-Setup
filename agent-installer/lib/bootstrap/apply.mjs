@@ -130,3 +130,81 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
   }
   return missing.map((e) => ({ ok: true, action: 'append', path: e }))
 }
+
+// 줄 주석(//)과 블록 주석(/* */)을 건너뛰고 루트 객체의 여는 중괄호 위치를 찾는다.
+// JSONC인 .vscode/settings.json은 파일 첫머리에 주석이 오는 일이 흔하고,
+// 그 주석 안의 중괄호에 속으면 주석 한가운데에 키를 끼워 넣게 된다.
+function findRootBrace(text) {
+  let inBlock = false
+  let offset = 0
+
+  for (const line of text.split('\n')) {
+    let i = 0
+    while (i < line.length) {
+      if (inBlock) {
+        const end = line.indexOf('*/', i)
+        if (end === -1) { i = line.length; break }
+        inBlock = false
+        i = end + 2
+        continue
+      }
+      if (line[i] === '/' && line[i + 1] === '/') break
+      if (line[i] === '/' && line[i + 1] === '*') { inBlock = true; i += 2; continue }
+      if (line[i] === '{') return offset + i
+      i++
+    }
+    offset += line.length + 1 // split이 제거한 개행 1자
+  }
+  return -1
+}
+
+// 기존 JSON 파일을 보존한 채 최상위 키 하나를 보장한다.
+// 부트스트랩은 외부 의존성을 쓸 수 없어(jsonc-parser는 설치기 경로 전용)
+// 파싱·재직렬화 대신 텍스트 삽입으로 처리한다. 재직렬화하지 않으므로
+// 사용자의 주석·들여쓰기·줄바꿈이 그대로 남는다.
+export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
+  return entries.map(({ path: rel, key, value }) => {
+    const pair = `${JSON.stringify(key)}: ${JSON.stringify(value)}`
+
+    // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
+    if (!pathExists(repoPath(root, rel))) {
+      // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
+      const target = repoPathStrict(root, rel)
+      log(`파일 생성: ${rel}`)
+      if (!dryRun) writeText(target, `{\n  ${pair}\n}`)
+      return { ok: true, action: 'create', path: rel }
+    }
+
+    let text
+    try {
+      text = readFileSync(repoPath(root, rel), 'utf8')
+    } catch (err) {
+      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다 (${err.code ?? err.message})`)
+      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    }
+
+    // 주석 안에 있어도 건드리지 않는다 — 사용자가 언급한 키를 스크립트가
+    // 되살리지 않는 편이 "기존 설정을 덮어쓰지 않는다"는 원칙에 맞는다.
+    if (text.includes(JSON.stringify(key))) {
+      log(`설정 키 확인: ${rel} — ${key}`)
+      return { ok: true, action: 'skip', path: rel }
+    }
+
+    const brace = findRootBrace(text)
+    if (brace === -1) {
+      log(`경고: ${rel}에서 루트 객체를 찾지 못해 건너뜁니다`)
+      return { ok: true, action: 'warn', path: rel, message: '루트 객체 없음' }
+    }
+
+    const strictTarget = repoPathStrict(root, rel)
+    log(`설정 키 추가: ${rel} — ${key}`)
+    if (!dryRun) {
+      const rest = text.slice(brace + 1)
+      // 빈 객체면 콤마 없이, 뒤에 항목이 있으면 콤마를 붙여 유효한 JSON을 유지한다.
+      const empty = rest.trimStart().startsWith('}')
+      const inserted = `\n  ${pair}${empty ? '\n' : ','}`
+      writeFileSync(strictTarget, text.slice(0, brace + 1) + inserted + rest, { encoding: 'utf8' })
+    }
+    return { ok: true, action: 'insert', path: rel }
+  })
+}
