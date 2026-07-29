@@ -2,6 +2,7 @@ import {
   AGENTS_TEMPLATE, CLAUDE_BLOCK, GEMINI_BLOCK, SKILL_README, EXAMPLE_SKILL,
   AGENT_KIT_README, CLAUDE_SETTINGS, CODEX_CONFIG, GEMINI_SETTINGS, GROK_CONFIG,
   OPENCODE_CONFIG, KILO_CONFIG, KIRO_MCP_CONFIG, KIMI_MCP_CONFIG,
+  COPILOT_MCP_CONFIG, COPILOT_SETTINGS, VSCODE_MCP_CONFIG,
 } from './templates.mjs'
 
 // 저장소 부트스트랩이 만들 대상 선언.
@@ -11,11 +12,13 @@ export const MANIFEST = {
   tools: [
     'Claude Code', 'Codex', 'Gemini CLI', 'OpenCode', 'Kilo Code',
     'Kiro', 'Kimi Code', 'Grok Build', 'Antigravity',
+    'GitHub Copilot CLI', 'VS Code Copilot',
   ],
 
   dirs: [
     '.agents/skills', '.agent-kit', '.claude', '.codex',
     '.gemini', '.grok', '.kiro/settings', '.kimi-code',
+    '.github/copilot', '.vscode',
   ],
 
   // 없을 때만 생성한다. 이미 있으면 내용을 보지 않고 보존한다.
@@ -32,6 +35,9 @@ export const MANIFEST = {
     { path: 'kilo.jsonc', template: KILO_CONFIG },
     { path: '.kiro/settings/mcp.json', template: KIRO_MCP_CONFIG },
     { path: '.kimi-code/mcp.json', template: KIMI_MCP_CONFIG },
+    { path: '.github/mcp.json', template: COPILOT_MCP_CONFIG },
+    { path: '.github/copilot/settings.json', template: COPILOT_SETTINGS },
+    { path: '.vscode/mcp.json', template: VSCODE_MCP_CONFIG },
   ],
 
   // 마커가 없을 때만 덧붙인다. 파일이 없으면 블록만으로 생성한다.
@@ -40,12 +46,25 @@ export const MANIFEST = {
     { path: 'GEMINI.md', block: GEMINI_BLOCK },
   ],
 
+  // 기존 파일을 보존한 채 최상위 키만 보장한다. 키가 이미 있으면 손대지 않는다.
+  // VS Code Copilot은 이 키가 있어야 루트 AGENTS.md를 읽는다.
+  settings: [
+    { path: '.vscode/settings.json', key: 'chat.useAgentsMdFile', value: true },
+  ],
+
   // .agents/skills 를 가리키는 도구별 어댑터
+  // 두 Copilot은 .agents/skills를 네이티브로 탐색하므로 여기에 없다.
   adapters: [
     { tool: 'Claude Code', path: '.claude/skills' },
     { tool: 'Kiro', path: '.kiro/skills' },
     { tool: 'Grok Build', path: '.grok/skills' },
   ],
 
-  ignore: ['.claude/skills', '.kiro/skills', '.grok/skills', '.kimi-code/local.toml'],
+  // !.vscode/mcp.json은 널리 쓰이는 VisualStudio.gitignore가 .vscode/*를
+  // 무시하기 때문에 필요하다. 부정 항목이 없으면 팀 공유가 깨진다.
+  // .vscode/*가 없는 저장소에서는 무해한 no-op이다.
+  ignore: [
+    '.claude/skills', '.kiro/skills', '.grok/skills', '.kimi-code/local.toml',
+    '.github/copilot/settings.local.json', '!.vscode/mcp.json',
+  ],
 }

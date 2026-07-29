@@ -57,8 +57,8 @@ description: Explain when this skill should be used.
 
 Claude Code, Kiro, and Grok Build receive these skills through project-local
 adapters at \`.claude/skills\`, \`.kiro/skills\`, and \`.grok/skills\`. Codex,
-Gemini CLI, OpenCode, Kilo Code, Kimi Code, and Antigravity discover
-\`.agents/skills\` directly.`
+Gemini CLI, OpenCode, Kilo Code, Kimi Code, Antigravity, GitHub Copilot CLI,
+and VS Code Copilot discover \`.agents/skills\` directly.`
 
 export const EXAMPLE_SKILL = `---
 name: repository-check
@@ -87,8 +87,10 @@ The installer bootstrap:
 - add a small managed import block to \`CLAUDE.md\` and \`GEMINI.md\`;
 - expose \`.agents/skills\` to Claude Code, Kiro, and Grok Build through
   local adapters;
-- rely on the native support of Kilo Code, Kimi Code, and Antigravity for
-  \`AGENTS.md\` and \`.agents/skills\`.`
+- add \`chat.useAgentsMdFile\` to \`.vscode/settings.json\` only when the key
+  is absent, so VS Code Copilot reads the shared \`AGENTS.md\`;
+- rely on the native support of Kilo Code, Kimi Code, Antigravity, GitHub
+  Copilot CLI, and VS Code Copilot for \`AGENTS.md\` and \`.agents/skills\`.`
 
 export const CLAUDE_SETTINGS = `{}`
 
@@ -129,4 +131,18 @@ export const KIRO_MCP_CONFIG = `{
 
 export const KIMI_MCP_CONFIG = `{
   "mcpServers": {}
+}`
+
+export const COPILOT_MCP_CONFIG = `{
+  "mcpServers": {}
+}`
+
+// 모델·추론 강도·컨텍스트 티어를 저장소 단위로 고정하는 공유 설정 자리.
+// 구체적인 값은 팀이 정한다. 개인 오버라이드는 settings.local.json이며
+// .gitignore 대상이다.
+export const COPILOT_SETTINGS = `{}`
+
+// VS Code는 최상위 키가 servers다 (Copilot CLI의 mcpServers와 다르다).
+export const VSCODE_MCP_CONFIG = `{
+  "servers": {}
 }`

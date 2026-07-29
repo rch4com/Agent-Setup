@@ -25,6 +25,7 @@ test('경로는 저장소 상대 경로이고 중복이 없다', () => {
     ...MANIFEST.files.map((f) => f.path),
     ...MANIFEST.blocks.map((b) => b.path),
     ...MANIFEST.adapters.map((a) => a.path),
+    ...MANIFEST.settings.map((s) => s.path),
   ]
   for (const p of paths) {
     assert.ok(!p.startsWith('/') && !/^[A-Za-z]:/.test(p), `절대 경로 금지: ${p}`)
@@ -63,7 +64,7 @@ test('템플릿에 CRLF와 BOM이 없다', () => {
   }
 })
 
-test('9개 도구의 설정 파일이 모두 선언되어 있다', () => {
+test('11개 도구의 설정 파일이 모두 선언되어 있다', () => {
   const files = MANIFEST.files.map((f) => f.path)
   for (const expected of [
     'AGENTS.md',
@@ -78,7 +79,28 @@ test('9개 도구의 설정 파일이 모두 선언되어 있다', () => {
     'kilo.jsonc',
     '.kiro/settings/mcp.json',
     '.kimi-code/mcp.json',
+    '.github/mcp.json',
+    '.github/copilot/settings.json',
+    '.vscode/mcp.json',
   ]) {
     assert.ok(files.includes(expected), `누락: ${expected}`)
   }
+})
+
+test('settings 항목은 path·key·value를 모두 갖는다', () => {
+  assert.ok(Array.isArray(MANIFEST.settings) && MANIFEST.settings.length > 0)
+  for (const s of MANIFEST.settings) {
+    assert.equal(typeof s.path, 'string')
+    assert.ok(s.path.trim().length > 0, `빈 경로 금지: ${JSON.stringify(s)}`)
+    assert.equal(typeof s.key, 'string')
+    assert.ok(s.key.trim().length > 0, `빈 키 금지: ${s.path}`)
+    assert.notEqual(s.value, undefined, `${s.path}: value 누락`)
+  }
+})
+
+test('VS Code가 AGENTS.md를 읽도록 설정 키를 보장한다', () => {
+  const entry = MANIFEST.settings.find((s) => s.path === '.vscode/settings.json')
+  assert.ok(entry, '.vscode/settings.json 항목이 있어야 한다')
+  assert.equal(entry.key, 'chat.useAgentsMdFile')
+  assert.equal(entry.value, true)
 })

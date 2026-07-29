@@ -1,7 +1,7 @@
 // 부트스트랩 진입점 — 순서와 보고만 담당한다.
 // 무엇을 만들지는 manifest.mjs가, 어떻게 만들지는 apply.mjs·adapter.mjs가 안다.
 import { MANIFEST } from './manifest.mjs'
-import { ensureBlocks, ensureDirs, ensureFiles, ensureIgnore } from './apply.mjs'
+import { ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys } from './apply.mjs'
 import { configureAdapter } from './adapter.mjs'
 
 const SKILL_MODES = ['auto', 'link', 'copy']
@@ -22,6 +22,7 @@ export function runBootstrap(root, opts = {}) {
   const results = [
     ...ensureDirs(root, manifest.dirs, ctx),
     ...ensureFiles(root, manifest.files, ctx),
+    ...ensureJsonKeys(root, manifest.settings ?? [], ctx),
     ...ensureBlocks(root, manifest.blocks, ctx),
   ]
 

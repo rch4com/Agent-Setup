@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
@@ -30,9 +30,29 @@ test('두 번 실행해도 두 번째는 아무것도 만들지 않는다', () =
   runBootstrap(root, { log() {} })
   const second = runBootstrap(root, { log() {} })
 
-  const created = second.results.filter((r) => ['create', 'append', 'copy'].includes(r.action))
+  const created = second.results.filter((r) => ['create', 'append', 'copy', 'insert'].includes(r.action))
   assert.deepEqual(created.map((r) => r.path), [], '멱등하지 않다')
   assert.deepEqual(second.failed, [])
+})
+
+test('settings 선언대로 VS Code 설정 키를 넣는다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.deepEqual(JSON.parse(text), { 'chat.useAgentsMdFile': true })
+})
+
+test('기존 .vscode/settings.json의 다른 키를 보존한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  "editor.tabSize": 2\n}\n')
+
+  runBootstrap(root, { log() {} })
+
+  const parsed = JSON.parse(readFileSync(join(root, '.vscode/settings.json'), 'utf8'))
+  assert.equal(parsed['editor.tabSize'], 2)
+  assert.equal(parsed['chat.useAgentsMdFile'], true)
 })
 
 test('기존 파일을 보존한다', () => {
