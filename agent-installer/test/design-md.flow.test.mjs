@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch, makeCapture, recordingOpener } from './helpers.mjs'
 import { runDesign } from '../lib/design-md/flow.mjs'
-import { makeOpener, openPreview } from '../lib/design-md/open.mjs'
+import { makeOpener, openPreview, isOpenableTarget } from '../lib/design-md/open.mjs'
 import { scanDesignDir, makeDirProvider } from '../lib/design-md/scan.mjs'
 import { awesomeDesignMd } from '../lib/design-md/providers/awesome-design-md.mjs'
 
@@ -101,6 +101,33 @@ test('makeOpener dry-run은 실행 없이 리포트', () => {
   const opener = makeOpener(true, cap.log)
   assert.deepEqual(opener('https://example.com'), { ok: true })
   assert.match(cap.text(), /\[dry-run\] open https:\/\/example\.com/)
+})
+
+// 미리보기 대상 문자열은 원격 카탈로그 이름을 품는다. OS 오프너에 넘기기 전에
+// http(s) URL이거나 실제로 존재하는 경로인지 확인해야 한다.
+test('isOpenableTarget: http(s) URL과 존재하는 경로만 통과한다', () => {
+  const real = join(mkdtempSync(join(tmpdir(), 'open-')), 'DESIGN.md')
+  writeFileSync(real, '# x')
+
+  for (const ok of ['https://getdesign.md/stripe/design-md', 'http://example.com', real]) {
+    assert.equal(isOpenableTarget(ok), true, ok)
+  }
+  for (const bad of [
+    '', null, undefined,
+    'javascript:alert(1)',            // 스킴만 바꾼 대상
+    'file:///C:/Windows/System32',    // http(s)가 아니고 경로로도 존재하지 않는다
+    join(real, '..', 'none.md'),      // 존재하지 않는 경로
+    'https://example.com\r\nX',       // 제어문자
+  ]) {
+    assert.equal(isOpenableTarget(bad), false, JSON.stringify(bad))
+  }
+})
+
+test('makeOpener는 열 수 없는 대상을 실행 없이 거부한다', () => {
+  // 통과하면 자식 프로세스가 뜬다 — 거부되므로 아무것도 실행되지 않아야 한다.
+  const r = makeOpener(false, () => {})('javascript:alert(1)')
+  assert.equal(r.ok, false)
+  assert.match(r.output, /열 수 있는 대상이 아닙니다/)
 })
 
 test('openPreview: webUrl 없으면 안내하고 실패', () => {

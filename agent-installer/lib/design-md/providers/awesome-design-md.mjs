@@ -63,8 +63,10 @@ export const awesomeDesignMd = {
     return `${RAW_BASE}/${encodeURIComponent(name)}/${file}`
   },
 
+  // fileUrl과 같이 인코딩한다 — name은 원격 README에서 오므로, 그대로 이어
+  // 붙이면 URL이 아닌 문자가 미리보기 대상 문자열에 섞인다.
   webUrl(name) {
-    return `https://getdesign.md/${name}/design-md`
+    return `https://getdesign.md/${encodeURIComponent(name)}/design-md`
   },
 
   bundlePath(name, file = 'DESIGN.md') {

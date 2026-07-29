@@ -63,3 +63,14 @@ test('webUrl/fileUrl 규칙', () => {
   assert.equal(awesomeDesignMd.webUrl('stripe'), 'https://getdesign.md/stripe/design-md')
   assert.match(awesomeDesignMd.fileUrl('stripe'), /\/design-md\/stripe\/DESIGN\.md$/)
 })
+
+// README가 오염되면 이름에 셸 메타문자가 섞일 수 있다. 그 이름이 그대로
+// 이어붙으면 미리보기 대상 문자열이 URL이 아니게 된다.
+test('webUrl은 이름을 인코딩한다 — 셸 메타문자가 URL 밖으로 새지 않게', () => {
+  assert.equal(awesomeDesignMd.webUrl('x&calc'), 'https://getdesign.md/x%26calc/design-md')
+  assert.equal(awesomeDesignMd.webUrl('a b'), 'https://getdesign.md/a%20b/design-md')
+  // 실제 카탈로그의 이름들은 인코딩해도 그대로여야 한다(회귀 방지).
+  for (const name of ['stripe', 'mistral.ai', 'linear.app', 'nintendo-2001']) {
+    assert.equal(awesomeDesignMd.webUrl(name), `https://getdesign.md/${name}/design-md`)
+  }
+})

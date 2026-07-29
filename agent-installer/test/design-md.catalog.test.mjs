@@ -63,6 +63,16 @@ test('buildItems: 엔트리를 item으로, 알 수 없는 프로바이더는 건
   assert.equal(items[0].id, 'design.awesome-design-md.a')
 })
 
+// 카탈로그는 원격 README 파싱 결과라 신뢰 경계 밖이다. 경로에 위험한 이름은
+// install 시점(designPaths)뿐 아니라 목록·미리보기에도 오르면 안 된다.
+test('buildItems: 경로에 위험한 이름은 item으로 만들지 않는다', () => {
+  const catalog = { providers: { 'awesome-design-md': { entries: [
+    entry('ok'), entry('../escape'), entry('a/b'), entry('.hidden'), entry('tail.'), entry('q?mark'),
+  ] } } }
+  const items = buildItems(catalog, { fetchImpl: async () => ({}) })
+  assert.deepEqual(items.map((i) => i.name), ['ok'])
+})
+
 test('buildItems: 여러 제공자의 동명 항목이 붕괴 없이 공존한다', () => {
   const catalog = { providers: {
     'src-a': { entries: [entry('stripe')] },

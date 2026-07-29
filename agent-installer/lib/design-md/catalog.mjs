@@ -150,6 +150,11 @@ export function buildItems(catalog, { fetchImpl, providers = PROVIDERS, sources 
   const items = []
   for (const block of blocks.values()) {
     for (const entry of block.entries.values()) {
+      // 이름은 원격 README 파싱이나 디렉터리 스캔에서 오므로 신뢰 경계 밖이다.
+      // 설치 경로도 미리보기 URL도 이 이름을 쓰는데, 경로 검사는 designPaths가
+      // install 시점에만 한다. item이 만들어지는 이 한 곳에서 걸러 두면
+      // 목록·미리보기를 포함한 모든 소비자가 함께 안전해진다.
+      if (!isSafeSegment(entry.name)) continue
       items.push(defineDesignMd(entry, block.provider, { fetchImpl }))
     }
   }
