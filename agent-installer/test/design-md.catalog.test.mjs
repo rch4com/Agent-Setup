@@ -73,6 +73,37 @@ test('buildItems: 경로에 위험한 이름은 item으로 만들지 않는다',
   assert.deepEqual(items.map((i) => i.name), ['ok'])
 })
 
+// 라벨·설명은 원격 README에서 온다. 목록과 TUI가 터미널에 그대로 찍으므로
+// ANSI 이스케이프가 남으면 화면을 지우거나 커서를 옮겨 목록을 위장할 수 있다.
+// 제어문자는 소스에 원시 바이트로 두지 않는다 — 도구를 거치며 조용히 뭉개진다.
+const ESC = '\u001b'
+const CONTROL_RE = /[\u0000-\u001f\u007f]/
+
+test('defineDesignMd: 화면에 나가는 값에서 제어문자를 걷어낸다', () => {
+  const item = defineDesignMd(
+    entry('stripe', {
+      label: `Str${ESC}[2Jipe`,
+      category: 'Fin\u0007tech',
+      description: '줄\r\n바꿈과 널\u0000문자',
+    }),
+    provider,
+    { fetchImpl: async () => ({}) },
+  )
+  assert.equal(item.label, 'Str [2Jipe')
+  assert.equal(item.designCategory, 'Fin tech')
+  assert.equal(item.description, '줄 바꿈과 널 문자')
+  for (const shown of [item.label, item.designCategory, item.description]) {
+    assert.doesNotMatch(shown, CONTROL_RE, JSON.stringify(shown))
+  }
+  // name은 경로·URL에 쓰이므로 정화 대상이 아니다(isSafeSegment가 따로 거른다).
+  assert.equal(item.name, 'stripe')
+})
+
+test('defineDesignMd: 라벨이 통째로 제어문자면 name으로 폴백한다', () => {
+  const item = defineDesignMd(entry('stripe', { label: ESC + ESC }), provider, { fetchImpl: async () => ({}) })
+  assert.equal(item.label, 'stripe')
+})
+
 test('buildItems: 여러 제공자의 동명 항목이 붕괴 없이 공존한다', () => {
   const catalog = { providers: {
     'src-a': { entries: [entry('stripe')] },

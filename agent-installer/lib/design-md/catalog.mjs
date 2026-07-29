@@ -38,6 +38,14 @@ export function isSafeSegment(text) {
   return !/[\\/:*?"<>|\x00-\x1f]/.test(value)
 }
 
+// 라벨·카테고리·설명은 원격 README나 DESIGN.md 본문에서 온다. 목록과 TUI가
+// 이 값을 터미널에 그대로 찍으므로 제어문자를 걷어낸다 — ANSI 이스케이프가
+// 남아 있으면 화면을 지우거나 커서를 옮겨 목록을 위장할 수 있다.
+export function stripControl(text) {
+  // eslint-disable-next-line no-control-regex
+  return String(text ?? '').replace(/[\x00-\x1f\x7f]+/g, ' ').trim()
+}
+
 // 설치·번들 경로는 제공자별로 스코프한다: design-md/<provider>/<name>/DESIGN.md.
 // 동명 항목이 여러 제공자에 있어도 충돌 없이 공존한다.
 function designPaths(root, providerId, name) {
@@ -59,9 +67,11 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
     providerId,
     local: provider.local === true, // 디렉터리 스캔으로 찾은 로컬(사내) 정의
     name,
-    label,
-    designCategory: category,
-    description,
+    // 화면에 나가는 세 값만 정화한다. name은 isSafeSegment가 이미 걸렀고
+    // 경로·URL에 쓰이므로 여기서 바꾸면 안 된다.
+    label: stripControl(label) || name,
+    designCategory: stripControl(category),
+    description: stripControl(description),
     webUrl: provider.webUrl(name),
     // 로컬(디렉터리) 항목은 웹 페이지가 없다 — 미리보기는 원본 파일을 연다.
     previewPath: provider.local === true ? provider.fileUrl(name) : null,
