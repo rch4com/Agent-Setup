@@ -12,7 +12,16 @@ export function loadCatalog(file = CATALOG_PATH) {
   if (!existsSync(file)) return { updatedAt: null, providers: {} }
   const text = readFileSync(file, 'utf8')
   if (!text.trim()) return { updatedAt: null, providers: {} }
-  return JSON.parse(text)
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    // 원시 SyntaxError는 어느 파일이 문제인지도, 어떻게 고치는지도 알려 주지
+    // 않는다. deps.mjs가 모듈 부재를 안내로 바꾸는 것과 같은 이유다.
+    throw new Error(
+      `design.md 카탈로그를 읽을 수 없습니다: ${file}\n${err.message}\n` +
+      '`design --sync=catalog`로 다시 만들 수 있습니다.',
+    )
+  }
 }
 
 export function saveCatalog(catalog, file = CATALOG_PATH) {
@@ -87,8 +96,12 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
 
     // fresh=false: 동봉 번들 우선(오프라인) → 없으면 네트워크.
     // fresh=true: 번들 우회, 항상 네트워크 최신(업데이트/동기화용).
-    async install({ root, dryRun, fresh = false }) {
-      if (dryRun) return // dry-run은 네트워크·쓰기 없이 예정 동작만 리포트
+    async install({ root, dryRun, fresh = false, log = () => {} }) {
+      // dry-run은 네트워크도 쓰기도 하지 않고 예정 동작만 알린다.
+      if (dryRun) {
+        log(`  [dry-run] design-md/${providerId}/${name}/DESIGN.md 작성`)
+        return
+      }
       let text = fresh ? null : provider.bundledText?.(name, 'DESIGN.md')
       if (text == null) text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
       if (text == null) throw new Error(`${providerId}/${name}: DESIGN.md 다운로드 실패`)
@@ -97,8 +110,11 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
       writeFileSync(file, text)
     },
 
-    async uninstall({ root, dryRun }) {
-      if (dryRun) return
+    async uninstall({ root, dryRun, log = () => {} }) {
+      if (dryRun) {
+        log(`  [dry-run] design-md/${providerId}/${name} 제거`)
+        return
+      }
       const { dir } = designPaths(root, providerId, name, { strict: true })
       if (existsSync(dir)) rmSync(dir, { recursive: true, force: true })
     },

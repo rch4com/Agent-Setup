@@ -71,16 +71,20 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
       if (present.length === supports.length) return { status: 'installed' }
       return { status: 'partial', detail: `등록됨: ${present.join(', ')} / 누락: ${supports.filter((c) => !present.includes(c)).join(', ')}` }
     },
-    async install({ root, dryRun }) {
+    async install({ root, dryRun, log = () => {} }) {
       for (const cli of supports) {
         if (!CLIS[cli].has(root, name)) {
-          if (!dryRun) CLIS[cli].add(root, name, server)
+          if (dryRun) log(`  [dry-run] ${CLIS[cli].label} 설정에 ${name} 등록`)
+          else CLIS[cli].add(root, name, server)
         }
       }
     },
-    async uninstall({ root, dryRun }) {
+    async uninstall({ root, dryRun, log = () => {} }) {
       for (const cli of supports) {
-        if (CLIS[cli].has(root, name) && !dryRun) CLIS[cli].remove(root, name)
+        if (CLIS[cli].has(root, name)) {
+          if (dryRun) log(`  [dry-run] ${CLIS[cli].label} 설정에서 ${name} 제거`)
+          else CLIS[cli].remove(root, name)
+        }
       }
     },
   }

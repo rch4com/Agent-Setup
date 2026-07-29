@@ -10,6 +10,9 @@ export function ensureGitignoreEntries(root, entries) {
   const lines = new Set(text.split(/\r?\n/))
   const missing = entries.filter((e) => !lines.has(e))
   if (missing.length === 0) return
-  const sep = text.length === 0 || text.endsWith('\n') ? '' : '\n'
-  writeFileSync(file, text + sep + missing.join('\n') + '\n')
+  // 파일의 우세 줄바꿈을 따른다 — CRLF 파일에 덧붙인 줄만 LF로 섞이지 않게.
+  // apply.mjs의 ensureJsonKeys가 JSON에 대해 지키는 규칙과 같다.
+  const eol = text.includes('\r\n') ? '\r\n' : '\n'
+  const sep = text.length === 0 || text.endsWith('\n') ? '' : eol
+  writeFileSync(file, text + sep + missing.join(eol) + eol)
 }

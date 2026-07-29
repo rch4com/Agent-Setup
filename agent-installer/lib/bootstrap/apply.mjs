@@ -250,8 +250,12 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
       const empty = isEmptyObjectBody(rest)
       // 파일의 우세 줄바꿈을 따른다 — CRLF 파일에 삽입한 줄만 LF로 섞이는 것을 막는다.
       const eol = text.includes('\r\n') ? '\r\n' : '\n'
+      // 중괄호 사이가 공백뿐이면 그 공백을 우리 줄로 대체한다. 그대로 두면
+      // `{\n}` 같은 파일에 빈 줄이 하나 남는다. 주석이 들어 있는 빈 객체는
+      // 건드리지 않는다 — 주석의 들여쓰기를 지켜야 한다.
+      const body = empty && /^\s*\}/.test(rest) ? rest.replace(/^\s*/, '') : rest
       const inserted = `${eol}  ${pair}${empty ? eol : ','}`
-      writeFileSync(strictTarget, text.slice(0, brace + 1) + inserted + rest, { encoding: 'utf8' })
+      writeFileSync(strictTarget, text.slice(0, brace + 1) + inserted + body, { encoding: 'utf8' })
     }
     return { ok: true, action: 'insert', path: rel }
   })

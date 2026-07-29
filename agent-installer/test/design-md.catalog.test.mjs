@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, mkdtempSync, symlinkSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdtempSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch } from './helpers.mjs'
@@ -158,6 +158,18 @@ test('saveCatalog/loadCatalog 왕복', () => {
 
 test('loadCatalog: 없는 파일은 빈 카탈로그', () => {
   assert.deepEqual(loadCatalog(join(makeTempRepo(), 'none.json')), { updatedAt: null, providers: {} })
+})
+
+// 원시 SyntaxError는 어느 파일이 문제인지도, 어떻게 고치는지도 알려 주지 않는다.
+test('loadCatalog: 손상된 파일은 경로와 복구 방법을 담아 던진다', () => {
+  const file = join(makeTempRepo(), 'broken.json')
+  writeFileSync(file, '{ "providers": ')
+  assert.throws(() => loadCatalog(file), (err) => {
+    assert.match(err.message, /카탈로그를 읽을 수 없습니다/)
+    assert.ok(err.message.includes(file), `문제 파일이 메시지에 없다: ${err.message}`)
+    assert.match(err.message, /--sync=catalog/)
+    return true
+  })
 })
 
 test('sha256은 내용이 다르면 다른 값', () => {

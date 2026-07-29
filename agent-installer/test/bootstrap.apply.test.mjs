@@ -300,6 +300,19 @@ test('ensureJsonKeys: 빈 객체에는 콤마 없이 삽입한다', () => {
   assert.equal(results[0].action, 'insert')
 })
 
+// `{\n}` 형태는 흔하다. 중괄호 사이 공백을 그대로 두면 빈 줄이 하나 남는다.
+test('ensureJsonKeys: 빈 객체에 삽입해도 빈 줄이 남지 않는다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.equal(text, '{\n  "chat.useAgentsMdFile": true\n}\n')
+  assert.deepEqual(JSON.parse(text), { 'chat.useAgentsMdFile': true })
+})
+
 test('ensureJsonKeys: 기존 키와 주석을 보존하고 앞에 삽입한다', () => {
   const root = makeTempRepo()
   mkdirSync(join(root, '.vscode'))
