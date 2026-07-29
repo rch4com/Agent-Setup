@@ -36,6 +36,15 @@ export function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
+// 기본 fetch에 시간 제한을 건다. 맨 fetch에는 제한이 없어, 응답하지 않는
+// 서버를 만나면 동기화가 취소할 방법 없이 멈춘다 — 특히 TUI에서는 화면이
+// 정지한 것처럼 보인다. 주입된 fetchImpl(테스트·대체 구현)은 건드리지 않는다.
+export const FETCH_TIMEOUT_MS = 20000
+
+export function netFetch(url, opts = {}) {
+  return fetch(url, { ...opts, signal: opts.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+}
+
 // 경로 세그먼트 하나로 안전한 이름인지 본다. 한글 등 유니코드는 허용하되
 // 경로 구분자·상위 이동·Windows 금지 문자·제어문자는 막는다.
 // (name은 원격 README 파싱이나 디렉터리 스캔에서 오므로 신뢰 경계 밖이다.)

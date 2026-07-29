@@ -1,5 +1,5 @@
 import { scan, planChanges, apply } from '../engine.mjs'
-import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens, CATALOG_PATH } from './catalog.mjs'
+import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens, netFetch, CATALOG_PATH } from './catalog.mjs'
 import { PROVIDERS } from './providers/index.mjs'
 import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
@@ -116,7 +116,7 @@ export async function runDesign(root, opts = {}) {
     set = null,
     sync = null,
     preview = null,
-    fetchImpl = fetch,
+    fetchImpl = netFetch,
     log = console.log,
     designDirs = [],
     env = process.env,

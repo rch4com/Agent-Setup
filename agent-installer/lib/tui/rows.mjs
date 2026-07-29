@@ -6,7 +6,7 @@ import { scan } from '../engine.mjs'
 import { loadItems } from '../catalog.mjs'
 import { runBootstrap } from '../bootstrap/flow.mjs'
 import { MANIFEST } from '../bootstrap/manifest.mjs'
-import { loadCatalog, buildItems, CATALOG_PATH } from '../design-md/catalog.mjs'
+import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale } from '../design-md/flow.mjs'
 
@@ -173,7 +173,7 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
 
 // 스캔까지 포함한 수집. 적용·액션 실행 뒤 다시 부른다.
 export async function collectRows(root, opts = {}) {
-  const { fetchImpl = fetch, designDirs = [], env = process.env, catalogFile = CATALOG_PATH, log = () => {} } = opts
+  const { fetchImpl = netFetch, designDirs = [], env = process.env, catalogFile = CATALOG_PATH, log = () => {} } = opts
 
   const agentItems = await loadItems()
   const catalog = loadCatalog(catalogFile)

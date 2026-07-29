@@ -3,7 +3,7 @@
 import { emitKeypressEvents } from 'node:readline'
 import { planChanges, apply } from '../engine.mjs'
 import { makeOpener, openPreview } from '../design-md/open.mjs'
-import { CATALOG_PATH } from '../design-md/catalog.mjs'
+import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { collectRows, installedIds } from './rows.mjs'
 import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
@@ -62,7 +62,7 @@ export async function runTui(root, opts = {}) {
   const {
     dryRun = false,
     skillMode = 'auto',
-    fetchImpl = fetch,
+    fetchImpl = netFetch,
     designDirs = [],
     env = process.env,
     catalogFile = CATALOG_PATH,

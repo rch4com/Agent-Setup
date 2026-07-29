@@ -4,7 +4,10 @@ import { existsSync, readFileSync, writeFileSync, mkdtempSync, symlinkSync } fro
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch } from './helpers.mjs'
-import { defineDesignMd, buildItems, sha256, loadCatalog, saveCatalog, resolveTokens } from '../lib/design-md/catalog.mjs'
+import {
+  defineDesignMd, buildItems, sha256, loadCatalog, saveCatalog, resolveTokens,
+  netFetch, FETCH_TIMEOUT_MS,
+} from '../lib/design-md/catalog.mjs'
 import { awesomeDesignMd as provider } from '../lib/design-md/providers/awesome-design-md.mjs'
 
 const PID = provider.id // 'awesome-design-md'
@@ -170,6 +173,26 @@ test('loadCatalog: 손상된 파일은 경로와 복구 방법을 담아 던진�
     assert.match(err.message, /--sync=catalog/)
     return true
   })
+})
+
+// 맨 fetch에는 제한이 없어, 응답하지 않는 서버를 만나면 동기화가 멈춘다.
+test('netFetch는 기본 시간 제한을 건다', async () => {
+  const seen = []
+  const original = globalThis.fetch
+  globalThis.fetch = async (url, opts) => { seen.push({ url, opts }); return { ok: true } }
+  try {
+    await netFetch('https://example.com/a')
+    await netFetch('https://example.com/b', { headers: { 'User-Agent': 'x' } })
+  } finally {
+    globalThis.fetch = original
+  }
+  assert.equal(seen.length, 2)
+  for (const { opts } of seen) {
+    assert.ok(opts.signal instanceof AbortSignal, '시간 제한 signal이 붙어야 한다')
+  }
+  // 호출자가 준 옵션은 그대로 살아 있어야 한다.
+  assert.equal(seen[1].opts.headers['User-Agent'], 'x')
+  assert.ok(FETCH_TIMEOUT_MS > 0)
 })
 
 test('sha256은 내용이 다르면 다른 값', () => {
