@@ -121,8 +121,10 @@ node agent-installer/install.mjs bootstrap --help
   추가해 어댑터(링크/복제본)가 커밋되지 않도록 합니다.
 - 머신별 설정인 `.kimi-code/local.toml`도 `.gitignore`에 추가합니다.
 - 개인 설정인 `.github/copilot/settings.local.json`도 `.gitignore`에 추가합니다.
-- `.vscode/*`를 무시하는 `.gitignore`에서도 `.vscode/mcp.json`이 커밋되도록
-  `!.vscode/mcp.json` 부정 항목을 추가합니다.
+- `.vscode/*`를 무시하는 `.gitignore`에서도 `.vscode/mcp.json`과
+  `.vscode/settings.json`이 커밋되도록 `!.vscode/mcp.json`,
+  `!.vscode/settings.json` 부정 항목을 추가합니다. `settings.json`이
+  무시되면 `chat.useAgentsMdFile`을 넣어도 팀에 전파되지 않습니다.
 - `.vscode/settings.json`에는 `chat.useAgentsMdFile` 키가 **없을 때만**
   추가하며, 기존 키·주석·값은 그대로 둡니다.
 - 반복 실행할 수 있습니다.

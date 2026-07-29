@@ -57,6 +57,21 @@ test('어댑터 경로는 모두 .gitignore 대상이다', () => {
   }
 })
 
+// VisualStudio.gitignore가 `.vscode/*`를 통째로 무시하므로, 부트스트랩이
+// .vscode/ 아래에 만들거나 손대는 파일은 전부 부정 항목을 가져야 한다.
+// 빠뜨리면 파일은 만들어지는데 커밋되지 않아 팀 공유가 조용히 깨진다.
+test('.vscode/ 아래 산출물은 모두 gitignore 부정 항목을 갖는다', () => {
+  const touched = [
+    ...MANIFEST.files.map((f) => f.path),
+    ...MANIFEST.settings.map((s) => s.path),
+  ].filter((p) => p.startsWith('.vscode/'))
+
+  assert.ok(touched.length > 0, '.vscode/ 산출물이 하나는 있어야 의미 있는 검증이다')
+  for (const p of touched) {
+    assert.ok(MANIFEST.ignore.includes(`!${p}`), `!${p}가 ignore에 없음`)
+  }
+})
+
 test('템플릿에 CRLF와 BOM이 없다', () => {
   for (const [name, value] of Object.entries(templates)) {
     if (typeof value !== 'string') continue

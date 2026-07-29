@@ -60,11 +60,15 @@ export const MANIFEST = {
     { tool: 'Grok Build', path: '.grok/skills' },
   ],
 
-  // !.vscode/mcp.json은 널리 쓰이는 VisualStudio.gitignore가 .vscode/*를
-  // 무시하기 때문에 필요하다. 부정 항목이 없으면 팀 공유가 깨진다.
-  // .vscode/*가 없는 저장소에서는 무해한 no-op이다.
+  // .vscode/ 아래 두 부정 항목은 널리 쓰이는 VisualStudio.gitignore가
+  // `.vscode/*`를 무시하기 때문에 필요하다. 부정 항목이 없으면 팀 공유가
+  // 깨진다 — 특히 settings.json은 VS Code가 AGENTS.md를 읽게 하는
+  // chat.useAgentsMdFile이 사는 곳이라, 커밋되지 않으면 키를 넣어도
+  // 그 설정이 팀에 전파되지 않는다. `.vscode/*`가 없는 저장소에서는
+  // 무해한 no-op이다.
   ignore: [
     '.claude/skills', '.kiro/skills', '.grok/skills', '.kimi-code/local.toml',
-    '.github/copilot/settings.local.json', '!.vscode/mcp.json',
+    '.github/copilot/settings.local.json',
+    '!.vscode/mcp.json', '!.vscode/settings.json',
   ],
 }
