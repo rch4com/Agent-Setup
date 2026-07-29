@@ -177,6 +177,38 @@ test('ensureIgnore: 헤더가 이미 있으면 중복 추가하지 않는다', (
   assert.equal(lines.filter((l) => l === IGNORE_HEADER).length, 1, '헤더 중복 추가 금지')
 })
 
+test('ensureIgnore: 부모 디렉터리를 통째로 제외하면 부정 항목 무효화를 경고한다 (F-3, .vscode/ 형태)', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.vscode/\n')
+  const cap = makeCapture()
+
+  const results = ensureIgnore(root, ['!.vscode/mcp.json'], ctx(cap))
+
+  assert.match(cap.text(), /경고.*\.vscode.*!\.vscode\/mcp\.json.*무효화/)
+  assert.ok(results.some((r) => r.action === 'warn' && r.path === '!.vscode/mcp.json'), '결과에도 경고가 있어야 한다')
+})
+
+test('ensureIgnore: 부모 디렉터리를 통째로 제외하면 부정 항목 무효화를 경고한다 (F-3, .vscode 형태)', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.vscode\n')
+  const cap = makeCapture()
+
+  ensureIgnore(root, ['!.vscode/mcp.json'], ctx(cap))
+
+  assert.match(cap.text(), /경고/)
+})
+
+test('ensureIgnore: .vscode/* 형태에서는 경고하지 않는다 (F-3)', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.vscode/*\n')
+  const cap = makeCapture()
+
+  const results = ensureIgnore(root, ['!.vscode/mcp.json'], ctx(cap))
+
+  assert.doesNotMatch(cap.text(), /경고/)
+  assert.ok(!results.some((r) => r.action === 'warn'))
+})
+
 test('블록·ignore도 dry-run에서 바꾸지 않는다', () => {
   const root = makeTempRepo()
   ensureBlocks(root, [{ path: 'CLAUDE.md', block: BLOCK }], ctx(makeCapture(), true))
@@ -337,6 +369,48 @@ test('ensureJsonKeys: dry-run은 파일시스템을 바꾸지 않는다', () => 
 
   assert.equal(existsSync(join(root, '.vscode/settings.json')), false)
   assert.match(cap.text(), /파일 생성/)
+})
+
+test('ensureJsonKeys: 루트 객체가 주석만 있어도 후행 콤마 없이 삽입한다 (F-1)', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  // 여기에 설정을 넣으세요\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.ok(text.includes('// 여기에 설정을 넣으세요'), '주석이 보존되어야 한다')
+  // 파일 자체는 JSONC라 주석이 남아 있는 한 순수 JSON.parse는 통과할 수 없다
+  // (그건 이 파일이 원래부터 그렇다 — 버그가 아니다). 이 테스트가 잡으려는
+  // 결함은 "후행 콤마"이므로, 주석 줄만 걷어내고 strict JSON인지 확인한다.
+  const withoutComment = text.replace(/^\s*\/\/.*$/m, '')
+  assert.doesNotThrow(() => JSON.parse(withoutComment), `주석을 걷어내면 유효한 JSON이어야 한다: ${withoutComment}`)
+})
+
+test('ensureJsonKeys: 루트 객체 첫 항목이 주석이고 뒤에 실제 키가 있으면 콤마를 유지한다 (F-1)', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  // 안내\n  "editor.tabSize": 2\n}\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.ok(text.includes('// 안내'), '주석이 보존되어야 한다')
+  assert.ok(text.includes('"editor.tabSize": 2'), '기존 키가 보존되어야 한다')
+  const withoutComment = text.replace(/^\s*\/\/.*$/m, '')
+  assert.deepEqual(JSON.parse(withoutComment), { 'chat.useAgentsMdFile': true, 'editor.tabSize': 2 })
+})
+
+test('ensureJsonKeys: CRLF 파일에 삽입해도 CRLF를 유지한다 (deferred-minor 1)', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\r\n  "editor.tabSize": 2\r\n}\r\n')
+
+  ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
+  assert.match(text, /\{\r\n {2}"chat\.useAgentsMdFile": true,\r\n {2}"editor\.tabSize": 2\r\n\}\r\n/, `CRLF로만 삽입되어야 한다: ${JSON.stringify(text)}`)
+  assert.ok(!text.includes('true,\n  "editor'), '삽입한 줄에 LF만 섞이면 안 된다')
 })
 
 test('ensureJsonKeys: 링크를 통한 저장소 이탈을 거부한다', () => {

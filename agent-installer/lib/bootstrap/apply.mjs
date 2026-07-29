@@ -105,6 +105,28 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
 // 헤더가 이미 있으면 다시 넣지 않는다 — 원본과 글자 단위로 같아야 한다.
 const IGNORE_HEADER = '# agent-kit: local skill adapters (do not commit duplicated skills)'
 
+// 부정 항목(`!path`)의 부모 디렉터리 전체를 제외하는 패턴이 이미 있으면
+// git 규칙상 그 부정 항목은 조용히 무효가 된다(F-3) — 부모가 제외되면
+// git이 그 안을 들여다보지 않아 자식을 되살릴 수 없다. `.vscode/*`처럼
+// 내용물만 제외하는 형태는 무해하다. 손으로 쓴 `.gitignore`·Node/Python
+// 템플릿에서 흔한 두 형태(`.vscode`, `.vscode/`)만 검사한다 — gitignore
+// 전체 문법을 구현하지 않고 실제로 부딪히는 모양만 잡는다. 위치는 무관하다:
+// git은 부정 항목의 순서와 무관하게 부모 제외를 우선한다.
+function warnBlockedNegations(lines, entries, log) {
+  const warnings = []
+  for (const entry of entries) {
+    if (!entry.startsWith('!')) continue
+    const negated = entry.slice(1)
+    const parent = negated.split('/').slice(0, -1).join('/')
+    if (parent && (lines.has(parent) || lines.has(`${parent}/`))) {
+      const message = `.gitignore의 "${parent}"가 디렉터리 전체를 제외해 "${entry}" 부정 항목이 무효화됩니다`
+      log(`경고: ${message}. "${parent}/*" 형태로 바꾸면 다시 포함됩니다.`)
+      warnings.push({ ok: true, action: 'warn', path: entry, message })
+    }
+  }
+  return warnings
+}
+
 export function ensureIgnore(root, entries, { dryRun = false, log }) {
   // ensureDirs/ensureFiles/ensureBlocks와 달리 경로가 '.gitignore' 하나로 고정돼
   // 있고, 함수 자체의 목적이 "항목을 보장한다"는 쓰기 의도이므로 존재 확인과
@@ -114,10 +136,14 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
   const text = pathExists(target) ? readFileSync(target, 'utf8') : ''
   const lines = new Set(text.split(/\r?\n/))
   const missing = entries.filter((e) => !lines.has(e))
+  // 이미 있는 항목이든 새로 추가하는 항목이든, 기존 .gitignore가 부모
+  // 디렉터리를 통째로 제외하고 있으면 매 실행마다 경고한다 — 사용자가
+  // 직접 고치기 전까지는 계속 알려야 "조용한 실패"가 아니게 된다.
+  const warnings = warnBlockedNegations(lines, entries, log)
 
   if (missing.length === 0) {
     log(`.gitignore 항목 확인: ${entries.join(', ')}`)
-    return entries.map((e) => ({ ok: true, action: 'skip', path: e }))
+    return [...entries.map((e) => ({ ok: true, action: 'skip', path: e })), ...warnings]
   }
 
   log(`.gitignore 항목 추가: ${missing.join(', ')}`)
@@ -128,13 +154,13 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
     const toAdd = lines.has(IGNORE_HEADER) ? missing : [IGNORE_HEADER, ...missing]
     ensureGitignoreEntries(root, toAdd)
   }
-  return missing.map((e) => ({ ok: true, action: 'append', path: e }))
+  return [...missing.map((e) => ({ ok: true, action: 'append', path: e })), ...warnings]
 }
 
-// 줄 주석(//)과 블록 주석(/* */)을 건너뛰고 루트 객체의 여는 중괄호 위치를 찾는다.
-// JSONC인 .vscode/settings.json은 파일 첫머리에 주석이 오는 일이 흔하고,
-// 그 주석 안의 중괄호에 속으면 주석 한가운데에 키를 끼워 넣게 된다.
-function findRootBrace(text) {
+// 줄 주석(//)과 블록 주석(/* */)을 건너뛰며 유의미한 문자를 하나씩 넘겨준다.
+// findRootBrace(루트 '{' 탐색)와 isEmptyObjectBody(빈 객체 판정, F-1)가 같은
+// 스캐너를 공유한다 — 판정 기준이 둘로 갈리면 한쪽만 고치는 회귀가 생기기 쉽다.
+function* scanSignificant(text) {
   let inBlock = false
   let offset = 0
 
@@ -150,12 +176,32 @@ function findRootBrace(text) {
       }
       if (line[i] === '/' && line[i + 1] === '/') break
       if (line[i] === '/' && line[i + 1] === '*') { inBlock = true; i += 2; continue }
-      if (line[i] === '{') return offset + i
+      yield { char: line[i], offset: offset + i }
       i++
     }
     offset += line.length + 1 // split이 제거한 개행 1자
   }
+}
+
+// JSONC인 .vscode/settings.json은 파일 첫머리에 주석이 오는 일이 흔하고,
+// 그 주석 안의 중괄호에 속으면 주석 한가운데에 키를 끼워 넣게 된다.
+function findRootBrace(text) {
+  for (const { char, offset } of scanSignificant(text)) {
+    if (char === '{') return offset
+  }
   return -1
+}
+
+// rest(루트 '{' 다음 텍스트)에서 공백을 건너뛴 첫 유의미 문자가 '}'인지 본다.
+// trimStart만으로는 `{ // 안내\n}` 처럼 첫 항목이 주석인 빈 객체를 항목 있는
+// 객체로 오판해 후행 콤마를 남긴다(F-1) — 주석도 whitespace와 함께 건너뛰어야
+// 진짜 "다음 항목이 있는가"를 알 수 있다.
+function isEmptyObjectBody(rest) {
+  for (const { char } of scanSignificant(rest)) {
+    if (/\s/.test(char)) continue
+    return char === '}'
+  }
+  return true // 닫는 중괄호를 못 찾은 경우(도달 불가에 가깝다) — 방어적으로 empty 취급
 }
 
 // 기존 JSON 파일을 보존한 채 최상위 키 하나를 보장한다.
@@ -201,8 +247,10 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
     if (!dryRun) {
       const rest = text.slice(brace + 1)
       // 빈 객체면 콤마 없이, 뒤에 항목이 있으면 콤마를 붙여 유효한 JSON을 유지한다.
-      const empty = rest.trimStart().startsWith('}')
-      const inserted = `\n  ${pair}${empty ? '\n' : ','}`
+      const empty = isEmptyObjectBody(rest)
+      // 파일의 우세 줄바꿈을 따른다 — CRLF 파일에 삽입한 줄만 LF로 섞이는 것을 막는다.
+      const eol = text.includes('\r\n') ? '\r\n' : '\n'
+      const inserted = `${eol}  ${pair}${empty ? eol : ','}`
       writeFileSync(strictTarget, text.slice(0, brace + 1) + inserted + rest, { encoding: 'utf8' })
     }
     return { ok: true, action: 'insert', path: rel }
