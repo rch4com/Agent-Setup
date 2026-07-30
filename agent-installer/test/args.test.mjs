@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
   requireValue, collectValues, parseSetArg,
-  parseRootArgs, parseDesignArgs, parseBootstrapArgs, parseUpdateArgs,
+  parseRootArgs, parseDesignArgs, parseBootstrapArgs, parseUpdateArgs, parseStatusArgs,
 } from '../lib/args.mjs'
 
 // ── collectValues ─────────────────────────────────────────────────
@@ -243,4 +243,12 @@ test('parseUpdateArgs: --dry-run과 --force를 받고 모르는 인자를 거부
   assert.equal(parseUpdateArgs(['--dry-run']).dryRun, true)
   assert.equal(parseUpdateArgs(['--help']).help, true)
   assert.throws(() => parseUpdateArgs(['--forcee']), /알 수 없는 인자/)
+})
+
+test('parseStatusArgs: --json을 받고 모르는 인자를 거부한다', () => {
+  assert.equal(parseStatusArgs([]).json, false)
+  assert.equal(parseStatusArgs(['--json']).json, true)
+  assert.equal(parseStatusArgs(['-h']).help, true)
+  assert.throws(() => parseStatusArgs(['--jsonn']), /알 수 없는 인자/)
+  assert.throws(() => parseStatusArgs(['--json=1']), /값을 줄 수 없습니다/)
 })

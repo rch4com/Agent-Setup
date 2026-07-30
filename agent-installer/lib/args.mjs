@@ -29,6 +29,8 @@ export const BOOTSTRAP_USAGE = `사용법: npx @rch4com/agent-setup bootstrap [-
 // 서브커맨드 없는 최상위 사용법. `design`은 자기 사용법을 따로 갖는다.
 export const ROOT_USAGE = `사용법: npx @rch4com/agent-setup [옵션]
        npx @rch4com/agent-setup bootstrap [옵션]
+       npx @rch4com/agent-setup update [옵션]
+       npx @rch4com/agent-setup status [옵션]
        npx @rch4com/agent-setup design [옵션]
 
 저장소에 설치기를 두고 쓸 때는 npx @rch4com/agent-setup 자리에
@@ -51,6 +53,8 @@ node install.mjs 를 넣으면 됩니다.
 --list와 --set은 동작을 고르는 플래그라 함께 쓸 수 없습니다.
 
 서브커맨드 도움말: npx @rch4com/agent-setup bootstrap --help
+                   npx @rch4com/agent-setup update --help
+                   npx @rch4com/agent-setup status --help
                    npx @rch4com/agent-setup design --help`
 
 export const DESIGN_USAGE = `사용법: npx @rch4com/agent-setup design [옵션]
@@ -87,6 +91,15 @@ export const UPDATE_USAGE = `사용법: npx @rch4com/agent-setup update [옵션]
   --dry-run    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
   -h, --help   이 도움말을 출력하고 종료합니다.`
 
+export const STATUS_USAGE = `사용법: npx @rch4com/agent-setup status [옵션]
+
+설치 기록(의도) / 실제 저장소 상태(스캔) / 실행 중 도구 버전을
+나란히 보여줍니다. 아무것도 바꾸지 않습니다.
+
+옵션:
+  --json       기계가 읽을 형태로 출력합니다 (CI 판정용).
+  -h, --help   이 도움말을 출력하고 종료합니다.`
+
 const SKILL_MODES = ['auto', 'link', 'copy']
 
 // 인자 사양: 플래그 이름 → 'bool'(값 없음) | 'value'(값 하나를 소비).
@@ -104,6 +117,7 @@ const DESIGN_SPEC = {
 }
 const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--adopt': 'bool', '--skill-mode': 'value' }
 const UPDATE_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--force': 'bool' }
+const STATUS_SPEC = { ...HELP_SPEC, '--json': 'bool' }
 
 export function assertKnownArgs(argv, spec, usage) {
   for (let i = 0; i < argv.length; i++) {
@@ -287,4 +301,11 @@ export function parseUpdateArgs(argv) {
   if (wantsHelp(argv)) return { help: true, dryRun: false, force: false }
   assertKnownArgs(argv, UPDATE_SPEC, UPDATE_USAGE)
   return { help: false, dryRun: argv.includes('--dry-run'), force: argv.includes('--force') }
+}
+
+// `status`에 허용되는 플래그: --json, -h/--help.
+export function parseStatusArgs(argv) {
+  if (wantsHelp(argv)) return { help: true, json: false }
+  assertKnownArgs(argv, STATUS_SPEC, STATUS_USAGE)
+  return { help: false, json: argv.includes('--json') }
 }
