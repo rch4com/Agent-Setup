@@ -4,6 +4,8 @@ import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, runInstaller, KO } from './helpers.mjs'
+import { resolveLocale } from '../lib/i18n/index.mjs'
+import { detectLocale } from '../lib/i18n/detect.mjs'
 
 // 프로세스 레벨에서만 드러나는 계약을 검증한다: 종료 코드, 스트림 분리,
 // 실패했을 때 아무것도 남기지 않는 것, 그리고 멈추지 않는 것.
@@ -116,15 +118,19 @@ test('design --set --dry-run은 아무것도 만들지 않는다', () => {
 
 // ── 로케일 확정 ───────────────────────────────────────────────────
 
-test('로케일이 없으면 영어로 나온다', () => {
+test('설정이 없으면 결정 사슬이 고른 언어로 나온다', () => {
+  // 이 검사는 개발 기계의 OS 언어에 좌우되면 안 된다. Windows에서 Node의
+  // Intl은 LANG·LC_ALL을 읽지 않으므로 환경변수로 감지 결과를 밀어낼 수
+  // 없다. 그래서 "영어가 나온다"가 아니라 "라이브러리가 계산한 로케일과
+  // CLI 출력이 일치한다"를 본다 — 여기서 검증할 값은 install.mjs가 결정
+  // 사슬을 실제로 부르는가(하드코딩이 아닌가)이다.
   const root = makeTempRepo()
-  // LANG 계열을 비우고 Intl까지 영어로 고정한다 — 개발 기계의 OS 언어가
-  // 테스트 결과를 바꾸면 CI와 로컬이 갈린다.
-  const r = runInstaller(root, ['--help'], {
-    env: { AGENT_SETUP_LANG: '', LC_ALL: 'C', LC_MESSAGES: '', LANG: 'C', LANGUAGE: '', LC_TIME: 'C' },
-  })
+  const env = { ...process.env, AGENT_SETUP_LANG: '' }
+  const expected = resolveLocale({ env, detected: detectLocale(env) })
+
+  const r = runInstaller(root, ['--help'], { env: { AGENT_SETUP_LANG: '' } })
   assert.equal(r.status, 0, r.stderr)
-  assert.match(r.stdout, /Usage:/)
+  assert.match(r.stdout, expected === 'ko' ? /사용법:/ : /Usage:/)
 })
 
 test('AGENT_SETUP_LANG=ko면 한국어로 나온다', () => {
