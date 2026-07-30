@@ -7,7 +7,31 @@ on:
     tags: ['v*']
 
 jobs:
+  # 발행 전에 선언한 Node 하한(engines: >=20)이 실제로 동작하는지 확인한다.
+  # publish 잡은 22에서만 도니 여기서 20을 함께 돌려야 하한이 검증된다.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '22']
+    defaults:
+      run:
+        working-directory: agent-installer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 의존성 설치
+        run: npm install
+
+      - name: 테스트
+        run: npm test
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,10 +42,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Trusted Publishing(토큰 없는 OIDC 발행)은 Node 22.14+ 와 npm 11.5.1+ 를
+      # 요구한다. Node 22에 묶여 오는 npm은 10.x라 별도로 올려야 한다.
+      # 첫 발행은 패키지가 아직 없어 Trusted Publishing을 구성할 수 없으므로
+      # NPM_TOKEN으로 하고, 이후 릴리스에서 토큰을 걷어낼 수 있게 바닥을 맞춰 둔다.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: npm 최신화
+        run: npm install -g npm@latest
 
       - name: 태그와 package.json 버전 대조
         run: |
@@ -34,9 +65,6 @@ jobs:
 
       - name: 의존성 설치
         run: npm install
-
-      - name: 테스트
-        run: npm test
 
       - name: agent-setup 발행
         run: npm publish --provenance --access public
