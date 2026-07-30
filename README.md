@@ -10,17 +10,23 @@ VS Code Copilot)를 한 저장소에서 함께 쓰기 위한 저장소 범위 �
 
 ## 빠른 시작
 
+Git 저장소 안에서 실행합니다. 파일을 복사할 필요가 없습니다.
+
+```bash
+npx agent-setup bootstrap            # 배선
+npx agent-setup bootstrap --dry-run  # 무엇이 만들어질지만 확인
+npx agent-setup                      # 플러그인·MCP·스킬·design.md 선택 화면
+```
+
+스코프 이름(`npx @rch4com/agent-setup`)도 같은 패키지입니다.
+
+저장소에 런처를 두고 쓰고 싶다면 `setup-agents.sh`·`setup-agents.ps1`을
+복사하는 방식도 그대로 동작합니다.
+
 ```powershell
-# Windows
-pwsh -File .\setup-agents.ps1
+pwsh -File .\setup-agents.ps1   # Windows
 ```
 
 ```bash
-# Linux / macOS
-./setup-agents.sh
-```
-
-```bash
-# 플러그인·MCP·스킬 선택 설치 + design.md 라이브러리 (최초 1회 npm install 필요)
-node agent-installer/install.mjs
+./setup-agents.sh               # Linux / macOS
 ```

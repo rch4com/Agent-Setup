@@ -20,7 +20,7 @@
 - 프로덕션 의존성을 추가하지 않는다(`AGENTS.md` 규칙). 현재 `jsonc-parser`, `smol-toml` 둘뿐이며 늘리지 않는다.
 - 테스트는 `node --test`이고 파일명은 `test/*.test.mjs`다. 그 밖의 러너·어서션 라이브러리를 도입하지 않는다.
 - 텍스트를 비교할 때는 **반드시 `\r\n` → `\n` 정규화 후** 비교한다. `.gitattributes:9`가 `* text=auto`라 워킹트리 줄바꿈이 플랫폼마다 다르다.
-- Windows에서 `npm`을 자식 프로세스로 부를 때는 `npm.cmd`를 쓴다. Node 20은 `.cmd`를 `shell:true` 없이 실행하면 EINVAL로 거부한다.
+- Windows에서 `npm`을 자식 프로세스로 부를 때는 **`shell: true`를 켠다.** Node 20은 `.cmd`를 shell 없이 실행하면 EINVAL로 거부한다(CVE-2024-27980 대응). 명령 이름을 `npm.cmd`로 바꾸는 것만으로는 **해결되지 않는다** — 실측으로 확인했다.
 - 저장소 루트 밖에 쓰지 않는다.
 - 코드 주석은 한국어로 쓰고, **무엇을 하는지가 아니라 왜 그렇게 하는지**를 적는다(기존 코드 관행).
 - 커밋 메시지는 `.gitmessage.txt` 템플릿을 따른다 — `<type>(<scope>): <subject>`, 타입은 영어 소문자 키워드, 제목·본문은 한국어, 제목 50자 이내 마침표 없음, 본문 72자 이내.
@@ -73,16 +73,19 @@ import { fileURLToPath } from 'node:url'
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-// Node 20은 .cmd를 shell 없이 실행하면 EINVAL로 거부한다.
-const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+// Windows에서 npm은 npm.cmd다. Node 20은 .cmd를 shell 없이 실행하면
+// EINVAL로 거부하므로(CVE-2024-27980 대응) 그 플랫폼에서만 shell을 켠다.
+// 인자에 공백·따옴표가 없어 shell 경유가 안전하다.
+const USE_SHELL = process.platform === 'win32'
 
 // npm pack 한 번이 수 초 걸리므로 결과를 재사용한다.
 let cached
 function packInfo() {
   if (!cached) {
-    const out = execFileSync(NPM, ['pack', '--dry-run', '--json'], {
+    const out = execFileSync('npm', ['pack', '--dry-run', '--json'], {
       cwd: PKG_ROOT,
       encoding: 'utf8',
+      shell: USE_SHELL,
       // npm은 notice를 stderr로 보낸다. JSON만 읽으려면 분리해야 한다.
       stdio: ['ignore', 'pipe', 'pipe'],
     })

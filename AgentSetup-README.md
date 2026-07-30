@@ -93,10 +93,20 @@ repository/
 
 ## 부트스트랩 실행 방법
 
-기본 실행은 아래 Windows/Linux 절 그대로입니다
-(`./setup-agents.sh`, `pwsh -File ./setup-agents.ps1`). 두 런처는 실제 로직을
-담고 있지 않은 얇은 실행기이며, 부트스트랩 로직은 전부
-`agent-installer/lib/bootstrap/`에 있습니다. 새 도구를 추가하려면
+가장 짧은 길은 npx입니다. 이 저장소의 파일을 복사하지 않아도 됩니다.
+
+```bash
+npx agent-setup bootstrap
+npx agent-setup bootstrap --dry-run
+npx agent-setup bootstrap --help
+```
+
+`npx @rch4com/agent-setup`도 같은 패키지입니다. 두 이름의 내용은 동일합니다.
+
+런처(`./setup-agents.sh`, `pwsh -File ./setup-agents.ps1`)를 저장소에 두고 쓰는
+방식도 그대로 동작합니다 — 오프라인 환경이나, 팀원이 커밋된 진입점을 선호할 때
+쓰면 됩니다. 두 런처는 실제 로직을 담고 있지 않은 얇은 실행기이며, 부트스트랩
+로직은 전부 `agent-installer/lib/bootstrap/`에 있습니다. 새 도구를 추가하려면
 `agent-installer/lib/bootstrap/manifest.mjs`에 항목을 추가하고, 도구별
 설정 파일이 필요하면 `agent-installer/lib/bootstrap/templates.mjs`에
 템플릿을 더합니다.
@@ -418,10 +428,10 @@ export AGENT_INSTALLER_DESIGN_MD_DIRS="사내=//nas/design"   # 경로 구분자
 
 ## 팀 저장소에 넣을 파일
 
+`npx agent-setup`을 쓰면 설치기 자체를 커밋할 필요가 없습니다. 커밋 대상은
+배선 결과물뿐입니다.
+
 ```text
-setup-agents.ps1
-setup-agents.sh
-agent-installer/          # node_modules 제외 (.gitignore 처리됨)
 AGENTS.md
 CLAUDE.md
 GEMINI.md
@@ -439,6 +449,10 @@ GEMINI.md
 opencode.jsonc
 kilo.jsonc
 ```
+
+오프라인 환경이거나 커밋된 진입점이 필요하면 `setup-agents.ps1`,
+`setup-agents.sh`, `agent-installer/`(node_modules 제외)를 함께 커밋하는
+기존 방식도 그대로 동작합니다.
 
 설치기로 MCP 항목을 등록하면 여기에 `.mcp.json`과 `.kilocode/mcp.json`이
 더해집니다 — 부트스트랩이 만들지 않는 두 파일이며, 나머지 MCP 파일과 같이
