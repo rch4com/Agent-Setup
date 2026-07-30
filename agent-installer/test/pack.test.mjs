@@ -57,12 +57,16 @@ test('tarball이 2MiB 미만이다', () => {
   assert.ok(size < 2 * 1024 * 1024, `tarball이 ${(size / 1024 / 1024).toFixed(2)}MB다 — 번들 분리를 검토하라`)
 })
 
-test('bin 이름이 패키지 이름과 같다', () => {
-  // 달라지면 npx agent-setup이 동작하지 않는다.
+test('스코프 패키지 이름과 실행 명령 이름', () => {
+  // 정식 이름 agent-setup은 npm의 유사 이름 제한에 걸린다 — 기존 패키지
+  // agentsetup과 정규화하면 같아져 403으로 거부된다. 스코프 이름만 쓴다.
   const pkg = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
+  assert.equal(pkg.name, '@rch4com/agent-setup')
+
+  // 스코프 이름은 셸 명령이 될 수 없으므로 bin 이름은 짧게 둔다. bin이
+  // 하나뿐이라 npx @rch4com/agent-setup이 그대로 이것을 실행한다.
   assert.deepEqual(Object.keys(pkg.bin), ['agent-setup'])
   assert.equal(pkg.bin['agent-setup'], 'install.mjs')
-  assert.equal(pkg.name, 'agent-setup')
 })
 
 test('발행을 막는 필드가 없다', () => {
@@ -70,6 +74,8 @@ test('발행을 막는 필드가 없다', () => {
   assert.equal(pkg.private, undefined, 'private: true면 발행되지 않는다')
   assert.match(pkg.version, /^\d+\.\d+\.\d+/)
   assert.equal(pkg.license, 'MIT')
+  // 스코프 패키지는 기본이 restricted다. 이 값이 없으면 아무도 설치할 수 없다.
+  assert.equal(pkg.publishConfig?.access, 'public')
 })
 
 test('루트 LICENSE와 패키지 LICENSE가 동일하다', () => {
@@ -93,7 +99,7 @@ test('README가 tarball에 들어가고 npx 사용법을 담는다', () => {
 
   // npm 페이지의 첫 화면이다. 설치 방법이 없으면 페이지가 무의미하다.
   const readme = readFileSync(join(PKG_ROOT, 'README.md'), 'utf8')
-  assert.match(readme, /npx agent-setup/)
+  assert.match(readme, /npx @rch4com\/agent-setup/)
   // 상세 문서로 가는 길이 끊기면 짧게 쓴 의미가 없다.
   assert.match(readme, /github\.com\/rch4com\/Agent-Setup/)
 })

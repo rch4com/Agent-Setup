@@ -66,16 +66,10 @@ jobs:
       - name: 의존성 설치
         run: npm install
 
-      - name: agent-setup 발행
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # 같은 내용을 스코프 이름으로 한 번 더 올린다. 러너는 일회용이라
-      # package.json을 되돌리지 않는다.
-      - name: 스코프 이름으로 재발행
-        run: |
-          npm pkg set name=@rch4com/agent-setup
-          npm publish --provenance --access public
+      # 이름은 @rch4com/agent-setup 하나다. 정식 이름 agent-setup은 npm의
+      # 유사 이름 제한(기존 agentsetup)에 걸려 403으로 거부된다.
+      # access는 package.json의 publishConfig에 있다.
+      - name: 발행
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

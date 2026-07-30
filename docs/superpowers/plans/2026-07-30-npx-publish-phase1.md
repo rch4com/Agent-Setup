@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `agent-installer/`를 `agent-setup`과 `@rch4com/agent-setup` 두 이름으로 npm에 발행해, 다른 저장소가 파일을 복사하지 않고 `npx agent-setup bootstrap` 한 줄로 배선하게 만든다.
+**Goal:** `agent-installer/`를 `@rch4com/agent-setup`으로 npm에 발행해, 다른 저장소가 파일을 복사하지 않고 `npx @rch4com/agent-setup bootstrap` 한 줄로 배선하게 만든다.
+
+> **실행 중 확정된 정정:** 스코프 없는 `agent-setup`은 **발행할 수 없다.** npm의 유사 이름 제한이 기존 패키지 `agentsetup`과의 충돌로 403을 낸다. `npm view agent-setup`의 404는 발행 가능을 뜻하지 않으며, 이 제한은 발행 시점에만 걸린다. 아래 본문에 남은 `agent-setup` 표기는 `@rch4com/agent-setup`으로 읽어야 한다. `bin` 이름은 여전히 `agent-setup`이라 설치 후 실행 명령은 짧다.
 
 **Architecture:** 발행 루트는 `agent-installer/`다. 이미 자기완결이라 코드를 옮기지 않고 `package.json`에 발행 메타데이터만 채운다. 무엇이 tarball에 들어가는지는 사람 눈이 아니라 `npm pack --dry-run --json`을 읽는 테스트가 지킨다. 태그 푸시를 받은 GitHub Actions가 `name`만 바꿔 두 번 publish한다. CLI 명령은 이 단계에서 **바꾸지 않는다** — 기존 `bootstrap`·`--list`·`--set`·`design`이 그대로 동작한다.
 

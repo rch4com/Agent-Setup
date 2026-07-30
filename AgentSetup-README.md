@@ -96,12 +96,15 @@ repository/
 가장 짧은 길은 npx입니다. 이 저장소의 파일을 복사하지 않아도 됩니다.
 
 ```bash
-npx agent-setup bootstrap
-npx agent-setup bootstrap --dry-run
-npx agent-setup bootstrap --help
+npx @rch4com/agent-setup bootstrap
+npx @rch4com/agent-setup bootstrap --dry-run
+npx @rch4com/agent-setup bootstrap --help
 ```
 
-`npx @rch4com/agent-setup`도 같은 패키지입니다. 두 이름의 내용은 동일합니다.
+패키지 이름은 스코프가 붙은 `@rch4com/agent-setup` 하나입니다. 스코프 없는
+`agent-setup`은 npm의 유사 이름 제한에 걸립니다 — 기존 패키지 `agentsetup`과
+정규화하면 같아져 발행이 403으로 거부됩니다. 설치 후 실행 명령은 `agent-setup`
+이므로 타이핑이 길어지는 것은 npx로 직접 부를 때뿐입니다.
 
 런처(`./setup-agents.sh`, `pwsh -File ./setup-agents.ps1`)를 저장소에 두고 쓰는
 방식도 그대로 동작합니다 — 오프라인 환경이나, 팀원이 커밋된 진입점을 선호할 때
@@ -428,7 +431,7 @@ export AGENT_INSTALLER_DESIGN_MD_DIRS="사내=//nas/design"   # 경로 구분자
 
 ## 팀 저장소에 넣을 파일
 
-`npx agent-setup`을 쓰면 설치기 자체를 커밋할 필요가 없습니다. 커밋 대상은
+`npx @rch4com/agent-setup`을 쓰면 설치기 자체를 커밋할 필요가 없습니다. 커밋 대상은
 배선 결과물뿐입니다.
 
 ```text

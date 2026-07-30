@@ -7,7 +7,7 @@
 // 경로에 따라 1과 2로 갈렸다.
 
 // `bootstrap` 서브커맨드 사용법. install.mjs와 두 런처(setup-agents.sh/.ps1) 모두에서 안내한다.
-export const BOOTSTRAP_USAGE = `사용법: npx agent-setup bootstrap [--skill-mode auto|link|copy] [--dry-run]
+export const BOOTSTRAP_USAGE = `사용법: npx @rch4com/agent-setup bootstrap [--skill-mode auto|link|copy] [--dry-run]
        node install.mjs bootstrap [옵션]   # 저장소에 설치기를 두고 쓸 때
 
 옵션:
@@ -25,11 +25,11 @@ export const BOOTSTRAP_USAGE = `사용법: npx agent-setup bootstrap [--skill-mo
   거기서 부트스트랩·에이전트·design.md를 한 목록에서 검색하고 고릅니다.`
 
 // 서브커맨드 없는 최상위 사용법. `design`은 자기 사용법을 따로 갖는다.
-export const ROOT_USAGE = `사용법: npx agent-setup [옵션]
-       npx agent-setup bootstrap [옵션]
-       npx agent-setup design [옵션]
+export const ROOT_USAGE = `사용법: npx @rch4com/agent-setup [옵션]
+       npx @rch4com/agent-setup bootstrap [옵션]
+       npx @rch4com/agent-setup design [옵션]
 
-저장소에 설치기를 두고 쓸 때는 npx agent-setup 자리에
+저장소에 설치기를 두고 쓸 때는 npx @rch4com/agent-setup 자리에
 node install.mjs 를 넣으면 됩니다.
 
 옵션이 없으면 대화형 화면을 엽니다 — 부트스트랩·에이전트·design.md를
@@ -48,10 +48,10 @@ node install.mjs 를 넣으면 됩니다.
 
 --list와 --set은 동작을 고르는 플래그라 함께 쓸 수 없습니다.
 
-서브커맨드 도움말: npx agent-setup bootstrap --help
-                   npx agent-setup design --help`
+서브커맨드 도움말: npx @rch4com/agent-setup bootstrap --help
+                   npx @rch4com/agent-setup design --help`
 
-export const DESIGN_USAGE = `사용법: npx agent-setup design [옵션]
+export const DESIGN_USAGE = `사용법: npx @rch4com/agent-setup design [옵션]
        node install.mjs design [옵션]   # 저장소에 설치기를 두고 쓸 때
 
 옵션이 없으면 대화형 화면을 엽니다 — DESIGN.MD 섹션이 그 안에 있습니다.

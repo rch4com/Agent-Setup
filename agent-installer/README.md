@@ -13,20 +13,17 @@ Git 저장소 안에서 실행합니다.
 
 ```bash
 # 배선 — 공통 지침·스킬·도구별 설정 파일을 만든다
-npx agent-setup bootstrap
+npx @rch4com/agent-setup bootstrap
 
 # 무엇이 만들어질지만 확인한다
-npx agent-setup bootstrap --dry-run
+npx @rch4com/agent-setup bootstrap --dry-run
 
 # 플러그인·MCP·스킬·DESIGN.md를 골라 설치하는 대화형 화면
-npx agent-setup
+npx @rch4com/agent-setup
 ```
 
-스코프 이름으로도 같은 패키지를 받을 수 있습니다.
-
-```bash
-npx @rch4com/agent-setup bootstrap
-```
+설치하면 실행 명령은 `agent-setup`으로 짧아집니다. 이름에 스코프가 붙은 것은
+스코프 없는 `agent-setup`이 npm의 유사 이름 제한에 걸리기 때문입니다.
 
 ## 안전 원칙
 

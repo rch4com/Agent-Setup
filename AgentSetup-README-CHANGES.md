@@ -4,12 +4,16 @@
 
 ## npm 발행 (2026-07-30)
 
-파일을 복사하지 않고 쓸 수 있게 됐다. 설치기를 `agent-setup`과
-`@rch4com/agent-setup` 두 이름으로 npm에 발행하며, 소스는 하나이고 발행
-시점에 `name`만 바꾼다 — 래퍼 패키지를 두면 npx가 tarball을 두 번 받고
-버전 고정 의미가 흐려진다.
+파일을 복사하지 않고 쓸 수 있게 됐다. 설치기를 `@rch4com/agent-setup`으로
+npm에 발행한다.
 
-- **`npx agent-setup bootstrap`으로 배선.** 기존 명령(`bootstrap`,
+이름에 스코프가 붙은 이유는 **스코프 없는 `agent-setup`을 쓸 수 없어서**다.
+npm은 유사 이름을 차단하고, `agent-setup`은 기존 패키지 `agentsetup`과
+정규화하면 같아져 발행이 403으로 거부된다. `npm view agent-setup`이 404를
+돌려주는 것만으로는 발행 가능을 확인할 수 없다 — 이 제한은 발행 시점에만
+걸린다. `bin` 이름은 `agent-setup`으로 두었으므로 설치 후 실행 명령은 짧다.
+
+- **`npx @rch4com/agent-setup bootstrap`으로 배선.** 기존 명령(`bootstrap`,
   `--list`, `--set`, `design`)이 그대로 동작한다. 이 단계에서 CLI 표면은
   바뀌지 않았다.
 - **팀 저장소 커밋 대상에서 벤더링이 빠졌다.** `agent-installer/`와 런처 2개는

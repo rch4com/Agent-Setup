@@ -38,8 +38,7 @@
 | 결정 | 내용 | 근거 |
 |---|---|---|
 | 배포 채널 | npm 공개 패키지 + GitHub 저장소 공개 | semver로 버전 고정·롤백이 되고, tarball만 받아 빠르며 로컬에 git이 필요 없다. `npx github:` 방식은 semver가 없고 매 실행 clone이 든다 |
-| 패키지 이름 | `agent-setup`과 `@rch4com/agent-setup` **둘 다** | 사용자 결정. 짧은 명령과 소유 명시를 모두 얻는다 |
-| 이중 발행 방식 | 소스 하나에서 `name`만 바꿔 두 번 publish | 래퍼 패키지를 두면 npx가 tarball을 두 번 받고 버전 고정 의미가 흐려진다 |
+| 패키지 이름 | `@rch4com/agent-setup` **하나** | 스코프 없는 `agent-setup`은 발행이 **불가능하다**(아래 참조). `bin` 이름은 `agent-setup`으로 두어 설치 후 실행 명령은 짧게 유지한다 |
 | 발행 루트 | `agent-installer/` | 이미 자기완결이다. 저장소 루트를 발행 루트로 올리면 루트에 실제로 존재하는 `.claude/`·`.codex/`·`.vscode/` 산출물이 `files` 실수 한 번에 패키지로 새어 나간다 |
 | 갱신 근거 | 커밋되는 설치 기록 `.agent-kit/agent-setup.json` | 사용자가 고친 파일을 덮어쓰지 않으려면 "우리가 쓴 그대로인가"를 판정할 근거가 필요하다. 버전 고정도 같은 파일이 담는다 |
 | 갱신 방식 | 기존 4범주(`files`/`blocks`/`settings`/`ignore`)별 처리를 상속 | 범주마다 안전한 갱신 방식이 다르다. 새 분류 체계를 만들 필요가 없다 |
@@ -305,17 +304,47 @@ npx 첫 실행에 문제 없는 크기이므로 **번들을 분리하지 않는�
 충분하지 않다. `npm pack --dry-run --json`의 파일 목록을 **테스트로 검사**해 예상 밖
 파일이 섞이면 실패하게 한다. 발행은 되돌릴 수 없으므로 사람 눈에 맡기지 않는다.
 
+### 스코프 없는 이름은 쓸 수 없다 — 발행 시도로 확인됨
+
+`agent-setup`으로 발행을 시도하면 **403으로 거부된다**.
+
+```
+403 Forbidden - PUT https://registry.npmjs.org/agent-setup
+Package name too similar to existing package agentsetup;
+try renaming your package to '@rch4com/agent-setup'
+```
+
+npm은 유사 이름을 차단하며, 판정은 대략 **소문자화 + `-`·`_`·`.` 제거 후 충돌**이다.
+`agent-setup` → `agentsetup`이고 그 패키지가 이미 존재한다(0.0.1).
+
+**교훈: `npm view <이름>`이 404를 돌려주는 것은 발행 가능을 뜻하지 않는다.** 이
+제한은 발행 시점에만 걸린다. 사전에 예측하려면 정규화한 형태를 조회해야 한다.
+같은 방법으로 확인한 결과 `agent-kit`도 쓸 수 없다(`agentkit` 0.0.0 존재).
+
+발행 가능했을 대안은 `setup-agents`·`agent-setup-cli`·`multi-agent-setup`·
+`agents-md-setup`·`agent-bootstrap`이었으나, 사용자 결정으로 **스코프 이름 하나만**
+쓴다. `bin`을 `agent-setup`으로 두었으므로 설치 후 명령은 짧고, 길어지는 것은 npx로
+직접 부를 때뿐이다.
+
 ### GitHub Actions
 
-태그 푸시를 트리거로 두 번 발행한다.
+태그 푸시를 트리거로 발행한다.
 
 ```
-npm publish --provenance --access public          # name: agent-setup
-package.json의 name을 @rch4com/agent-setup으로 바꿔 재발행
+npm publish --provenance
 ```
 
-- 스코프 패키지 첫 발행은 `--access public`이 없으면 restricted로 올라간다.
+- 스코프 패키지는 기본이 restricted다. `package.json`의
+  `publishConfig.access: "public"`으로 고정해 `--access` 플래그를 잊는 사고를 막는다.
 - `--provenance`는 공개 저장소 + Actions 조합에서 붙는 공급망 서명이다.
+- **Trusted Publishing(토큰 없는 OIDC 발행)은 첫 발행에 쓸 수 없다.** npmjs.com의
+  *패키지 설정* 화면에서 구성하므로 패키지가 먼저 존재해야 하고, npm CLI 11.5.1+ 와
+  Node 22.14.0+ 를 요구한다. 발행 잡의 Node를 22로 올리고 `npm install -g npm@latest`를
+  넣어 이후 릴리스에서 토큰을 걷어낼 수 있게 바닥을 맞춘다. 발행 잡이 22 전용이 되면
+  선언한 하한(`engines: >=20`)이 검증되지 않으므로 `test` 잡을 20·22 매트릭스로 떼어
+  분리하고 `publish`가 그것에 의존한다.
+- 계정 2FA가 `auth-and-writes`이면 로컬 `npm publish`가 OTP를 요구한다. CI 발행은
+  Granular Access Token으로 그 프롬프트를 우회한다.
 - npm Trusted Publishing(OIDC)을 쓰면 토큰을 저장소 시크릿에 두지 않아도 된다.
 - 워크플로는 발행 전에 `npm test`와 pack 목록 검사를 통과해야 진행한다.
 
