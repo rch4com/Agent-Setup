@@ -37,6 +37,27 @@ test('tarball 최상위에 허용되지 않은 경로가 없다', () => {
   assert.deepEqual(unexpected, [], `예상 밖 경로가 발행된다: ${unexpected.join(', ')}`)
 })
 
+// files에 나열된 경로는 .gitignore보다 우선한다 — lib/를 넣으면 그 아래
+// 전부가 gitignore 여부와 무관하게 포함된다. 실제로 도구가 만든
+// lib/items/.omc/... 세션 상태 파일이 1.0.0에 그대로 실려 나갔다.
+// 최상위 화이트리스트만으로는 lib/ 하위에 낀 이물질을 잡을 수 없다.
+test('숨은 디렉터리·파일이 섞여 나가지 않는다', () => {
+  const dotted = packInfo().files
+    .map((f) => f.path)
+    .filter((p) => p.split('/').some((seg) => seg.startsWith('.')))
+  assert.deepEqual(dotted, [], `숨은 경로가 발행된다: ${dotted.join(', ')}`)
+})
+
+test('소스·문서 확장자만 발행된다', () => {
+  const ALLOWED_EXT = new Set(['.mjs', '.json', '.md'])
+  const ALLOWED_EXACT = new Set(['LICENSE'])
+  const strays = packInfo().files
+    .map((f) => f.path)
+    .filter((p) => !ALLOWED_EXACT.has(p))
+    .filter((p) => !ALLOWED_EXT.has(p.slice(p.lastIndexOf('.'))))
+  assert.deepEqual(strays, [], `예상 밖 확장자가 발행된다: ${strays.join(', ')}`)
+})
+
 test('테스트와 유지보수 스크립트는 발행되지 않는다', () => {
   const paths = packInfo().files.map((f) => f.path)
   for (const prefix of ['test/', 'scripts/', 'node_modules/']) {
