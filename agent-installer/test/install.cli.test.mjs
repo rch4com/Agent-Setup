@@ -48,7 +48,7 @@ test('--set 값 누락은 최상위와 design에서 같은 코드로 끝난다',
 
   assert.equal(top.status, design.status, `최상위 ${top.status} vs design ${design.status}`)
   assert.equal(top.status, 1)
-  for (const r of [top, design]) assert.match(r.stderr, /--set "" 로 명시/)
+  for (const r of [top, design]) assert.match(r.stderr, /Use --set "" to remove everything/)
   assert.deepEqual(untouched(root), [])
 })
 
@@ -57,8 +57,8 @@ test('실패는 모두 exit 1이고 메시지는 stderr로 나간다', () => {
   const cases = [
     [['--set', 'does-not-exist'], /알 수 없는 항목/],
     [['design', '--sync=nope'], /--sync=installed\|catalog\|stale/],
-    [['design', '--preview'], /값이 필요합니다/],
-    [['bootstrap', '--totally-unknown'], /알 수 없는 인자/],
+    [['design', '--preview'], /needs a value/],
+    [['bootstrap', '--totally-unknown'], /Unknown argument/],
   ]
   for (const [args, pattern] of cases) {
     const r = runInstaller(root, args)

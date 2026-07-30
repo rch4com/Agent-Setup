@@ -3,12 +3,16 @@ import { findRepoRoot } from './lib/context.mjs'
 import { runBootstrap } from './lib/bootstrap/flow.mjs'
 import { withDeps } from './lib/deps.mjs'
 import {
-  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE, STATUS_USAGE, UPDATE_USAGE,
+  bootstrapUsage, designUsage, rootUsage, statusUsage, updateUsage,
   parseBootstrapArgs, parseDesignArgs, parseRootArgs, parseStatusArgs, parseUpdateArgs,
 } from './lib/args.mjs'
+import { createT } from './lib/i18n/index.mjs'
 
 // 위 정적 import는 전부 의존성 없는 모듈이다 — 부트스트랩은 npm install 없이 돌아야 하고,
 // bootstrap.isolation.test.mjs가 이 불변식을 지킨다. lib/ 나머지는 동적 import로만 닿는다.
+
+// 로케일 확정 흐름은 Task 3에서 들어온다. 지금은 항상 영어로 사용법을 렌더한다.
+const t = createT('en')
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
 const ACTION_LABEL = { install: '설치', complete: '보완 설치', uninstall: '제거' }
@@ -58,7 +62,7 @@ async function main() {
 
   if (argv[0] === 'bootstrap') {
     const opts = parseBootstrapArgs(argv.slice(1))
-    if (opts.help) { console.log(BOOTSTRAP_USAGE); return }
+    if (opts.help) { console.log(bootstrapUsage(t)); return }
     const { failed } = runBootstrap(root, opts)
     if (failed.length > 0) process.exitCode = 1
     return
@@ -66,7 +70,7 @@ async function main() {
 
   if (argv[0] === 'update') {
     const opts = parseUpdateArgs(argv.slice(1))
-    if (opts.help) { console.log(UPDATE_USAGE); return }
+    if (opts.help) { console.log(updateUsage(t)); return }
     // 항목 수렴을 위해 스캔이 필요해 의존성 있는 모듈에 닿는다.
     const { runUpdate } = await withDeps(() => import('./lib/update.mjs'))
     await runUpdate(root, opts)
@@ -75,7 +79,7 @@ async function main() {
 
   if (argv[0] === 'status') {
     const opts = parseStatusArgs(argv.slice(1))
-    if (opts.help) { console.log(STATUS_USAGE); return }
+    if (opts.help) { console.log(statusUsage(t)); return }
     // 항목 스캔이 필요해 의존성 있는 모듈에 닿는다.
     const { runStatus } = await withDeps(() => import('./lib/status.mjs'))
     await runStatus(root, opts)
@@ -84,7 +88,7 @@ async function main() {
 
   if (argv[0] === 'design') {
     const opts = parseDesignArgs(argv.slice(1))
-    if (opts.help) { console.log(DESIGN_USAGE); return }
+    if (opts.help) { console.log(designUsage(t)); return }
     // 플래그 없는 `design`은 통합 화면을 연다 — DESIGN.MD 섹션이 그 안에 있다.
     if (opts.interactive) return openTui(root, opts)
     const { runDesign } = await withDeps(() => import('./lib/design-md/flow.mjs'))
@@ -93,7 +97,7 @@ async function main() {
   }
 
   const opts = parseRootArgs(argv)
-  if (opts.help) { console.log(ROOT_USAGE); return }
+  if (opts.help) { console.log(rootUsage(t)); return }
   if (opts.interactive) return openTui(root, opts)
   await runClassic(root, opts)
 }

@@ -1,10 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
+  bootstrapUsage, designUsage, rootUsage, preScanLang,
   requireValue, collectValues, parseSetArg,
   parseRootArgs, parseDesignArgs, parseBootstrapArgs, parseUpdateArgs, parseStatusArgs,
 } from '../lib/args.mjs'
+import { createT } from '../lib/i18n/index.mjs'
+
+const ROOT_USAGE = rootUsage(createT('en'))
+const DESIGN_USAGE = designUsage(createT('en'))
+const BOOTSTRAP_USAGE = bootstrapUsage(createT('en'))
 
 // ── collectValues ─────────────────────────────────────────────────
 
@@ -25,14 +30,14 @@ test('collectValues: 두 형식(값 분리·등호)과 반복 지정을 모두 �
 
 test('collectValues: 값이 없으면 던진다', () => {
   for (const argv of [['--design-dir'], ['--design-dir', '--dry-run'], ['--design-dir=']]) {
-    assert.throws(() => collectValues(argv, '--design-dir'), /값이 필요합니다/, JSON.stringify(argv))
+    assert.throws(() => collectValues(argv, '--design-dir'), /needs a value/, JSON.stringify(argv))
   }
 })
 
 test('requireValue: 값이 없거나 다음 플래그면 던진다', () => {
   assert.equal(requireValue(['--preview', 'stripe'], '--preview'), 'stripe')
-  assert.throws(() => requireValue(['--preview'], '--preview'), /값이 필요합니다/)
-  assert.throws(() => requireValue(['--preview', '--dry-run'], '--preview'), /값이 필요합니다/)
+  assert.throws(() => requireValue(['--preview'], '--preview'), /needs a value/)
+  assert.throws(() => requireValue(['--preview', '--dry-run'], '--preview'), /needs a value/)
 })
 
 // ── parseSetArg ───────────────────────────────────────────────────
@@ -44,8 +49,8 @@ test('parseSetArg: 빈 문자열(전체 제거)과 없음(null)을 구별한다'
 })
 
 test('parseSetArg: 값이 빠지면 던진다 — 조용히 전체 제거로 읽히면 안 된다', () => {
-  assert.throws(() => parseSetArg(['--set']), /--set "" 로 명시/)
-  assert.throws(() => parseSetArg(['--set', '--dry-run']), /--set "" 로 명시/)
+  assert.throws(() => parseSetArg(['--set']), /Use --set "" to remove everything/)
+  assert.throws(() => parseSetArg(['--set', '--dry-run']), /Use --set "" to remove everything/)
 })
 
 // 등호 형식만 인식되지 않으면 목표 집합을 줬는데도 대화형 화면이 열린다.
@@ -57,7 +62,7 @@ test('parseSetArg: 등호 형식도 받는다', () => {
 
 test('requireValue: 등호 형식도 받는다', () => {
   assert.equal(requireValue(['--preview=stripe'], '--preview'), 'stripe')
-  assert.throws(() => requireValue(['--preview='], '--preview'), /값이 필요합니다/)
+  assert.throws(() => requireValue(['--preview='], '--preview'), /needs a value/)
 })
 
 // ── parseRootArgs ─────────────────────────────────────────────────
@@ -87,8 +92,8 @@ test('parseRootArgs: --skill-mode를 두 형식 모두 받아 실어 나른다',
     assert.equal(parseRootArgs([`--skill-mode=${mode}`]).skillMode, mode)
   }
   // 값 검증도 bootstrap과 같은 규칙을 따른다.
-  assert.throws(() => parseRootArgs(['--skill-mode', 'nope']), /auto, link, copy 중 하나/)
-  assert.throws(() => parseRootArgs(['--skill-mode']), /값이 필요합니다/)
+  assert.throws(() => parseRootArgs(['--skill-mode', 'nope']), /must be one of auto, link, copy/)
+  assert.throws(() => parseRootArgs(['--skill-mode']), /needs a value/)
 })
 
 // 조용히 무시되면 사용자는 명령이 먹혔다고 믿지만 아무 일도 일어나지 않는다.
@@ -110,7 +115,7 @@ test('parseRootArgs: 동작 플래그를 겹쳐 주면 거부한다', () => {
   for (const argv of [['--list', '--set', 'a'], ['--set=a', '--list'], ['--list', '--set=']]) {
     assert.throws(
       () => parseRootArgs(argv),
-      (e) => /함께 쓸 수 없습니다/.test(e.message) && e.message.includes(ROOT_USAGE),
+      (e) => /Cannot be combined/.test(e.message) && e.message.includes(ROOT_USAGE),
       JSON.stringify(argv),
     )
   }
@@ -155,7 +160,7 @@ test('parseDesignArgs: 동작 플래그를 겹쳐 주면 거부한다', () => {
   for (const argv of cases) {
     assert.throws(
       () => parseDesignArgs(argv),
-      (e) => /함께 쓸 수 없습니다/.test(e.message) && e.message.includes(DESIGN_USAGE),
+      (e) => /Cannot be combined/.test(e.message) && e.message.includes(DESIGN_USAGE),
       JSON.stringify(argv),
     )
   }
@@ -197,8 +202,8 @@ test('parseDesignArgs: 모르는 인자를 거부하고, --help가 앞선다', (
 // ── parseBootstrapArgs ────────────────────────────────────────────
 
 test('parseBootstrapArgs: 기본값과 플래그 조합', () => {
-  assert.deepEqual(parseBootstrapArgs([]), { dryRun: false, adopt: false, skillMode: 'auto', help: false })
-  assert.deepEqual(parseBootstrapArgs(['--dry-run']), { dryRun: true, adopt: false, skillMode: 'auto', help: false })
+  assert.deepEqual(parseBootstrapArgs([]), { dryRun: false, adopt: false, skillMode: 'auto', help: false, lang: null })
+  assert.deepEqual(parseBootstrapArgs(['--dry-run']), { dryRun: true, adopt: false, skillMode: 'auto', help: false, lang: null })
   assert.equal(parseBootstrapArgs(['-h']).help, true)
   assert.equal(parseBootstrapArgs(['--help']).help, true)
 })
@@ -212,16 +217,16 @@ test('parseBootstrapArgs: --skill-mode는 두 형식 모두 받는다', () => {
 
 test('parseBootstrapArgs: --skill-mode 값이 알 수 없는 인자로 오해되지 않는다', () => {
   const o = parseBootstrapArgs(['--skill-mode', 'copy', '--dry-run'])
-  assert.deepEqual(o, { dryRun: true, adopt: false, skillMode: 'copy', help: false })
+  assert.deepEqual(o, { dryRun: true, adopt: false, skillMode: 'copy', help: false, lang: null })
 })
 
 test('parseBootstrapArgs: 잘못된 값과 모르는 인자는 사용법과 함께 던진다', () => {
   const bad = [
-    [['--skill-mode', 'nope'], /auto, link, copy 중 하나/],
-    [['--skill-mode=nope'], /auto, link, copy 중 하나/],
-    [['--skill-mode'], /값이 필요합니다/],
-    [['--skill-mode', '--dry-run'], /값이 필요합니다/],
-    [['--totally-unknown'], /알 수 없는 인자/],
+    [['--skill-mode', 'nope'], /must be one of auto, link, copy/],
+    [['--skill-mode=nope'], /must be one of auto, link, copy/],
+    [['--skill-mode'], /needs a value/],
+    [['--skill-mode', '--dry-run'], /needs a value/],
+    [['--totally-unknown'], /Unknown argument/],
   ]
   for (const [argv, pattern] of bad) {
     assert.throws(() => parseBootstrapArgs(argv), pattern, JSON.stringify(argv))
@@ -234,7 +239,7 @@ test('parseBootstrapArgs: --adopt를 받는다', () => {
   assert.equal(parseBootstrapArgs(['--adopt']).adopt, true)
   assert.equal(parseBootstrapArgs([]).adopt, false)
   // 값을 받는 플래그가 아니다.
-  assert.throws(() => parseBootstrapArgs(['--adopt=x']), /값을 줄 수 없습니다/)
+  assert.throws(() => parseBootstrapArgs(['--adopt=x']), /takes no value/)
 })
 
 test('parseUpdateArgs: --dry-run과 --force를 받고 모르는 인자를 거부한다', () => {
@@ -242,13 +247,51 @@ test('parseUpdateArgs: --dry-run과 --force를 받고 모르는 인자를 거부
   assert.equal(parseUpdateArgs(['--force']).force, true)
   assert.equal(parseUpdateArgs(['--dry-run']).dryRun, true)
   assert.equal(parseUpdateArgs(['--help']).help, true)
-  assert.throws(() => parseUpdateArgs(['--forcee']), /알 수 없는 인자/)
+  assert.throws(() => parseUpdateArgs(['--forcee']), /Unknown argument/)
 })
 
 test('parseStatusArgs: --json을 받고 모르는 인자를 거부한다', () => {
   assert.equal(parseStatusArgs([]).json, false)
   assert.equal(parseStatusArgs(['--json']).json, true)
   assert.equal(parseStatusArgs(['-h']).help, true)
-  assert.throws(() => parseStatusArgs(['--jsonn']), /알 수 없는 인자/)
-  assert.throws(() => parseStatusArgs(['--json=1']), /값을 줄 수 없습니다/)
+  assert.throws(() => parseStatusArgs(['--jsonn']), /Unknown argument/)
+  assert.throws(() => parseStatusArgs(['--json=1']), /takes no value/)
+})
+
+// ── --lang ────────────────────────────────────────────────────────
+
+test('preScanLang은 두 표기를 모두 읽는다', () => {
+  assert.equal(preScanLang(['--lang', 'ko']), 'ko')
+  assert.equal(preScanLang(['--lang=ko']), 'ko')
+  assert.equal(preScanLang(['bootstrap', '--dry-run', '--lang', 'en']), 'en')
+  assert.equal(preScanLang([]), null)
+})
+
+test('preScanLang은 지원하지 않는 값에 던지지 않는다', () => {
+  // 정식 파서가 지원 목록을 담은 오류를 낸다. 여기서 던지면 오류 경로가 둘로 갈린다.
+  assert.equal(preScanLang(['--lang', 'zz']), null)
+  assert.equal(preScanLang(['--lang']), null)
+})
+
+test('파서는 --lang을 받아들이고 값을 돌려준다', () => {
+  assert.equal(parseRootArgs(['--lang', 'ko']).lang, 'ko')
+  assert.equal(parseBootstrapArgs(['--lang=en']).lang, 'en')
+  assert.equal(parseStatusArgs(['--json', '--lang', 'ko']).lang, 'ko')
+  assert.equal(parseRootArgs([]).lang, null)
+})
+
+test('--lang에 지원하지 않는 값을 주면 거부한다', () => {
+  // 명시한 값이 조용히 무시되면 안 된다.
+  assert.throws(() => parseRootArgs(['--lang', 'zz']), /en, ko/)
+  assert.throws(() => parseRootArgs(['--lang']), /en, ko/)
+})
+
+test('--lang은 대화형 여부를 바꾸지 않는다', () => {
+  assert.equal(parseRootArgs(['--lang', 'ko']).interactive, true)
+})
+
+test('사용법은 t를 받아 로케일에 맞게 나온다', () => {
+  assert.match(rootUsage(createT('en')), /Usage:/)
+  assert.match(rootUsage(createT('ko')), /사용법:/)
+  assert.match(bootstrapUsage(createT('en')), /--skill-mode/)
 })
