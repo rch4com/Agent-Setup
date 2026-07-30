@@ -133,6 +133,17 @@ test('설정이 없으면 결정 사슬이 고른 언어로 나온다', () => {
   assert.match(r.stdout, expected === 'ko' ? /사용법:/ : /Usage:/)
 })
 
+test('설정이 없으면 OS 환경변수 감지가 출력 언어를 정한다', () => {
+  // detectLocale은 LC_ALL을 Intl보다 먼저 본다. 그래서 이 경로는 Windows의
+  // Intl이 OS 언어를 고수하는 것과 무관하게 어디서나 결정적이다. 위
+  // '결정 사슬' 테스트는 CI(ubuntu-latest)에서 expected가 거의 항상 en이라
+  // 하드코딩 회귀가 나도 우연히 통과할 수 있다 — 이 테스트가 그 구멍을 메운다.
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--help'], { env: { AGENT_SETUP_LANG: '', LC_ALL: 'ko_KR.UTF-8' } })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /사용법:/)
+})
+
 test('AGENT_SETUP_LANG=ko면 한국어로 나온다', () => {
   const root = makeTempRepo()
   const r = runInstaller(root, ['--help'], { env: KO })
@@ -156,4 +167,16 @@ test('git 저장소가 아니면 선택한 언어로 거부한다', () => {
   const ko = runInstaller(outside, ['--list'], { env: KO })
   assert.equal(ko.status, 1)
   assert.match(ko.stderr, /git 저장소/)
+})
+
+test('--lang은 오류 메시지에도 적용된다', () => {
+  // --help는 catch를 지나지 않는다. 실제 오류를 내야 재렌더 경로가 검증된다.
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--totally-unknown-flag', '--lang', 'ko'], {
+    env: { AGENT_SETUP_LANG: '' },
+  })
+  assert.notEqual(r.status, 0)
+  assert.match(r.stderr, /알 수 없는 인자입니다/)
+  // 한 메시지 안에서 언어가 갈리지 않아야 한다.
+  assert.doesNotMatch(r.stderr, /Unknown argument/)
 })

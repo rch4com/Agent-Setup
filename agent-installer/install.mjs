@@ -25,6 +25,12 @@ function tryReadRecord(root) {
   try { return readRecord(root) } catch { return null }
 }
 
+// main() 안의 지역변수로 두면 아래 catch에서 안 보인다. main()이 던지는
+// 모든 오류가 이 catch를 거치므로, --lang만 주고 AGENT_SETUP_LANG은 안 준
+// 사용자의 오류 메시지가 flag를 반영하지 못해 요청한 언어와 어긋난다.
+const argv = process.argv.slice(2)
+const flag = preScanLang(argv)
+
 // 대화형 화면은 TUI가 맡는다.
 async function openTui(root, { dryRun, skillMode, designDirs, t, localeForced }) {
   const { runTui } = await withDeps(() => import('./lib/tui/run.mjs'), t)
@@ -68,9 +74,6 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
 }
 
 async function main() {
-  const argv = process.argv.slice(2)
-
-  const flag = preScanLang(argv)
   const root = tryFindRepoRoot()
   const record = root === null ? null : tryReadRecord(root)
   const locale = resolveLocale({ flag, env: process.env, record, detected: detectLocale(process.env) })
@@ -124,9 +127,11 @@ async function main() {
 }
 
 // 오류는 한 곳에서 지역화한다. LocalizedError의 .message는 영어라
-// 스택 트레이스가 읽히고, 여기서 활성 로케일로 다시 렌더한다.
+// 스택 트레이스가 읽히고, 여기서 활성 로케일로 다시 렌더한다. 기록은 다시
+// 읽지 않는다 — 오류 경로에서 그 기록을 실제로 쓴 명령이 실패했을 수도
+// 있는 파일을 재차 읽을 이유가 없다. flag·환경변수·OS는 그대로 반영된다.
 main().catch((err) => {
-  const t = createT(resolveLocale({ env: process.env, detected: detectLocale(process.env) }))
+  const t = createT(resolveLocale({ flag, env: process.env, detected: detectLocale(process.env) }))
   console.error(err.key ? t(err.key, err.params) : err.message)
   process.exit(1)
 })

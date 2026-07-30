@@ -143,7 +143,7 @@ export default {
 
   'error.depsMissing': [
     'This feature needs dependencies. Run one of:',
-    '  npm install --prefix agent-installer',
     '  ./setup-agents.sh --tui',
+    '  npm install --prefix agent-installer',
   ],
 }

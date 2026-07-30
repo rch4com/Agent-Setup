@@ -137,7 +137,7 @@ export default {
 
   'error.depsMissing': [
     '이 기능에는 의존성이 필요합니다. 다음 중 하나를 실행하세요:',
-    '  npm install --prefix agent-installer',
     '  ./setup-agents.sh --tui',
+    '  npm install --prefix agent-installer',
   ],
 }
