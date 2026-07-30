@@ -131,7 +131,8 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
   // ensureDirs/ensureFiles/ensureBlocks와 달리 경로가 '.gitignore' 하나로 고정돼
   // 있고, 함수 자체의 목적이 "항목을 보장한다"는 쓰기 의도이므로 존재 확인과
   // 쓰기 판단을 나누지 않고 맨 앞에서 한 번만 엄격 검사한다. ensureGitignoreEntries
-  // (lib/gitignore.mjs)는 repoPath만 쓰므로, 저장소 밖 이탈 차단은 여기서 해야 한다.
+  // (lib/gitignore.mjs)도 같은 검사를 하지만, 그쪽을 부르지 않는 dry-run 경로에서도
+  // 이탈을 거부해야 하므로 여기서 먼저 확인한다.
   const target = repoPathStrict(root, '.gitignore')
   const text = pathExists(target) ? readFileSync(target, 'utf8') : ''
   const lines = new Set(text.split(/\r?\n/))
@@ -160,6 +161,9 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
 // 줄 주석(//)과 블록 주석(/* */)을 건너뛰며 유의미한 문자를 하나씩 넘겨준다.
 // findRootBrace(루트 '{' 탐색)와 isEmptyObjectBody(빈 객체 판정, F-1)가 같은
 // 스캐너를 공유한다 — 판정 기준이 둘로 갈리면 한쪽만 고치는 회귀가 생기기 쉽다.
+// 한계: 문자열 리터럴을 모른다. `"https://x"` 안의 `//`도 줄 주석으로 본다.
+// 현재 두 소비자는 루트 '{' 이전과 그 바로 뒤 한 글자만 보므로 문자열 안까지
+// 들어가지 않아 영향이 없다. 다른 위치에서 재사용하려면 문자열 인식을 먼저 더해야 한다.
 function* scanSignificant(text) {
   let inBlock = false
   let offset = 0
@@ -231,6 +235,9 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
 
     // 주석 안에 있어도 건드리지 않는다 — 사용자가 언급한 키를 스크립트가
     // 되살리지 않는 편이 "기존 설정을 덮어쓰지 않는다"는 원칙에 맞는다.
+    // 문자열 포함 검사라 키 이름이 어떤 값 안에 들어 있어도 건너뛴다. 보수적인
+    // 쪽으로 틀리는 것(넣지 않음)이라 파일을 망가뜨리지는 않는다. 정확히 하려면
+    // 최상위 키만 보는 파서가 필요한데, 부트스트랩은 의존성을 쓸 수 없다.
     if (text.includes(JSON.stringify(key))) {
       log(`설정 키 확인: ${rel} — ${key}`)
       return { ok: true, action: 'skip', path: rel }
