@@ -3,8 +3,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import {
-  FORMAT_VERSION, RECORD_REL, emptyRecord, readRecord, toolVersion, writeRecord,
+  FORMAT_VERSION, RECORD_REL, collectManaged, emptyRecord, extractBlock,
+  managedKey, readRecord, toolVersion, writeRecord,
 } from '../lib/bootstrap/record.mjs'
+import { hashBody } from '../lib/bootstrap/text.mjs'
 import { makeCapture, makeTempRepo } from './helpers.mjs'
 
 function putRecord(root, obj) {
@@ -77,4 +79,65 @@ test('사람이 읽을 수 있게 들여쓰기하고 끝 개행을 둔다', () =
   // 커밋되어 git diff로 읽는 파일이다. 한 줄 JSON이면 diff가 무의미하다.
   assert.match(text, /\n {2}"formatVersion"/)
   assert.ok(text.endsWith('\n'))
+})
+
+test('extractBlock: 마커 사이 본문만 돌려준다', () => {
+  const text = '사용자 서문\n\n<!-- agent-kit:begin -->\n@AGENTS.md\n<!-- agent-kit:end -->\n뒷말\n'
+  assert.equal(extractBlock(text), '@AGENTS.md\n')
+  assert.equal(extractBlock('마커 없는 파일\n'), null)
+})
+
+test('managedKey: 블록은 접미사로 파일 전체와 구분한다', () => {
+  assert.equal(managedKey('AGENTS.md', false), 'AGENTS.md')
+  assert.equal(managedKey('CLAUDE.md', true), 'CLAUDE.md#agent-kit')
+})
+
+test('collectManaged: 템플릿과 일치하는 파일만 해시를 남긴다', () => {
+  const root = makeTempRepo()
+  const manifest = {
+    files: [
+      { path: 'same.md', template: '내용\n' },
+      { path: 'edited.md', template: '내용\n' },
+      { path: 'missing.md', template: '내용\n' },
+    ],
+    blocks: [],
+  }
+  writeFileSync(join(root, 'same.md'), '내용\n')
+  writeFileSync(join(root, 'edited.md'), '사용자가 고친 내용\n')
+
+  const managed = collectManaged(root, manifest)
+
+  assert.equal(managed['same.md'], hashBody('내용\n'))
+  // 고친 파일에 해시를 박으면 다음 update가 사용자 수정을 날려버린다.
+  assert.equal(managed['edited.md'], null)
+  // 없는 파일도 관리 대상이다 — update가 생성 분기로 처리한다.
+  assert.equal(managed['missing.md'], null)
+})
+
+test('collectManaged: CRLF로 체크아웃된 파일도 일치로 본다', () => {
+  const root = makeTempRepo()
+  const manifest = { files: [{ path: 'a.md', template: 'x\ny\n' }], blocks: [] }
+  writeFileSync(join(root, 'a.md'), 'x\r\ny\r\n')
+  assert.equal(collectManaged(root, manifest)['a.md'], hashBody('x\ny\n'))
+})
+
+test('collectManaged: 블록은 마커 사이 본문으로 비교한다', () => {
+  const root = makeTempRepo()
+  const block = '<!-- agent-kit:begin -->\n@AGENTS.md\n<!-- agent-kit:end -->'
+  const manifest = { files: [], blocks: [{ path: 'CLAUDE.md', block }] }
+  // 사용자 본문이 앞뒤에 있어도 블록 본문이 같으면 일치다.
+  writeFileSync(join(root, 'CLAUDE.md'), `내 메모\n\n${block}\n`)
+
+  const managed = collectManaged(root, manifest)
+  assert.equal(managed['CLAUDE.md#agent-kit'], hashBody('@AGENTS.md\n'))
+})
+
+test('collectManaged: 블록 안쪽을 고치면 채택하지 않는다', () => {
+  const root = makeTempRepo()
+  const block = '<!-- agent-kit:begin -->\n@AGENTS.md\n<!-- agent-kit:end -->'
+  const manifest = { files: [], blocks: [{ path: 'CLAUDE.md', block }] }
+  writeFileSync(join(root, 'CLAUDE.md'),
+    '<!-- agent-kit:begin -->\n@AGENTS.md\n내가 넣은 줄\n<!-- agent-kit:end -->\n')
+
+  assert.equal(collectManaged(root, manifest)['CLAUDE.md#agent-kit'], null)
 })
