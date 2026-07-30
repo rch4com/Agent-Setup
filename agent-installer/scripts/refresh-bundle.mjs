@@ -5,7 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadCatalog } from '../lib/design-md/catalog.mjs'
+import { loadCatalog, netFetch } from '../lib/design-md/catalog.mjs'
 import { getProvider } from '../lib/design-md/providers/index.mjs'
 
 const CACHE = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'design-md', 'cache')
@@ -36,7 +36,9 @@ let ok = 0
 const failed = []
 await pool(jobs, CONCURRENCY, async ({ provider, name }) => {
   try {
-    const text = await provider.fetchFile(fetch, name, 'DESIGN.md')
+    // 맨 fetch가 아니라 netFetch를 쓴다 — 시간 제한도 크기 상한도 없는 호출은
+    // 응답하지 않는 서버를 만나면 취소할 방법 없이 멈춘다.
+    const text = await provider.fetchFile(netFetch, name, 'DESIGN.md')
     if (text == null) { failed.push(`${provider.id}/${name}`); return }
     const dir = join(CACHE, provider.id, name) // cache/<provider>/<name>/DESIGN.md
     mkdirSync(dir, { recursive: true })

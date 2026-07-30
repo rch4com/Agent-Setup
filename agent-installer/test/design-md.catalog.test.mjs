@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, writeFileSync, mkdtempSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { makeTempRepo, makeFetch } from './helpers.mjs'
 import {
@@ -99,6 +100,9 @@ test('buildItems: 경로에 위험한 이름은 item으로 만들지 않는다',
 // 제어문자는 소스에 원시 바이트로 두지 않는다 — 도구를 거치며 조용히 뭉개진다.
 const ESC = '\u001b'
 const CONTROL_RE = /[\u0000-\u001f\u007f]/
+// 보이지 않으면서 표시를 흔드는 유니코드 서식문자(bidi 오버라이드·isolate·폭 0).
+const INVISIBLE_RE =
+  /[\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/
 
 test('defineDesignMd: 화면에 나가는 값에서 제어문자를 걷어낸다', () => {
   const item = defineDesignMd(
@@ -118,6 +122,29 @@ test('defineDesignMd: 화면에 나가는 값에서 제어문자를 걷어낸다
   }
   // name은 경로·URL에 쓰이므로 정화 대상이 아니다(isSafeSegment가 따로 거른다).
   assert.equal(item.name, 'stripe')
+})
+
+// bidi 오버라이드·isolate는 보이지 않으면서 표시 순서를 뒤집어, 라벨이 다른
+// 항목처럼 보이게 만든다. 폭 없는 문자는 같아 보이는 서로 다른 이름을 만든다.
+// 제어문자를 걷어내는 목적("원격 텍스트가 화면을 위장하지 못하게")이 같다.
+test('defineDesignMd: bidi·폭 없는 유니코드 서식문자도 걷어낸다', () => {
+  const RLO = '\u202e' // right-to-left override: 뒤 텍스트를 거꾸로 그린다
+  const PDF = '\u202c' // pop directional formatting
+  const item = defineDesignMd(
+    entry('stripe', {
+      label: 'Str' + RLO + 'epi' + PDF + 'pe',
+      category: 'Fin\u200btech', // zero-width space
+      description: '설명\u2066숨김\u2069\ufeff', // isolate + BOM
+    }),
+    provider,
+    { fetchImpl: async () => ({}) },
+  )
+  for (const shown of [item.label, item.designCategory, item.description]) {
+    assert.doesNotMatch(shown, INVISIBLE_RE, JSON.stringify(shown))
+  }
+  assert.equal(item.label, 'Str epi pe')
+  assert.equal(item.designCategory, 'Fin tech')
+  assert.equal(item.description, '설명 숨김')
 })
 
 test('defineDesignMd: 라벨이 통째로 제어문자면 name으로 폴백한다', () => {
@@ -193,6 +220,26 @@ test('netFetch는 기본 시간 제한을 건다', async () => {
   // 호출자가 준 옵션은 그대로 살아 있어야 한다.
   assert.equal(seen[1].opts.headers['User-Agent'], 'x')
   assert.ok(FETCH_TIMEOUT_MS > 0)
+})
+
+// 시간 제한은 "데이터가 계속 오는" 응답을 막지 못한다 — 끝나지 않는 본문은
+// text()가 메모리를 다 쓸 때까지 읽는다. 상한을 넘으면 읽기를 끊어야 한다.
+test('netFetch는 본문 크기 상한을 넘으면 읽기를 끊는다', async () => {
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    res.end('x'.repeat(4096))
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const url = `http://127.0.0.1:${server.address().port}/big`
+  try {
+    await assert.rejects(async () => (await netFetch(url, { maxBytes: 64 })).text(), /상한/)
+    // 상한 안이면 그대로 읽는다.
+    const res = await netFetch(url, { maxBytes: 1024 * 1024 })
+    assert.equal(res.ok, true)
+    assert.equal((await res.text()).length, 4096)
+  } finally {
+    await new Promise((resolve) => server.close(resolve))
+  }
 })
 
 test('sha256은 내용이 다르면 다른 값', () => {

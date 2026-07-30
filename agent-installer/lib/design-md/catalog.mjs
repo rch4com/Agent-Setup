@@ -36,13 +36,54 @@ export function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
-// 기본 fetch에 시간 제한을 건다. 맨 fetch에는 제한이 없어, 응답하지 않는
-// 서버를 만나면 동기화가 취소할 방법 없이 멈춘다 — 특히 TUI에서는 화면이
-// 정지한 것처럼 보인다. 주입된 fetchImpl(테스트·대체 구현)은 건드리지 않는다.
+// 응답 시간 제한. 맨 fetch에는 제한이 없어, 응답하지 않는 서버를 만나면
+// 동기화가 취소할 방법 없이 멈춘다 — 특히 TUI에서는 화면이 정지한 것처럼 보인다.
 export const FETCH_TIMEOUT_MS = 20000
 
-export function netFetch(url, opts = {}) {
-  return fetch(url, { ...opts, signal: opts.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+// 응답 본문 상한. DESIGN.md는 수십 KB, 가장 큰 응답인 tree API도 수 MB
+// 수준이다. 상한이 없으면 응답하는 서버가 무한 스트림을 흘려보낼 때
+// text()가 메모리를 다 쓸 때까지 읽는다 — 시간 제한은 이 경우를 막지 못한다
+// (데이터가 계속 오는 동안은 타임아웃이 걸리지 않는다).
+export const FETCH_MAX_BYTES = 8 * 1024 * 1024
+
+async function readCapped(res, limit) {
+  // body가 없는 구현(테스트의 가짜 fetch 등)은 그대로 읽는다.
+  if (!res.body?.getReader) return res.text()
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let text = ''
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > limit) {
+      await reader.cancel()
+      throw new Error(`응답이 상한(${limit} 바이트)을 넘었습니다: ${res.url}`)
+    }
+    text += decoder.decode(value, { stream: true })
+  }
+  return text + decoder.decode()
+}
+
+// 기본 fetch에 위 두 제한을 건다. 주입된 fetchImpl(테스트·대체 구현)은
+// 건드리지 않는다.
+export async function netFetch(url, opts = {}) {
+  // maxBytes는 우리 옵션이므로 fetch에 넘기지 않는다(기본값은 FETCH_MAX_BYTES).
+  const { maxBytes = FETCH_MAX_BYTES, ...init } = opts
+  const res = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+  // 소비자는 ok·status·text()·json()만 쓴다. text()는 한 번만 읽을 수 있는
+  // 스트림을 감싸므로 결과를 기억해 두 번 호출에도 견디게 한다.
+  let body = null
+  const text = () => (body ??= readCapped(res, maxBytes))
+  return {
+    ok: res.ok,
+    status: res.status,
+    url: res.url,
+    headers: res.headers,
+    text,
+    json: async () => JSON.parse(await text()),
+  }
 }
 
 // 경로 세그먼트 하나로 안전한 이름인지 본다. 한글 등 유니코드는 허용하되
@@ -59,9 +100,15 @@ export function isSafeSegment(text) {
 // 라벨·카테고리·설명은 원격 README나 DESIGN.md 본문에서 온다. 목록과 TUI가
 // 이 값을 터미널에 그대로 찍으므로 제어문자를 걷어낸다 — ANSI 이스케이프가
 // 남아 있으면 화면을 지우거나 커서를 옮겨 목록을 위장할 수 있다.
+// C0/C1 제어문자에 더해 눈에 보이지 않으면서 표시 순서를 바꾸는 유니코드
+// 서식문자도 함께 지운다: bidi 오버라이드·isolate(U+202A~202E, U+2066~2069)는
+// 라벨을 거꾸로 그려 다른 항목처럼 보이게 만들고, 폭 없는 문자(U+200B~200F,
+// U+FEFF, U+00AD)는 이름이 같아 보이는 서로 다른 항목을 만든다.
 export function stripControl(text) {
-  // eslint-disable-next-line no-control-regex
-  return String(text ?? '').replace(/[\x00-\x1f\x7f]+/g, ' ').trim()
+  return String(text ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1f\x7f-\x9f\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]+/g, ' ')
+    .trim()
 }
 
 // 설치·번들 경로는 제공자별로 스코프한다: design-md/<provider>/<name>/DESIGN.md.
