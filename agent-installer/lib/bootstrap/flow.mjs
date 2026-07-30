@@ -1,8 +1,9 @@
 // 부트스트랩 진입점 — 순서와 보고만 담당한다.
 // 무엇을 만들지는 manifest.mjs가, 어떻게 만들지는 apply.mjs·adapter.mjs가 안다.
 import { MANIFEST } from './manifest.mjs'
-import { ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys } from './apply.mjs'
-import { configureAdapter } from './adapter.mjs'
+import {
+  configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
+} from './apply.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
 
 const SKILL_MODES = ['auto', 'link', 'copy']
@@ -31,12 +32,9 @@ export function runBootstrap(root, opts = {}) {
 
   if (!adopt) {
     // 어댑터는 항목별로 실패를 격리한다 — 하나가 실패해도 나머지를 계속한다.
+    // update.mjs도 같은 격리를 써야 하므로 apply.mjs가 단일 출처다.
     for (const entry of manifest.adapters) {
-      try {
-        results.push(configureAdapter(root, entry, { ...ctx, skillMode }))
-      } catch (err) {
-        results.push({ ok: false, action: 'link', path: entry.path, message: err.message })
-      }
+      results.push(configureAdapterSafe(root, entry, { ...ctx, skillMode }))
     }
 
     results.push(...ensureIgnore(root, manifest.ignore, ctx))
