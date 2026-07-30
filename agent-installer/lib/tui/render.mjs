@@ -10,7 +10,7 @@ const RESET = `${ESC}[0m`
 
 // 머리글·탭줄·검색줄·구분 공백·바닥글이 차지하는 줄 수.
 const CHROME = 6
-const LABEL_WIDTH = 24
+export const LABEL_WIDTH = 24
 
 export function bodyHeight(height) {
   return Math.max(3, height - CHROME)
