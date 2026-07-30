@@ -15,6 +15,8 @@ export const BOOTSTRAP_USAGE = `사용법: npx @rch4com/agent-setup bootstrap [-
                                   auto: 심볼릭 링크를 먼저 시도하고, 실패하면 복사로 전환합니다.
                                   link: 심볼릭 링크만 시도합니다. 실패하면 오류로 종료합니다.
                                   copy: 항상 복제본을 만듭니다.
+  --adopt                      파일을 만들지 않고, 이미 있는 파일 중 이 버전의
+                               템플릿과 같은 것만 관리 대상으로 기록합니다.
   --dry-run                    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
   -h, --help                   이 도움말을 출력하고 종료합니다.
 
@@ -88,7 +90,7 @@ const DESIGN_SPEC = {
   ...HELP_SPEC, '--dry-run': 'bool', '--list': 'bool', '--set': 'value',
   '--preview': 'value', '--sync': 'value', '--design-dir': 'value',
 }
-const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--skill-mode': 'value' }
+const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--adopt': 'bool', '--skill-mode': 'value' }
 
 export function assertKnownArgs(argv, spec, usage) {
   for (let i = 0; i < argv.length; i++) {
@@ -253,13 +255,15 @@ export function parseDesignArgs(argv) {
   }
 }
 
-// `bootstrap`에 허용되는 플래그: --dry-run, --skill-mode(+값)/--skill-mode=값, -h/--help.
+// `bootstrap`에 허용되는 플래그: --dry-run, --adopt,
+// --skill-mode(+값)/--skill-mode=값, -h/--help.
 // 그 외 인자는 거부한다 — 조용히 삼켜지는 것을 막기 위해서다.
 export function parseBootstrapArgs(argv) {
-  if (wantsHelp(argv)) return { dryRun: false, skillMode: 'auto', help: true }
+  if (wantsHelp(argv)) return { dryRun: false, skillMode: 'auto', adopt: false, help: true }
   assertKnownArgs(argv, BOOTSTRAP_SPEC, BOOTSTRAP_USAGE)
   return {
     dryRun: argv.includes('--dry-run'),
+    adopt: argv.includes('--adopt'),
     skillMode: parseSkillMode(argv, BOOTSTRAP_USAGE),
     help: false,
   }

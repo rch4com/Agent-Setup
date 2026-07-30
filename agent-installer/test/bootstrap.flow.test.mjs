@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { MANIFEST } from '../lib/bootstrap/manifest.mjs'
+import { RECORD_REL, readRecord, toolVersion } from '../lib/bootstrap/record.mjs'
 
 test('매니페스트가 선언한 모든 대상을 만든다', () => {
   const root = makeTempRepo()
@@ -101,4 +102,53 @@ test('실패가 있으면 failed에 모인다', () => {
   const root = makeTempRepo()
   const { failed } = runBootstrap(root, { log() {} })
   assert.deepEqual(failed, [], '정상 실행에는 실패가 없어야 한다')
+})
+
+test('bootstrap이 설치 기록을 남긴다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+
+  const record = readRecord(root)
+  assert.equal(record.pinnedVersion, toolVersion())
+  assert.equal(record.skillMode, 'auto')
+  // 갓 만든 파일은 정의상 템플릿과 같으므로 전부 채택된다.
+  const values = Object.values(record.managed)
+  assert.ok(values.length >= 17, `관리 항목이 ${values.length}개뿐이다`)
+  assert.equal(values.filter((v) => v === null).length, 0, '갓 만든 파일이 미채택으로 잡혔다')
+})
+
+test('bootstrap 재실행은 기록을 바꾸지 않는다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+  const first = readFileSync(join(root, RECORD_REL), 'utf8')
+  runBootstrap(root, { log() {} })
+  assert.equal(readFileSync(join(root, RECORD_REL), 'utf8'), first)
+})
+
+test('--adopt는 파일을 만들지 않고 기록만 만든다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { adopt: true, log() {} })
+
+  assert.equal(existsSync(join(root, 'AGENTS.md')), false, 'adopt가 파일을 만들었다')
+  const record = readRecord(root)
+  assert.ok(record, '기록이 없다')
+  // 파일이 없으니 채택된 것도 없어야 한다.
+  assert.equal(Object.values(record.managed).filter((v) => v).length, 0)
+})
+
+test('--adopt는 템플릿과 같은 파일만 채택한다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })            // 정상 배선
+  writeFileSync(join(root, 'AGENTS.md'), '팀이 고친 지침\n')
+  runBootstrap(root, { adopt: true, log() {} })
+
+  const record = readRecord(root)
+  assert.equal(record.managed['AGENTS.md'], null, '고친 파일이 채택됐다')
+  assert.ok(record.managed['.codex/config.toml'], '손대지 않은 파일이 미채택됐다')
+})
+
+test('dry-run은 기록도 쓰지 않는다', () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { dryRun: true, log() {} })
+  assert.equal(readRecord(root), null)
 })
