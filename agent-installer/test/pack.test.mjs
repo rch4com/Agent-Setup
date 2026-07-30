@@ -86,3 +86,14 @@ test('LICENSE가 tarball에 들어간다', () => {
   const paths = packInfo().files.map((f) => f.path)
   assert.ok(paths.includes('LICENSE'), 'LICENSE가 발행되지 않는다')
 })
+
+test('README가 tarball에 들어가고 npx 사용법을 담는다', () => {
+  const paths = packInfo().files.map((f) => f.path)
+  assert.ok(paths.includes('README.md'), 'README.md가 발행되지 않는다')
+
+  // npm 페이지의 첫 화면이다. 설치 방법이 없으면 페이지가 무의미하다.
+  const readme = readFileSync(join(PKG_ROOT, 'README.md'), 'utf8')
+  assert.match(readme, /npx agent-setup/)
+  // 상세 문서로 가는 길이 끊기면 짧게 쓴 의미가 없다.
+  assert.match(readme, /github\.com\/rch4com\/Agent-Setup/)
+})
