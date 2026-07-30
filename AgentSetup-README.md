@@ -54,7 +54,9 @@ repository/
   `.agents/skills`를 사용합니다.
 - **OpenCode:** 루트 `AGENTS.md`, `.agents/skills`, `opencode.jsonc`를 사용합니다.
 - **Kilo Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용하며,
-  프로젝트 로컬 `kilo.jsonc`를 생성합니다.
+  프로젝트 로컬 `kilo.jsonc`를 생성합니다. 프로젝트 MCP 파일은 별도 경로인
+  `.kilocode/mcp.json`이며, 부트스트랩이 아니라 설치기가 MCP 항목을 등록할 때
+  만듭니다.
 - **Kiro:** 루트 `AGENTS.md`를 직접 사용하며,
   `.kiro/skills`가 `.agents/skills`에 연결됩니다.
   프로젝트 MCP 파일은 `.kiro/settings/mcp.json`에만 생성됩니다.
@@ -155,7 +157,8 @@ node agent-installer/install.mjs bootstrap --help
 
 - 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.
   세 항목 모두 제3자 코드를 이 저장소 안에서 실행합니다.
-- 네트워크 호출에는 20초 시간 제한이 걸려 있습니다.
+- 네트워크 호출에는 20초 시간 제한과 8MiB 응답 본문 상한이 걸려 있습니다
+  (데이터가 계속 오는 응답은 시간 제한에 걸리지 않으므로 크기도 함께 막습니다).
 - `--dry-run`을 붙이면 무엇이 실행·기록될지만 출력하고 아무것도 바꾸지
   않습니다.
 - MCP 항목은 설정 파일에 URL·명령만 기록합니다. 인증(OAuth)은 각 CLI를
@@ -307,7 +310,10 @@ node agent-installer/install.mjs --design-dir 사내=//nas/design --list
 
 값을 받는 플래그는 `--set a,b`와 `--set=a,b` 두 형식을 모두 받습니다.
 모르는 인자나 오타(`--dryrun`)는 조용히 무시하지 않고 사용법과 함께
-오류로 종료합니다.
+오류로 종료합니다. 같은 이유로 동작을 고르는 플래그를 겹쳐 주는 것도
+거부합니다 — 루트는 `--list`·`--set`, `design`은 `--list`·`--set`·
+`--preview`·`--sync` 중 하나만 지정하세요(`--dry-run`·`--design-dir`처럼
+동작을 수식하는 플래그는 함께 쓸 수 있습니다).
 
 ### 설치 가능한 항목
 
@@ -325,6 +331,13 @@ node agent-installer/install.mjs --design-dir 사내=//nas/design --list
   수동으로 설치·제거해도 항상 정확히 반영됩니다.
 - 일부 CLI에만 등록된 MCP는 `(일부 설치됨)`으로 표시되고, 체크를 유지한 채
   Submit하면 누락된 CLI에만 보완 설치됩니다.
+- MCP 항목이 쓰는 파일은 CLI별로 다릅니다 — `.mcp.json`(Claude Code),
+  `.codex/config.toml`, `.gemini/settings.json`, `opencode.jsonc`,
+  `.kilocode/mcp.json`(Kilo Code), `.kiro/settings/mcp.json`,
+  `.kimi-code/mcp.json`, `.grok/config.toml`, `.github/mcp.json`(Copilot CLI),
+  `.vscode/mcp.json`. 이 가운데 `.mcp.json`과 `.kilocode/mcp.json`은
+  부트스트랩이 만들지 않으므로 MCP를 처음 고를 때 새로 생깁니다(둘 다 커밋
+  대상입니다).
 - 기존 설정 파일의 다른 키·주석은 보존하며, 변경 내용은 `git diff`로
   확인할 수 있습니다.
 - 새 항목 추가 = `agent-installer/lib/items/`에 파일 1개
@@ -359,7 +372,7 @@ node agent-installer/install.mjs design --sync=stale     # 원본과 달라진 �
   엽니다(사이트 자체 라이트/다크 제공, 다운로드 불필요).
 - 카탈로그는 `agent-installer/lib/design-md/catalog.json`에 캐시되어 오프라인에서도
   즉시 동작하며, `--sync=catalog`(또는 동기화 메뉴)로 갱신합니다.
-- **오프라인 번들**: 74개 DESIGN.md가 `agent-installer/lib/design-md/cache/<제공자>/`에
+- **오프라인 번들**: 76개 DESIGN.md가 `agent-installer/lib/design-md/cache/<제공자>/`에
   동봉되어 설치 시 네트워크 없이 즉시 복사됩니다(번들에 없으면 네트워크 폴백).
   `--sync=installed`와 오래된 항목 업데이트는 번들을 건너뛰고 원본 최신을 받습니다.
   번들 재생성은 `cd agent-installer && npm run refresh-bundle`.
@@ -426,6 +439,10 @@ GEMINI.md
 opencode.jsonc
 kilo.jsonc
 ```
+
+설치기로 MCP 항목을 등록하면 여기에 `.mcp.json`과 `.kilocode/mcp.json`이
+더해집니다 — 부트스트랩이 만들지 않는 두 파일이며, 나머지 MCP 파일과 같이
+팀과 공유하는 커밋 대상입니다.
 
 `.claude/skills`, `.kiro/skills`, `.grok/skills`가 로컬 Junction 또는 심볼릭
 링크라면 Git과 운영체제에 따라 다르게 처리될 수 있습니다(Windows에서 git은
