@@ -9,7 +9,9 @@
 import { LOCALES, LocalizedError, createT } from './i18n/index.mjs'
 
 // 사용법은 모듈 로드 시점에 로케일을 모르므로 상수가 될 수 없다.
+// `bootstrap` 서브커맨드 사용법. install.mjs와 두 런처(setup-agents.sh/.ps1) 모두에서 안내한다.
 export const bootstrapUsage = (t) => t('usage.bootstrap')
+// 서브커맨드 없는 최상위 사용법. `design`은 자기 사용법을 따로 갖는다.
 export const rootUsage = (t) => t('usage.root')
 export const designUsage = (t) => t('usage.design')
 export const updateUsage = (t) => t('usage.update')
