@@ -283,10 +283,23 @@ design        stripe 최신 · vercel 원본과 다름
 
 ### 검증해야 할 위험 둘
 
-**패키지 크기.** DESIGN.md 번들이 2.3MB다. markdown이라 gzip이 잘 들지만 실측 없이
-넘기지 않는다. `npm pack --dry-run`으로 tarball 크기를 재고, 2MB를 넘으면 번들 분리를
-재검토한다. 지금 분리를 결정하지는 않는다 — 오프라인 즉시 복사라는 실제 장점을 측정
-없이 버릴 이유가 없다.
+**패키지 크기 — 실측으로 해소됨.** DESIGN.md 번들이 2.3MB지만 markdown이라 압축이 잘
+든다. `files: ["install.mjs","lib/","README.md","LICENSE"]`로 `npm pack --dry-run --json`을
+실측한 결과다.
+
+| 항목 | 값 |
+|---|---|
+| tarball | **0.58 MB** |
+| 압축 해제 | 2.24 MB |
+| 항목 수 | 114 |
+| 최상위 경로 | `install.mjs`, `lib`, `package.json` |
+
+npx 첫 실행에 문제 없는 크기이므로 **번들을 분리하지 않는다.** 회귀 방어로 pack 검증
+테스트에 tarball 2MiB 상한을 넣어, 번들이 커지면 조용히 통과하지 않게 한다.
+
+같은 실측에서 확인된 것 하나 더 — 현재 `package.json`으로는 `npm pack` 자체가
+`Invalid package, must have name and version`으로 **실패한다**. `version` 필드 부재가
+발행 경로를 이미 막고 있다.
 
 **`files` 화이트리스트 오류.** 발행 루트를 `agent-installer/`로 둔 것이 한 겹이지만
 충분하지 않다. `npm pack --dry-run --json`의 파일 목록을 **테스트로 검사**해 예상 밖
