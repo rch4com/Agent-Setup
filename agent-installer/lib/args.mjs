@@ -15,6 +15,8 @@ export const BOOTSTRAP_USAGE = `사용법: npx @rch4com/agent-setup bootstrap [-
                                   auto: 심볼릭 링크를 먼저 시도하고, 실패하면 복사로 전환합니다.
                                   link: 심볼릭 링크만 시도합니다. 실패하면 오류로 종료합니다.
                                   copy: 항상 복제본을 만듭니다.
+  --adopt                      파일을 만들지 않고, 이미 있는 파일 중 이 버전의
+                               템플릿과 같은 것만 관리 대상으로 기록합니다.
   --dry-run                    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
   -h, --help                   이 도움말을 출력하고 종료합니다.
 
@@ -27,6 +29,8 @@ export const BOOTSTRAP_USAGE = `사용법: npx @rch4com/agent-setup bootstrap [-
 // 서브커맨드 없는 최상위 사용법. `design`은 자기 사용법을 따로 갖는다.
 export const ROOT_USAGE = `사용법: npx @rch4com/agent-setup [옵션]
        npx @rch4com/agent-setup bootstrap [옵션]
+       npx @rch4com/agent-setup update [옵션]
+       npx @rch4com/agent-setup status [옵션]
        npx @rch4com/agent-setup design [옵션]
 
 저장소에 설치기를 두고 쓸 때는 npx @rch4com/agent-setup 자리에
@@ -49,6 +53,8 @@ node install.mjs 를 넣으면 됩니다.
 --list와 --set은 동작을 고르는 플래그라 함께 쓸 수 없습니다.
 
 서브커맨드 도움말: npx @rch4com/agent-setup bootstrap --help
+                   npx @rch4com/agent-setup update --help
+                   npx @rch4com/agent-setup status --help
                    npx @rch4com/agent-setup design --help`
 
 export const DESIGN_USAGE = `사용법: npx @rch4com/agent-setup design [옵션]
@@ -73,6 +79,27 @@ export const DESIGN_USAGE = `사용법: npx @rch4com/agent-setup design [옵션]
 --list, --set, --preview, --sync는 동작을 고르는 플래그라
 한 번에 하나만 지정할 수 있습니다.`
 
+export const UPDATE_USAGE = `사용법: npx @rch4com/agent-setup update [옵션]
+
+설치 기록에 남은 해시와 대조해, 우리가 쓴 그대로인 관리 파일만
+최신 템플릿으로 갱신합니다. 사용자가 고친 파일은 건드리지 않고
+드리프트로 보고합니다.
+
+옵션:
+  --force      드리프트 파일까지 덮어씁니다. 워킹트리가 깨끗해야 합니다
+               (git이 유일한 되돌리기 수단이므로).
+  --dry-run    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
+  -h, --help   이 도움말을 출력하고 종료합니다.`
+
+export const STATUS_USAGE = `사용법: npx @rch4com/agent-setup status [옵션]
+
+설치 기록(의도) / 실제 저장소 상태(스캔) / 실행 중 도구 버전을
+나란히 보여줍니다. 아무것도 바꾸지 않습니다.
+
+옵션:
+  --json       기계가 읽을 형태로 출력합니다 (CI 판정용).
+  -h, --help   이 도움말을 출력하고 종료합니다.`
+
 const SKILL_MODES = ['auto', 'link', 'copy']
 
 // 인자 사양: 플래그 이름 → 'bool'(값 없음) | 'value'(값 하나를 소비).
@@ -88,7 +115,9 @@ const DESIGN_SPEC = {
   ...HELP_SPEC, '--dry-run': 'bool', '--list': 'bool', '--set': 'value',
   '--preview': 'value', '--sync': 'value', '--design-dir': 'value',
 }
-const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--skill-mode': 'value' }
+const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--adopt': 'bool', '--skill-mode': 'value' }
+const UPDATE_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--force': 'bool' }
+const STATUS_SPEC = { ...HELP_SPEC, '--json': 'bool' }
 
 export function assertKnownArgs(argv, spec, usage) {
   for (let i = 0; i < argv.length; i++) {
@@ -253,14 +282,30 @@ export function parseDesignArgs(argv) {
   }
 }
 
-// `bootstrap`에 허용되는 플래그: --dry-run, --skill-mode(+값)/--skill-mode=값, -h/--help.
+// `bootstrap`에 허용되는 플래그: --dry-run, --adopt,
+// --skill-mode(+값)/--skill-mode=값, -h/--help.
 // 그 외 인자는 거부한다 — 조용히 삼켜지는 것을 막기 위해서다.
 export function parseBootstrapArgs(argv) {
-  if (wantsHelp(argv)) return { dryRun: false, skillMode: 'auto', help: true }
+  if (wantsHelp(argv)) return { dryRun: false, skillMode: 'auto', adopt: false, help: true }
   assertKnownArgs(argv, BOOTSTRAP_SPEC, BOOTSTRAP_USAGE)
   return {
     dryRun: argv.includes('--dry-run'),
+    adopt: argv.includes('--adopt'),
     skillMode: parseSkillMode(argv, BOOTSTRAP_USAGE),
     help: false,
   }
+}
+
+// `update`에 허용되는 플래그: --dry-run, --force, -h/--help.
+export function parseUpdateArgs(argv) {
+  if (wantsHelp(argv)) return { help: true, dryRun: false, force: false }
+  assertKnownArgs(argv, UPDATE_SPEC, UPDATE_USAGE)
+  return { help: false, dryRun: argv.includes('--dry-run'), force: argv.includes('--force') }
+}
+
+// `status`에 허용되는 플래그: --json, -h/--help.
+export function parseStatusArgs(argv) {
+  if (wantsHelp(argv)) return { help: true, json: false }
+  assertKnownArgs(argv, STATUS_SPEC, STATUS_USAGE)
+  return { help: false, json: argv.includes('--json') }
 }

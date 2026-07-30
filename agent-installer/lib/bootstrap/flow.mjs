@@ -1,13 +1,15 @@
 // 부트스트랩 진입점 — 순서와 보고만 담당한다.
 // 무엇을 만들지는 manifest.mjs가, 어떻게 만들지는 apply.mjs·adapter.mjs가 안다.
 import { MANIFEST } from './manifest.mjs'
-import { ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys } from './apply.mjs'
-import { configureAdapter } from './adapter.mjs'
+import {
+  configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
+} from './apply.mjs'
+import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
 
 const SKILL_MODES = ['auto', 'link', 'copy']
 
 export function runBootstrap(root, opts = {}) {
-  const { dryRun = false, skillMode = 'auto', log = console.log, manifest = MANIFEST } = opts
+  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST } = opts
 
   if (!SKILL_MODES.includes(skillMode)) {
     throw new Error(`--skill-mode는 ${SKILL_MODES.join(', ')} 중 하나여야 합니다: ${skillMode}`)
@@ -19,23 +21,36 @@ export function runBootstrap(root, opts = {}) {
   say(`저장소 루트: ${root}`)
   say('글로벌 설정 경로는 읽거나 수정하지 않습니다.')
 
-  const results = [
+  // --adopt는 이미 있는 저장소를 기록 체계로 끌어오는 용도라 파일을 만들지
+  // 않는다. 설치기를 복사해 쓰던 저장소가 여기로 들어온다.
+  const results = adopt ? [] : [
     ...ensureDirs(root, manifest.dirs, ctx),
     ...ensureFiles(root, manifest.files, ctx),
     ...ensureJsonKeys(root, manifest.settings ?? [], ctx),
     ...ensureBlocks(root, manifest.blocks, ctx),
   ]
 
-  // 어댑터는 항목별로 실패를 격리한다 — 하나가 실패해도 나머지를 계속한다.
-  for (const entry of manifest.adapters) {
-    try {
-      results.push(configureAdapter(root, entry, { ...ctx, skillMode }))
-    } catch (err) {
-      results.push({ ok: false, action: 'link', path: entry.path, message: err.message })
+  if (!adopt) {
+    // 어댑터는 항목별로 실패를 격리한다 — 하나가 실패해도 나머지를 계속한다.
+    // update.mjs도 같은 격리를 써야 하므로 apply.mjs가 단일 출처다.
+    for (const entry of manifest.adapters) {
+      results.push(configureAdapterSafe(root, entry, { ...ctx, skillMode }))
     }
+
+    results.push(...ensureIgnore(root, manifest.ignore, ctx))
   }
 
-  results.push(...ensureIgnore(root, manifest.ignore, ctx))
+  // 기존 기록의 items·design은 보존한다 — 부트스트랩은 배선만 다루므로
+  // 사용자가 고른 설치 항목을 지울 권한이 없다. dry-run에서는 읽지 않는다:
+  // 깨진 기록이 "무엇이 바뀔지 확인"까지 막을 이유가 없다.
+  const previous = dryRun ? null : readRecord(root)
+  const record = {
+    ...emptyRecord({ skillMode }),
+    items: previous?.items ?? [],
+    design: previous?.design ?? [],
+    managed: collectManaged(root, manifest),
+  }
+  results.push(writeRecord(root, record, ctx))
 
   const failed = results.filter((r) => !r.ok)
   log('')
@@ -49,6 +64,7 @@ export function runBootstrap(root, opts = {}) {
   say(`적용 도구: ${manifest.tools.join(', ')}`)
   say('도구별 설정은 모두 현재 저장소 안에만 생성되었습니다.')
   say('기존 설정 파일은 덮어쓰지 않았습니다.')
+  say(`설치 기록: ${RECORD_REL}`)
 
-  return { results, failed }
+  return { results, failed, record }
 }

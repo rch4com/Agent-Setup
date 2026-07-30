@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
   requireValue, collectValues, parseSetArg,
-  parseRootArgs, parseDesignArgs, parseBootstrapArgs,
+  parseRootArgs, parseDesignArgs, parseBootstrapArgs, parseUpdateArgs, parseStatusArgs,
 } from '../lib/args.mjs'
 
 // ── collectValues ─────────────────────────────────────────────────
@@ -197,8 +197,8 @@ test('parseDesignArgs: 모르는 인자를 거부하고, --help가 앞선다', (
 // ── parseBootstrapArgs ────────────────────────────────────────────
 
 test('parseBootstrapArgs: 기본값과 플래그 조합', () => {
-  assert.deepEqual(parseBootstrapArgs([]), { dryRun: false, skillMode: 'auto', help: false })
-  assert.deepEqual(parseBootstrapArgs(['--dry-run']), { dryRun: true, skillMode: 'auto', help: false })
+  assert.deepEqual(parseBootstrapArgs([]), { dryRun: false, adopt: false, skillMode: 'auto', help: false })
+  assert.deepEqual(parseBootstrapArgs(['--dry-run']), { dryRun: true, adopt: false, skillMode: 'auto', help: false })
   assert.equal(parseBootstrapArgs(['-h']).help, true)
   assert.equal(parseBootstrapArgs(['--help']).help, true)
 })
@@ -212,7 +212,7 @@ test('parseBootstrapArgs: --skill-mode는 두 형식 모두 받는다', () => {
 
 test('parseBootstrapArgs: --skill-mode 값이 알 수 없는 인자로 오해되지 않는다', () => {
   const o = parseBootstrapArgs(['--skill-mode', 'copy', '--dry-run'])
-  assert.deepEqual(o, { dryRun: true, skillMode: 'copy', help: false })
+  assert.deepEqual(o, { dryRun: true, adopt: false, skillMode: 'copy', help: false })
 })
 
 test('parseBootstrapArgs: 잘못된 값과 모르는 인자는 사용법과 함께 던진다', () => {
@@ -228,4 +228,27 @@ test('parseBootstrapArgs: 잘못된 값과 모르는 인자는 사용법과 함�
     // 오류 메시지에 사용법이 붙어야 한다 — 사용자가 곧바로 고칠 수 있게.
     assert.throws(() => parseBootstrapArgs(argv), (e) => e.message.includes(BOOTSTRAP_USAGE))
   }
+})
+
+test('parseBootstrapArgs: --adopt를 받는다', () => {
+  assert.equal(parseBootstrapArgs(['--adopt']).adopt, true)
+  assert.equal(parseBootstrapArgs([]).adopt, false)
+  // 값을 받는 플래그가 아니다.
+  assert.throws(() => parseBootstrapArgs(['--adopt=x']), /값을 줄 수 없습니다/)
+})
+
+test('parseUpdateArgs: --dry-run과 --force를 받고 모르는 인자를 거부한다', () => {
+  assert.equal(parseUpdateArgs([]).force, false)
+  assert.equal(parseUpdateArgs(['--force']).force, true)
+  assert.equal(parseUpdateArgs(['--dry-run']).dryRun, true)
+  assert.equal(parseUpdateArgs(['--help']).help, true)
+  assert.throws(() => parseUpdateArgs(['--forcee']), /알 수 없는 인자/)
+})
+
+test('parseStatusArgs: --json을 받고 모르는 인자를 거부한다', () => {
+  assert.equal(parseStatusArgs([]).json, false)
+  assert.equal(parseStatusArgs(['--json']).json, true)
+  assert.equal(parseStatusArgs(['-h']).help, true)
+  assert.throws(() => parseStatusArgs(['--jsonn']), /알 수 없는 인자/)
+  assert.throws(() => parseStatusArgs(['--json=1']), /값을 줄 수 없습니다/)
 })

@@ -4,6 +4,9 @@ import { lstatSync, mkdirSync, writeFileSync, readFileSync, appendFileSync } fro
 import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
+import { hashBody, normalizeBody } from './text.mjs'
+import { BEGIN_MARKER, END_MARKER, extractBlock, managedKey } from './record.mjs'
+import { configureAdapter } from './adapter.mjs'
 
 // existsSync는 깨진 심볼릭 링크에 false를 반환한다. 그대로 쓰면 사용자가 만든
 // 링크를 덮어쓰게 되므로 lstat으로 "항목이 있는가"를 본다.
@@ -16,12 +19,9 @@ export function pathExists(target) {
   }
 }
 
-// 두 OS가 같은 파일을 만들도록 항상 LF + 끝 개행 1개로 정규화한다.
-// writeText(새 파일)와 ensureBlocks의 덧붙이기(기존 파일) 양쪽에서 쓴다 —
-// 덧붙이기도 이 정규화를 거치지 않으면 CRLF가 LF 파일에 새어 들어간다.
-function normalizeBody(text) {
-  return text.replace(/\r\n/g, '\n').trim() + '\n'
-}
+// normalizeBody는 text.mjs가 단일 출처다 — writeText(새 파일)와 ensureBlocks의
+// 덧붙이기(기존 파일)가 쓰는 정규화와 해시 판정이 갈리면, 갓 쓴 파일조차
+// 드리프트로 보고된다.
 
 function writeText(file, text) {
   const body = normalizeBody(text)
@@ -56,8 +56,6 @@ export function ensureFiles(root, files, { dryRun = false, log }) {
     return { ok: true, action: 'create', path: rel }
   })
 }
-
-const BEGIN_MARKER = '<!-- agent-kit:begin -->'
 
 export function ensureBlocks(root, blocks, { dryRun = false, log }) {
   return blocks.map(({ path: rel, block }) => {
@@ -265,5 +263,117 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
       writeFileSync(strictTarget, text.slice(0, brace + 1) + inserted + body, { encoding: 'utf8' })
     }
     return { ok: true, action: 'insert', path: rel }
+  })
+}
+
+// flow.mjs와 update.mjs가 같은 실패 격리를 쓴다 — 어댑터 하나가 실패해도
+// 나머지를 계속해야 한다.
+export function configureAdapterSafe(root, entry, ctx) {
+  try {
+    return configureAdapter(root, entry, ctx)
+  } catch (err) {
+    return { ok: false, action: 'link', path: entry.path, message: err.message }
+  }
+}
+
+// 갱신 경로. 생성 경로(ensureFiles·ensureBlocks)와 분리한 이유는 계약이
+// 반대이기 때문이다 — 생성은 "있으면 손대지 않는다", 갱신은 "우리가 쓴
+// 그대로면 바꾼다". 한 함수에 두 계약을 넣으면 어느 쪽도 읽히지 않는다.
+//
+// managed[key]가 우리가 마지막으로 쓴 내용의 해시다.
+//   현재 == managed  → 우리가 쓴 그대로 → 교체
+//   현재 != managed  → 사용자가 고쳤다 → 건드리지 않는다(force면 교체)
+//   managed 없음/null → 출처 불명 → 건드리지 않는다(force면 교체)
+//   파일 없음         → 생성 (새 도구 지원이 이 경로로 들어온다)
+function decide(current, recorded, force) {
+  if (current === null) return 'create'
+  if (recorded && hashBody(current) === recorded) return 'update'
+  return force ? 'update' : 'drift'
+}
+
+function readOrNull(target) {
+  try {
+    return readFileSync(target, 'utf8')
+  } catch {
+    return null
+  }
+}
+
+export function updateFiles(root, files, { managed = {}, dryRun = false, force = false, log }) {
+  return files.map(({ path: rel, template }) => {
+    const lexical = repoPath(root, rel)
+    const exists = pathExists(lexical)
+    const current = exists ? readOrNull(lexical) : null
+    if (exists && current === null) {
+      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다`)
+      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    }
+
+    const wanted = hashBody(template)
+    // 이미 새 템플릿과 같으면 쓰지 않는다 — 무의미한 mtime 변경과
+    // "갱신 N건" 과대 보고를 막는다.
+    if (current !== null && hashBody(current) === wanted) {
+      return { ok: true, action: 'skip', path: rel, hash: wanted }
+    }
+
+    const verdict = decide(current, managed[rel], force)
+    if (verdict === 'drift') {
+      log(`사용자 수정 — 건드리지 않음: ${rel}`)
+      return { ok: true, action: 'drift', path: rel }
+    }
+
+    // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
+    const target = repoPathStrict(root, rel)
+    log(verdict === 'create' ? `파일 생성: ${rel}` : `파일 갱신: ${rel}`)
+    if (!dryRun) writeText(target, template)
+    return { ok: true, action: verdict, path: rel, hash: wanted }
+  })
+}
+
+export function updateBlocks(root, blocks, { managed = {}, dryRun = false, force = false, log }) {
+  return blocks.map(({ path: rel, block }) => {
+    const key = managedKey(rel, true)
+    const wanted = hashBody(extractBlock(block) ?? block)
+
+    if (!pathExists(repoPath(root, rel))) {
+      const target = repoPathStrict(root, rel)
+      log(`파일 생성: ${rel}`)
+      if (!dryRun) writeText(target, block)
+      return { ok: true, action: 'create', path: rel, hash: wanted }
+    }
+
+    const text = readOrNull(repoPath(root, rel))
+    if (text === null) {
+      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다`)
+      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    }
+
+    const current = extractBlock(text)
+    // 마커가 없는 기존 파일은 갱신 대상이 아니다. 블록을 처음 붙이는 것은
+    // 생성 경로(ensureBlocks)의 일이고, 갱신이 append까지 하면 사용자가
+    // 일부러 지운 블록을 되살리게 된다.
+    if (current === null) {
+      log(`관리 블록 없음 — 건드리지 않음: ${rel}`)
+      return { ok: true, action: 'drift', path: rel, message: '관리 블록 없음' }
+    }
+
+    if (hashBody(current) === wanted) return { ok: true, action: 'skip', path: rel, hash: wanted }
+
+    if (hashBody(current) !== managed[key] && !force) {
+      log(`블록 사용자 수정 — 건드리지 않음: ${rel}`)
+      return { ok: true, action: 'drift', path: rel }
+    }
+
+    const target = repoPathStrict(root, rel)
+    log(`관리 블록 갱신: ${rel}`)
+    if (!dryRun) {
+      // 마커를 포함한 구간을 통째로 새 블록으로 바꾼다. 앞뒤 사용자 본문은
+      // 손대지 않으므로 줄바꿈 스타일도 그대로 남는다.
+      const begin = text.indexOf(BEGIN_MARKER)
+      const end = text.indexOf(END_MARKER, begin) + END_MARKER.length
+      const next = text.slice(0, begin) + normalizeBody(block).trimEnd() + text.slice(end)
+      writeFileSync(target, next, { encoding: 'utf8' })
+    }
+    return { ok: true, action: 'update', path: rel, hash: wanted }
   })
 }

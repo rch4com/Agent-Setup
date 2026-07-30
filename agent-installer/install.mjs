@@ -3,8 +3,8 @@ import { findRepoRoot } from './lib/context.mjs'
 import { runBootstrap } from './lib/bootstrap/flow.mjs'
 import { withDeps } from './lib/deps.mjs'
 import {
-  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
-  parseBootstrapArgs, parseDesignArgs, parseRootArgs,
+  BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE, STATUS_USAGE, UPDATE_USAGE,
+  parseBootstrapArgs, parseDesignArgs, parseRootArgs, parseStatusArgs, parseUpdateArgs,
 } from './lib/args.mjs'
 
 // 위 정적 import는 전부 의존성 없는 모듈이다 — 부트스트랩은 npm install 없이 돌아야 하고,
@@ -61,6 +61,24 @@ async function main() {
     if (opts.help) { console.log(BOOTSTRAP_USAGE); return }
     const { failed } = runBootstrap(root, opts)
     if (failed.length > 0) process.exitCode = 1
+    return
+  }
+
+  if (argv[0] === 'update') {
+    const opts = parseUpdateArgs(argv.slice(1))
+    if (opts.help) { console.log(UPDATE_USAGE); return }
+    // 항목 수렴을 위해 스캔이 필요해 의존성 있는 모듈에 닿는다.
+    const { runUpdate } = await withDeps(() => import('./lib/update.mjs'))
+    await runUpdate(root, opts)
+    return
+  }
+
+  if (argv[0] === 'status') {
+    const opts = parseStatusArgs(argv.slice(1))
+    if (opts.help) { console.log(STATUS_USAGE); return }
+    // 항목 스캔이 필요해 의존성 있는 모듈에 닿는다.
+    const { runStatus } = await withDeps(() => import('./lib/status.mjs'))
+    await runStatus(root, opts)
     return
   }
 
