@@ -32,6 +32,30 @@ function assertReasons(id, supports, unsupported) {
   }
 }
 
+// shell 모드에서 Node는 명령과 인자를 공백으로 이어붙일 뿐 quote하지 않으므로
+// 직접 감싼다. 공백이 있을 때만 감싸면 셸 메타문자가 그대로 노출된다 —
+// `D:\R&D\repo` 아래에서 gstack clone 대상이 명령 두 개로 쪼개졌다.
+// 조건 없이 항상 감싸고, 셸별로 실제로 안전한 인용 규칙을 쓴다.
+//   - cmd.exe: 큰따옴표 안에서 & | ^ ( ) < >는 리터럴이다. 큰따옴표 자체는
+//     이 위치에서 일관되게 이스케이프할 방법이 없어(cmd는 \"를 해석하지 않는다)
+//     깨진 명령을 만드는 대신 거부한다 — Windows 경로에 올 수 없는 문자다.
+//     닫는 따옴표 앞의 백슬래시 연속은 자식의 argv 파서가 이스케이프로 읽으므로
+//     두 배로 늘린다(Windows 표준 규칙).
+//     남는 것은 %VAR% 확장뿐인데, 짝을 이룬 %가 실제 환경변수일 때만 치환되고
+//     그러면 경로가 달라져 명령이 실패한다 — 조용한 오작동이 아니라 보이는 실패다.
+//   - POSIX sh: 작은따옴표 안은 $ ` \ 까지 전부 리터럴이다. 안의 작은따옴표만
+//     '\'' 로 끊어 이어 붙인다. 큰따옴표로 감싸면 $(...)가 살아남는다.
+export function shellQuote(text, platform = process.platform) {
+  const s = String(text)
+  if (platform === 'win32') {
+    if (s.includes('"')) {
+      throw new Error(`셸에 넘길 수 없는 큰따옴표가 인자에 있습니다: ${s}`)
+    }
+    return `"${s.replace(/(\\*)$/, '$1$1')}"`
+  }
+  return `'${s.replace(/'/g, "'\\''")}'`
+}
+
 export function makeExec(dryRun, log = console.log) {
   return (cmd, args, opts = {}) => {
     if (dryRun) {
@@ -40,12 +64,9 @@ export function makeExec(dryRun, log = console.log) {
     }
     // Windows에서는 npx/claude가 .cmd 심이라 shell 경유가 필요하다.
     const shell = opts.shell ?? process.platform === 'win32'
-    // shell 모드에서 Node는 명령과 인자를 공백으로 이어붙일 뿐 quote하지 않으므로 직접 감싼다.
-    const quote = (s) => (/[\s"]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s)
     // shell + 인자 배열을 함께 넘기면 Node가 DEP0190으로 경고한다(인자가 quote 없이 이어붙기 때문).
     // 어차피 우리가 직접 quote하므로, 완성된 한 줄 명령을 넘기고 인자 배열은 비운다.
-    // 이렇게 해도 셸에 전달되는 명령 문자열은 예전과 바이트 단위로 같다.
-    const [file, fileArgs] = shell ? [[cmd, ...args].map(quote).join(' '), []] : [cmd, args]
+    const [file, fileArgs] = shell ? [[cmd, ...args].map((s) => shellQuote(s)).join(' '), []] : [cmd, args]
     try {
       const output = execFileSync(file, fileArgs, {
         encoding: 'utf8',
