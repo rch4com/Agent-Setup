@@ -104,6 +104,20 @@ test('parseRootArgs: 등호 형식 --set은 대화형으로 새지 않는다', (
   assert.equal(o.interactive, false)
 })
 
+// 예전에는 --list가 먼저 처리되어 --set이 조용히 버려졌다. 모르는 인자를
+// 거부하는 것과 같은 이유로 거부한다 — 준 인자가 먹히지 않으면 안 된다.
+test('parseRootArgs: 동작 플래그를 겹쳐 주면 거부한다', () => {
+  for (const argv of [['--list', '--set', 'a'], ['--set=a', '--list'], ['--list', '--set=']]) {
+    assert.throws(
+      () => parseRootArgs(argv),
+      (e) => /함께 쓸 수 없습니다/.test(e.message) && e.message.includes(ROOT_USAGE),
+      JSON.stringify(argv),
+    )
+  }
+  // 수식 플래그는 겹쳐도 된다.
+  assert.equal(parseRootArgs(['--dry-run', '--list']).listOnly, true)
+})
+
 test('parseRootArgs: -h/--help는 다른 검증보다 앞선다', () => {
   for (const argv of [['-h'], ['--help'], ['--help', '--bogus']]) {
     const o = parseRootArgs(argv)
@@ -127,6 +141,26 @@ test('parseDesignArgs: 어떤 동작 플래그도 없을 때만 대화형이다'
   for (const [argv, expected] of cases) {
     assert.equal(parseDesignArgs(argv).interactive, expected, JSON.stringify(argv))
   }
+})
+
+// runDesign은 list → preview → sync → set 순으로 하나만 실행하므로,
+// 겹쳐 주면 뒤에 온 것이 조용히 사라졌다(`--preview x --set y`는 --set 무시).
+test('parseDesignArgs: 동작 플래그를 겹쳐 주면 거부한다', () => {
+  const cases = [
+    ['--preview', 'stripe', '--set', 'vercel'],
+    ['--list', '--sync=catalog'],
+    ['--set=a', '--preview=b'],
+    ['--list', '--set', ''],
+  ]
+  for (const argv of cases) {
+    assert.throws(
+      () => parseDesignArgs(argv),
+      (e) => /함께 쓸 수 없습니다/.test(e.message) && e.message.includes(DESIGN_USAGE),
+      JSON.stringify(argv),
+    )
+  }
+  // 수식 플래그(--dry-run·--design-dir)는 동작 플래그와 함께 쓸 수 있다.
+  assert.equal(parseDesignArgs(['--dry-run', '--design-dir=x', '--sync=stale']).sync, 'stale')
 })
 
 test('parseDesignArgs: --sync는 허용된 세 값만 받는다', () => {

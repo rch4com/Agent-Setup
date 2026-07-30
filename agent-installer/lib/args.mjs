@@ -42,6 +42,8 @@ export const ROOT_USAGE = `사용법: node install.mjs [옵션]
   --dry-run                    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
   -h, --help                   이 도움말을 출력하고 종료합니다.
 
+--list와 --set은 동작을 고르는 플래그라 함께 쓸 수 없습니다.
+
 서브커맨드 도움말: node install.mjs bootstrap --help
                    node install.mjs design --help`
 
@@ -61,7 +63,10 @@ export const DESIGN_USAGE = `사용법: node install.mjs design [옵션]
   --design-dir <경로>    design.md 소스를 더합니다. <소스id>=<경로>
                          형식도 받으며 반복 지정할 수 있습니다.
   --dry-run              아무것도 바꾸지 않고 예정된 동작만 출력합니다.
-  -h, --help             이 도움말을 출력하고 종료합니다.`
+  -h, --help             이 도움말을 출력하고 종료합니다.
+
+--list, --set, --preview, --sync는 동작을 고르는 플래그라
+한 번에 하나만 지정할 수 있습니다.`
 
 const SKILL_MODES = ['auto', 'link', 'copy']
 
@@ -90,6 +95,18 @@ export function assertKnownArgs(argv, spec, usage) {
     if (kind === 'bool' && eq > 0) throw new Error(`${name}에는 값을 줄 수 없습니다: ${token}\n\n${usage}`)
     // `--플래그 값` 형태는 값 한 칸을 건너뛴다. `--플래그=값`은 이미 한 토큰이다.
     if (kind === 'value' && eq < 0) i++
+  }
+}
+
+// 동작 플래그는 한 번에 하나만 뜻이 있다. 여러 개를 주면 실행 경로가 먼저 오는
+// 하나를 골라 나머지를 조용히 버렸다 — `--list --set a`는 --set을, design의
+// `--preview x --set y`는 --set을 무시했다. 알 수 없는 인자를 거부하는 것과
+// 같은 이유(준 인자가 먹히지 않은 채 다른 일이 벌어진다)로 같이 거부한다.
+export function assertSingleAction(argv, names, usage) {
+  const given = names.filter((name) => hasFlag(argv, name))
+  if (given.length > 1) {
+    // 조사를 붙이지 않는다 — 플래그 이름에 따라 은/는이 갈려 문장이 어색해진다.
+    throw new Error(`함께 쓸 수 없습니다: ${given.join(', ')} — 동작 플래그는 한 번에 하나만 지정하세요.\n\n${usage}`)
   }
 }
 
@@ -184,6 +201,7 @@ export function parseRootArgs(argv) {
     return { help: true, dryRun: false, listOnly: false, setArg: null, skillMode: 'auto', designDirs: [], interactive: false }
   }
   assertKnownArgs(argv, ROOT_SPEC, ROOT_USAGE)
+  assertSingleAction(argv, ['--list', '--set'], ROOT_USAGE)
   const setArg = parseSetArg(argv)
   return {
     help: false,
@@ -205,6 +223,7 @@ export function parseDesignArgs(argv) {
     return { help: true, dryRun: false, list: false, set: null, preview: null, sync: null, designDirs: [], interactive: false }
   }
   assertKnownArgs(argv, DESIGN_SPEC, DESIGN_USAGE)
+  assertSingleAction(argv, ['--list', '--set', '--preview', '--sync'], DESIGN_USAGE)
   const list = argv.includes('--list')
   const set = parseSetArg(argv)
   const preview = hasFlag(argv, '--preview') ? requireValue(argv, '--preview') : null
