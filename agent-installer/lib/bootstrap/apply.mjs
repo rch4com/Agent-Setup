@@ -4,6 +4,7 @@ import { lstatSync, mkdirSync, writeFileSync, readFileSync, appendFileSync } fro
 import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
+import { normalizeBody } from './text.mjs'
 
 // existsSync는 깨진 심볼릭 링크에 false를 반환한다. 그대로 쓰면 사용자가 만든
 // 링크를 덮어쓰게 되므로 lstat으로 "항목이 있는가"를 본다.
@@ -16,12 +17,9 @@ export function pathExists(target) {
   }
 }
 
-// 두 OS가 같은 파일을 만들도록 항상 LF + 끝 개행 1개로 정규화한다.
-// writeText(새 파일)와 ensureBlocks의 덧붙이기(기존 파일) 양쪽에서 쓴다 —
-// 덧붙이기도 이 정규화를 거치지 않으면 CRLF가 LF 파일에 새어 들어간다.
-function normalizeBody(text) {
-  return text.replace(/\r\n/g, '\n').trim() + '\n'
-}
+// normalizeBody는 text.mjs가 단일 출처다 — writeText(새 파일)와 ensureBlocks의
+// 덧붙이기(기존 파일)가 쓰는 정규화와 해시 판정이 갈리면, 갓 쓴 파일조차
+// 드리프트로 보고된다.
 
 function writeText(file, text) {
   const body = normalizeBody(text)
