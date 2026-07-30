@@ -51,8 +51,8 @@ for (const id of CLI_IDS) {
     const { path: rel, inPlace = false } = ESCAPE_POINT[id]
     symlinkSync(outside, join(root, rel), 'junction')
 
-    assert.throws(() => CLIS[id].add(root, 'evil', HTTP), /외부 링크/)
-    assert.throws(() => CLIS[id].remove(root, 'evil'), /외부 링크/)
+    assert.throws(() => CLIS[id].add(root, 'evil', HTTP), /external link/)
+    assert.throws(() => CLIS[id].remove(root, 'evil'), /external link/)
     // 읽기(has)는 어휘적 경로로 충분하다 — 지켜야 할 쓰기가 없다.
     if (!inPlace) assert.equal(CLIS[id].has(root, 'evil'), false)
     // 저장소 밖에 아무것도 만들지 않았다.

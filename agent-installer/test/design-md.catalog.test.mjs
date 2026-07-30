@@ -68,8 +68,8 @@ test('design-md가 저장소 밖을 가리키는 링크면 install·uninstall이
   const item = defineDesignMd(entry('stripe'), provider, {
     fetchImpl: makeFetch([{ match: 'DESIGN.md', body: '# S' }]),
   })
-  await assert.rejects(item.install({ root, dryRun: false, fresh: true }), /외부 링크/)
-  await assert.rejects(item.uninstall({ root, dryRun: false }), /외부 링크/)
+  await assert.rejects(item.install({ root, dryRun: false, fresh: true }), /external link/)
+  await assert.rejects(item.uninstall({ root, dryRun: false }), /external link/)
   // 읽기(detect)는 어휘적 경로로 충분하다 — 지켜야 할 쓰기가 없다.
   assert.equal((await item.detect({ root })).status, 'absent')
 })

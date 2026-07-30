@@ -72,8 +72,8 @@ test('.claude가 저장소 밖 링크면 enablePlugin·disablePlugin이 거부�
   const outside = mkdtempSync(join(tmpdir(), 'outside-plugins-'))
   symlinkSync(outside, join(repo, '.claude'), 'junction')
 
-  assert.throws(() => enablePlugin(repo, 'x@y', { name: 'y', repo: 'a/b' }), /외부 링크/)
-  assert.throws(() => disablePlugin(repo, ['x@y']), /외부 링크/)
+  assert.throws(() => enablePlugin(repo, 'x@y', { name: 'y', repo: 'a/b' }), /external link/)
+  assert.throws(() => disablePlugin(repo, ['x@y']), /external link/)
   assert.equal(existsSync(join(outside, 'settings.json')), false)
   // 읽기는 어휘적 경로로 충분하다.
   assert.equal(isPluginEnabled(repo, ['x@y']), false)

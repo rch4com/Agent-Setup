@@ -1,8 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeTempRepo, runInstaller } from './helpers.mjs'
+import { makeTempRepo, runInstaller, KO } from './helpers.mjs'
 
 // 프로세스 레벨에서만 드러나는 계약을 검증한다: 종료 코드, 스트림 분리,
 // 실패했을 때 아무것도 남기지 않는 것, 그리고 멈추지 않는 것.
@@ -19,7 +20,7 @@ function untouched(root) {
 // `node install.mjs`가 키 입력을 기다리며 영원히 멈추고, CI 전체가 함께 멈춘다.
 test('인자 없이 비TTY로 실행하면 목록만 내고 즉시 끝난다', () => {
   const root = makeTempRepo()
-  const r = runInstaller(root, [], { timeout: 30000 })
+  const r = runInstaller(root, [], { timeout: 30000, env: KO })
 
   assert.notEqual(r.status, null, '시간 초과 — 설치기가 입력을 기다리며 멈췄다')
   assert.equal(r.status, 0, r.stderr)
@@ -41,14 +42,18 @@ test('--dry-run도 비TTY에서 멈추지 않고 아무것도 만들지 않는�
 
 // 같은 사용자 오류가 경로에 따라 다른 코드로 끝나면 스크립트가 분기할 수 없다.
 // 예전에는 최상위 --set만 exit 2였다.
+// 이 어서션들은 진입점의 catch가 LocalizedError를 .key로 다시 렌더한다는
+// 사실을 증명하는 유일한 자리다 — 인자 오류 경로는 notGitRepo 경로와 달리
+// main() 안에서 t가 만들어진 다음에 던져지므로, env: KO로 강제한 로케일이
+// catch까지 그대로 살아남는지 여기서 확인한다.
 test('--set 값 누락은 최상위와 design에서 같은 코드로 끝난다', () => {
   const root = makeTempRepo()
-  const top = runInstaller(root, ['--set'])
-  const design = runInstaller(root, ['design', '--set'])
+  const top = runInstaller(root, ['--set'], { env: KO })
+  const design = runInstaller(root, ['design', '--set'], { env: KO })
 
   assert.equal(top.status, design.status, `최상위 ${top.status} vs design ${design.status}`)
   assert.equal(top.status, 1)
-  for (const r of [top, design]) assert.match(r.stderr, /Use --set "" to remove everything/)
+  for (const r of [top, design]) assert.match(r.stderr, /--set "" 로 명시/)
   assert.deepEqual(untouched(root), [])
 })
 
@@ -57,11 +62,11 @@ test('실패는 모두 exit 1이고 메시지는 stderr로 나간다', () => {
   const cases = [
     [['--set', 'does-not-exist'], /알 수 없는 항목/],
     [['design', '--sync=nope'], /--sync=installed\|catalog\|stale/],
-    [['design', '--preview'], /needs a value/],
-    [['bootstrap', '--totally-unknown'], /Unknown argument/],
+    [['design', '--preview'], /값이 필요합니다/],
+    [['bootstrap', '--totally-unknown'], /알 수 없는 인자/],
   ]
   for (const [args, pattern] of cases) {
-    const r = runInstaller(root, args)
+    const r = runInstaller(root, args, { env: KO })
     assert.equal(r.status, 1, `${args.join(' ')} → ${r.status}`)
     assert.match(r.stderr, pattern, args.join(' '))
     assert.equal(r.stdout, '', `${args.join(' ')}: 실패인데 stdout에 출력이 있다`)
@@ -73,7 +78,7 @@ test('실패는 모두 exit 1이고 메시지는 stderr로 나간다', () => {
 
 test('--list는 상태와 함께 목록을 내고 아무것도 바꾸지 않는다', () => {
   const root = makeTempRepo()
-  const r = runInstaller(root, ['--list'])
+  const r = runInstaller(root, ['--list'], { env: KO })
 
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /미설치\s+mcp\.notion/)
@@ -107,4 +112,42 @@ test('design --set --dry-run은 아무것도 만들지 않는다', () => {
 
   assert.equal(r.status, 0, r.stderr)
   assert.deepEqual(untouched(root), [])
+})
+
+// ── 로케일 확정 ───────────────────────────────────────────────────
+
+test('로케일이 없으면 영어로 나온다', () => {
+  const root = makeTempRepo()
+  // LANG 계열을 비우고 Intl까지 영어로 고정한다 — 개발 기계의 OS 언어가
+  // 테스트 결과를 바꾸면 CI와 로컬이 갈린다.
+  const r = runInstaller(root, ['--help'], {
+    env: { AGENT_SETUP_LANG: '', LC_ALL: 'C', LC_MESSAGES: '', LANG: 'C', LANGUAGE: '', LC_TIME: 'C' },
+  })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /Usage:/)
+})
+
+test('AGENT_SETUP_LANG=ko면 한국어로 나온다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--help'], { env: KO })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /사용법:/)
+})
+
+test('--lang이 환경변수를 이긴다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--help', '--lang', 'en'], { env: KO })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /Usage:/)
+})
+
+test('git 저장소가 아니면 선택한 언어로 거부한다', () => {
+  const outside = mkdtempSync(join(tmpdir(), 'agent-installer-nogit-'))
+  const en = runInstaller(outside, ['--list'], { env: { AGENT_SETUP_LANG: 'en' } })
+  assert.equal(en.status, 1)
+  assert.match(en.stderr, /Git repository/)
+
+  const ko = runInstaller(outside, ['--list'], { env: KO })
+  assert.equal(ko.status, 1)
+  assert.match(ko.stderr, /git 저장소/)
 })

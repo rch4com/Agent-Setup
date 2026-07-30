@@ -5,6 +5,8 @@ export default {
 
   'error.notGitRepo': 'git 저장소 안에서 실행해야 합니다.',
   'error.pathOutsideRepo': '저장소 밖의 경로에는 쓸 수 없습니다: {path}',
+  'error.pathUnresolvable': '경로를 확인할 수 없습니다: {path} ({code})',
+  'error.pathEscapesViaLink': '저장소 내부 경로가 외부 링크를 통해 이탈합니다: {path} -> {real}',
 
   'usage.bootstrap': [
     '사용법: npx @rch4com/agent-setup bootstrap [--skill-mode auto|link|copy] [--dry-run]',
@@ -119,4 +121,23 @@ export default {
   'error.needsValue': '{name} 뒤에 값이 필요합니다.',
   'error.setNeedsValue': '--set 뒤에 항목 목록이 필요합니다. 전체 제거는 --set "" 로 명시하세요.',
   'error.badSync': '--sync=installed|catalog|stale 형식으로 지정하세요.',
+
+  'status.installed': '설치됨',
+  'status.partial': '일부 설치됨',
+  'status.absent': '미설치',
+
+  'change.install': '설치',
+  'change.complete': '보완 설치',
+  'change.uninstall': '제거',
+
+  'apply.noChanges': '변경할 항목이 없습니다.',
+  'apply.finalState': '최종 상태:',
+  'apply.seeGitDiff': '설정 파일 변경 내용은 git diff로 확인할 수 있습니다.',
+  'error.unknownItem': '알 수 없는 항목: {id}',
+
+  'error.depsMissing': [
+    '이 기능에는 의존성이 필요합니다. 다음 중 하나를 실행하세요:',
+    '  npm install --prefix agent-installer',
+    '  ./setup-agents.sh --tui',
+  ],
 }

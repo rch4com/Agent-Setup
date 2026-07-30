@@ -16,9 +16,16 @@ export function makeTempRepo() {
 // timeout은 필수다 — 비TTY 폴백이 깨지면 설치기가 키 입력을 기다리며 영원히 멈추고,
 // 그 사실은 CI가 멈춰 죽을 때에야 드러난다. 시간 초과는 status=null로 나타난다.
 // input을 주면 stdin이 파이프가 되어 TTY가 아니게 된다 — CI와 같은 조건이다.
-export function runInstaller(cwd, args, { timeout = 30000, input = '' } = {}) {
-  return spawnSync(process.execPath, [INSTALL_MJS, ...args], { cwd, encoding: 'utf8', timeout, input })
+export function runInstaller(cwd, args, { timeout = 30000, input = '', env = {} } = {}) {
+  return spawnSync(process.execPath, [INSTALL_MJS, ...args], {
+    cwd, encoding: 'utf8', timeout, input,
+    env: { ...process.env, ...env },
+  })
 }
+
+// 이 저장소의 기존 테스트는 한국어 문구를 그대로 단언한다. 기본 로케일이
+// 영어가 된 뒤에도 그 단언들이 뜻을 잃지 않도록 로케일을 못박아 돌린다.
+export const KO = { AGENT_SETUP_LANG: 'ko' }
 
 // URL 부분일치로 응답을 돌려주는 가짜 fetch. 매칭 없으면 404.
 // routes: [{ match, body, ok?, status? }]

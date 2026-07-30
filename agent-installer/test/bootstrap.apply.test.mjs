@@ -88,7 +88,8 @@ test('dry-run은 파일시스템을 바꾸지 않는다', () => {
 
 test('저장소 밖 경로는 거부한다', () => {
   const root = makeTempRepo()
-  assert.throws(() => ensureDirs(root, ['../escape'], ctx(makeCapture())), /저장소 밖/)
+  // LocalizedError.message는 언제나 영어다.
+  assert.throws(() => ensureDirs(root, ['../escape'], ctx(makeCapture())), /Cannot write outside/)
 })
 
 const BLOCK = '<!-- agent-kit:begin -->\n@AGENTS.md\n<!-- agent-kit:end -->'
@@ -248,7 +249,7 @@ test('ensureBlocks: 생성 분기가 링크를 통한 저장소 이탈을 거부
 
   assert.throws(
     () => ensureBlocks(root, [{ path: '.evil/CLAUDE.md', block: BLOCK }], ctx(makeCapture())),
-    /외부 링크/,
+    /external link/,
   )
 })
 
@@ -261,7 +262,7 @@ test('ensureBlocks: 덧붙이기 분기가 dry-run에서도 링크를 통한 이
 
   assert.throws(
     () => ensureBlocks(root, [{ path: '.evil/CLAUDE.md', block: BLOCK }], ctx(makeCapture(), true)),
-    /외부 링크/,
+    /external link/,
   )
 })
 
@@ -273,7 +274,7 @@ test('ensureIgnore: 링크를 통한 저장소 이탈을 거부한다', () => {
 
   assert.throws(
     () => ensureIgnore(root, ['.claude/skills'], ctx(makeCapture())),
-    /외부 링크/,
+    /external link/,
   )
 })
 
@@ -434,6 +435,6 @@ test('ensureJsonKeys: 링크를 통한 저장소 이탈을 거부한다', () => 
 
   assert.throws(
     () => ensureJsonKeys(root, [{ ...SETTING, path: '.evil/settings.json' }], ctx(makeCapture())),
-    /외부 링크/,
+    /external link/,
   )
 })

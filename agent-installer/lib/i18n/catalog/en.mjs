@@ -11,6 +11,8 @@ export default {
 
   'error.notGitRepo': 'Run this inside a Git repository.',
   'error.pathOutsideRepo': 'Cannot write outside the repository: {path}',
+  'error.pathUnresolvable': 'Cannot resolve path: {path} ({code})',
+  'error.pathEscapesViaLink': 'This in-repo path escapes through an external link: {path} -> {real}',
 
   'usage.bootstrap': [
     'Usage: npx @rch4com/agent-setup bootstrap [--skill-mode auto|link|copy] [--dry-run]',
@@ -125,4 +127,23 @@ export default {
   'error.needsValue': '{name} needs a value.',
   'error.setNeedsValue': '--set needs an item list. Use --set "" to remove everything.',
   'error.badSync': 'Use --sync=installed|catalog|stale.',
+
+  'status.installed': 'Installed',
+  'status.partial': 'Partial',
+  'status.absent': 'Not installed',
+
+  'change.install': 'Install',
+  'change.complete': 'Complete',
+  'change.uninstall': 'Remove',
+
+  'apply.noChanges': 'Nothing to change.',
+  'apply.finalState': 'Final state:',
+  'apply.seeGitDiff': 'Use git diff to review the config changes.',
+  'error.unknownItem': 'Unknown item: {id}',
+
+  'error.depsMissing': [
+    'This feature needs dependencies. Run one of:',
+    '  npm install --prefix agent-installer',
+    '  ./setup-agents.sh --tui',
+  ],
 }

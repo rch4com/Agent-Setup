@@ -15,9 +15,12 @@ test('findRepoRoot는 git 저장소 밖이면 throw한다', () => {
   assert.throws(() => findRepoRoot(tmpdir()), /git/i)
 })
 
+// LocalizedError의 .message는 언제나 영어다 — 이 파일은 함수를 직접 불러
+// raw 오류를 잡으므로 { env: KO }로는 로케일을 바꿀 수 없다. 지역화된
+// 재렌더는 install.mjs의 catch에서만 일어난다.
 test('repoPath는 루트 밖 경로를 거부한다', () => {
   const repo = makeTempRepo()
-  assert.throws(() => repoPath(repo, '../escape.txt'), /저장소/)
+  assert.throws(() => repoPath(repo, '../escape.txt'), /repository/)
   assert.equal(repoPath(repo, '.mcp.json'), join(repo, '.mcp.json'))
 })
 
@@ -28,7 +31,7 @@ test('repoPathStrict: 저장소 안 경로는 통과한다', () => {
 
 test('repoPathStrict: 저장소 밖 경로는 거부한다', () => {
   const root = makeTempRepo()
-  assert.throws(() => repoPathStrict(root, '../escape'), /저장소 밖/)
+  assert.throws(() => repoPathStrict(root, '../escape'), /Cannot write outside/)
 })
 
 test('repoPathStrict: 링크를 통한 이탈을 거부한다', () => {
@@ -39,7 +42,7 @@ test('repoPathStrict: 링크를 통한 이탈을 거부한다', () => {
   symlinkSync(outside, join(root, '.evil'), 'junction')
 
   assert.doesNotThrow(() => repoPath(root, '.evil/skills')) // 기존 함수는 통과시킨다
-  assert.throws(() => repoPathStrict(root, '.evil/skills'), /외부 링크/)
+  assert.throws(() => repoPathStrict(root, '.evil/skills'), /external link/)
 })
 
 test('repoPathStrict: 아직 없는 하위 경로는 조상 기준으로 검사한다', () => {
@@ -55,7 +58,7 @@ test('repoPathStrict: 경로 확인에 실패하면 진단 가능한 오류를 �
   assert.throws(
     () => repoPathStrict(missingRoot, 'a.txt'),
     (err) => {
-      assert.match(err.message, /경로를 확인할 수 없습니다/)
+      assert.match(err.message, /Cannot resolve path/)
       // 실패한 것은 root다 — 멀쩡한 조상 경로가 아니라 이 경로가 지목되어야 한다.
       assert.ok(
         err.message.includes('never-created'),

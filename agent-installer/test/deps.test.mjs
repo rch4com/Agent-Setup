@@ -5,10 +5,13 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
-import { withDeps, DEPS_HINT } from '../lib/deps.mjs'
+import { withDeps } from '../lib/deps.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+// LocalizedError.message는 언제나 영어다 — 카탈로그 원문을 그대로 계산해 비교한다.
+const DEPS_HINT = createT('en')('error.depsMissing')
 
 function moduleNotFound() {
   const err = new Error("Cannot find package 'jsonc-parser'")

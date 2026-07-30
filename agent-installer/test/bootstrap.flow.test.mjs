@@ -92,7 +92,9 @@ test('실패는 격리되어 나머지 진행을 막지 않는다', () => {
   const { results, failed } = runBootstrap(root, { log() {}, manifest })
 
   assert.equal(failed.length, 1, '어댑터 하나만 실패해야 한다')
-  assert.match(failed[0].message, /저장소 밖/)
+  // LocalizedError.message는 언제나 영어다 — apply.mjs가 raw 오류를 그대로
+  // message에 담으므로 여기서도 영어를 본다.
+  assert.match(failed[0].message, /Cannot write outside/)
   assert.ok(results.some((r) => r.action === 'create'), '파일 생성은 계속되어야 한다')
   // .gitignore는 어댑터 뒤에 실행된다 — 실패 이후 단계까지 진행됐다는 증거다.
   assert.ok(existsSync(join(root, '.gitignore')), '실패 이후 단계도 실행되어야 한다')
