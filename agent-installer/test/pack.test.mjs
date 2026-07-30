@@ -103,3 +103,9 @@ test('README가 tarball에 들어가고 npx 사용법을 담는다', () => {
   // 상세 문서로 가는 길이 끊기면 짧게 쓴 의미가 없다.
   assert.match(readme, /github\.com\/rch4com\/Agent-Setup/)
 })
+
+test('설치 기록은 발행되지 않는다', () => {
+  // .agent-kit은 소비 저장소가 만드는 것이지 패키지에 담는 것이 아니다.
+  const paths = packInfo().files.map((f) => f.path)
+  assert.deepEqual(paths.filter((p) => p.startsWith('.agent-kit')), [])
+})

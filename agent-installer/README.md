@@ -20,6 +20,12 @@ npx @rch4com/agent-setup bootstrap --dry-run
 
 # 플러그인·MCP·스킬·DESIGN.md를 골라 설치하는 대화형 화면
 npx @rch4com/agent-setup
+
+# 관리 파일을 최신 템플릿으로 갱신한다 (사용자가 고친 파일은 건드리지 않는다)
+npx @rch4com/agent-setup@latest update
+
+# 의도 / 실제 / 버전을 비교한다
+npx @rch4com/agent-setup status
 ```
 
 설치하면 실행 명령은 `agent-setup`으로 짧아집니다. 이름에 스코프가 붙은 것은
