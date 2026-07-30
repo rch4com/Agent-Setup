@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   BOOTSTRAP_USAGE, DESIGN_USAGE, ROOT_USAGE,
   requireValue, collectValues, parseSetArg,
-  parseRootArgs, parseDesignArgs, parseBootstrapArgs,
+  parseRootArgs, parseDesignArgs, parseBootstrapArgs, parseUpdateArgs,
 } from '../lib/args.mjs'
 
 // ── collectValues ─────────────────────────────────────────────────
@@ -235,4 +235,12 @@ test('parseBootstrapArgs: --adopt를 받는다', () => {
   assert.equal(parseBootstrapArgs([]).adopt, false)
   // 값을 받는 플래그가 아니다.
   assert.throws(() => parseBootstrapArgs(['--adopt=x']), /값을 줄 수 없습니다/)
+})
+
+test('parseUpdateArgs: --dry-run과 --force를 받고 모르는 인자를 거부한다', () => {
+  assert.equal(parseUpdateArgs([]).force, false)
+  assert.equal(parseUpdateArgs(['--force']).force, true)
+  assert.equal(parseUpdateArgs(['--dry-run']).dryRun, true)
+  assert.equal(parseUpdateArgs(['--help']).help, true)
+  assert.throws(() => parseUpdateArgs(['--forcee']), /알 수 없는 인자/)
 })

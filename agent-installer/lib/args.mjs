@@ -75,6 +75,18 @@ export const DESIGN_USAGE = `사용법: npx @rch4com/agent-setup design [옵션]
 --list, --set, --preview, --sync는 동작을 고르는 플래그라
 한 번에 하나만 지정할 수 있습니다.`
 
+export const UPDATE_USAGE = `사용법: npx @rch4com/agent-setup update [옵션]
+
+설치 기록에 남은 해시와 대조해, 우리가 쓴 그대로인 관리 파일만
+최신 템플릿으로 갱신합니다. 사용자가 고친 파일은 건드리지 않고
+드리프트로 보고합니다.
+
+옵션:
+  --force      드리프트 파일까지 덮어씁니다. 워킹트리가 깨끗해야 합니다
+               (git이 유일한 되돌리기 수단이므로).
+  --dry-run    아무것도 바꾸지 않고 예정된 동작만 출력합니다.
+  -h, --help   이 도움말을 출력하고 종료합니다.`
+
 const SKILL_MODES = ['auto', 'link', 'copy']
 
 // 인자 사양: 플래그 이름 → 'bool'(값 없음) | 'value'(값 하나를 소비).
@@ -91,6 +103,7 @@ const DESIGN_SPEC = {
   '--preview': 'value', '--sync': 'value', '--design-dir': 'value',
 }
 const BOOTSTRAP_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--adopt': 'bool', '--skill-mode': 'value' }
+const UPDATE_SPEC = { ...HELP_SPEC, '--dry-run': 'bool', '--force': 'bool' }
 
 export function assertKnownArgs(argv, spec, usage) {
   for (let i = 0; i < argv.length; i++) {
@@ -267,4 +280,11 @@ export function parseBootstrapArgs(argv) {
     skillMode: parseSkillMode(argv, BOOTSTRAP_USAGE),
     help: false,
   }
+}
+
+// `update`에 허용되는 플래그: --dry-run, --force, -h/--help.
+export function parseUpdateArgs(argv) {
+  if (wantsHelp(argv)) return { help: true, dryRun: false, force: false }
+  assertKnownArgs(argv, UPDATE_SPEC, UPDATE_USAGE)
+  return { help: false, dryRun: argv.includes('--dry-run'), force: argv.includes('--force') }
 }
