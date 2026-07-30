@@ -71,3 +71,18 @@ test('발행을 막는 필드가 없다', () => {
   assert.match(pkg.version, /^\d+\.\d+\.\d+/)
   assert.equal(pkg.license, 'MIT')
 })
+
+test('루트 LICENSE와 패키지 LICENSE가 동일하다', () => {
+  // files가 패키지 디렉터리 밖에 닿을 수 없어 사본이 불가피하다.
+  // 갈라지면 발행된 라이선스와 저장소 라이선스가 달라진다.
+  const norm = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+  const inPackage = norm(join(PKG_ROOT, 'LICENSE'))
+  const atRoot = norm(join(PKG_ROOT, '..', 'LICENSE'))
+  assert.equal(inPackage, atRoot)
+  assert.match(inPackage, /^MIT License/)
+})
+
+test('LICENSE가 tarball에 들어간다', () => {
+  const paths = packInfo().files.map((f) => f.path)
+  assert.ok(paths.includes('LICENSE'), 'LICENSE가 발행되지 않는다')
+})
