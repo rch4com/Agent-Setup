@@ -1,10 +1,17 @@
-import { repoPath } from './context.mjs'
+import { repoPath, repoPathStrict } from './context.mjs'
 import { readJson, setKey, removeKey } from './jsonfile.mjs'
 
 const SETTINGS = '.claude/settings.json'
 
 function readSettings(root) {
   return readJson(repoPath(root, SETTINGS)) ?? {}
+}
+
+// 쓰기 경로만 링크 이탈까지 검사한다 — 저장소 안 `.claude`가 홈을 가리키는
+// Junction이면 어휘적 검사는 통과하고 글로벌 settings.json이 수정된다.
+// clis.mjs의 add·remove, bootstrap의 apply.mjs와 같은 규칙.
+function settingsFile(root) {
+  return repoPathStrict(root, SETTINGS)
 }
 
 function enabledList(settings) {
@@ -20,7 +27,7 @@ export function isPluginEnabled(root, ids) {
 }
 
 export function enablePlugin(root, id, marketplace) {
-  const file = repoPath(root, SETTINGS)
+  const file = settingsFile(root)
   const settings = readSettings(root)
   if (Array.isArray(settings.enabledPlugins)) {
     if (!settings.enabledPlugins.includes(id)) {
@@ -37,7 +44,7 @@ export function enablePlugin(root, id, marketplace) {
 }
 
 export function disablePlugin(root, ids) {
-  const file = repoPath(root, SETTINGS)
+  const file = settingsFile(root)
   const settings = readSettings(root)
   if (Array.isArray(settings.enabledPlugins)) {
     const kept = settings.enabledPlugins.filter((e) => !ids.includes(e))

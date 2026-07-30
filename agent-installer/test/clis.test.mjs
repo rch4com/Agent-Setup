@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdtempSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CLIS, CLI_IDS } from '../lib/clis.mjs'
 import { readJson } from '../lib/jsonfile.mjs'
@@ -8,6 +9,24 @@ import { makeTempRepo } from './helpers.mjs'
 
 const HTTP = { kind: 'http', url: 'https://mcp.notion.com/mcp' }
 const STDIO = { kind: 'stdio', command: 'codebase-memory-mcp', args: [] }
+
+// CLI별로 링크를 걸어 볼 자리. 디렉터리 junction만 쓴다 — Windows에서 파일
+// 심볼릭 링크는 권한이 필요하고 junction은 아니다(context.test.mjs와 같은 이유).
+// 설정 파일이 하위 디렉터리에 있으면 그 디렉터리를, 저장소 루트의 파일이면
+// 파일 자리 자체를 링크로 바꾼다(inPlace) — 후자는 읽기가 EISDIR로 실패하므로
+// 읽기 경로까지 검사하지는 않는다.
+const ESCAPE_POINT = {
+  claude: { path: '.mcp.json', inPlace: true },
+  codex: { path: '.codex' },
+  gemini: { path: '.gemini' },
+  opencode: { path: 'opencode.jsonc', inPlace: true },
+  kilo: { path: '.kilocode' },
+  kiro: { path: '.kiro' },
+  kimi: { path: '.kimi-code' },
+  grok: { path: '.grok' },
+  copilot: { path: '.github' },
+  vscode: { path: '.vscode' },
+}
 
 for (const id of CLI_IDS) {
   test(`${id}: add→has→remove roundtrip (http, stdio)`, () => {
@@ -19,6 +38,28 @@ for (const id of CLI_IDS) {
       CLIS[id].remove(repo, 'testsrv')
       assert.equal(CLIS[id].has(repo, 'testsrv'), false)
     }
+  })
+}
+
+// 어휘적 검사만으로는 저장소 안 `.codex`·`.claude`가 홈을 가리키는 Junction일 때를
+// 막지 못한다. MCP 등록 한 번으로 글로벌 설정이 생성·수정되면 "홈 디렉터리의
+// 글로벌 설정을 읽거나 수정하지 않는다"는 약속이 깨진다. 10개 CLI 전부 검사한다.
+for (const id of CLI_IDS) {
+  test(`${id}: 설정 파일 자리가 저장소 밖 링크면 add·remove가 거부한다`, () => {
+    const root = makeTempRepo()
+    const outside = mkdtempSync(join(tmpdir(), 'outside-mcp-'))
+    const { path: rel, inPlace = false } = ESCAPE_POINT[id]
+    symlinkSync(outside, join(root, rel), 'junction')
+
+    assert.throws(() => CLIS[id].add(root, 'evil', HTTP), /외부 링크/)
+    assert.throws(() => CLIS[id].remove(root, 'evil'), /외부 링크/)
+    // 읽기(has)는 어휘적 경로로 충분하다 — 지켜야 할 쓰기가 없다.
+    if (!inPlace) assert.equal(CLIS[id].has(root, 'evil'), false)
+    // 저장소 밖에 아무것도 만들지 않았다.
+    assert.deepEqual(
+      ['config.toml', 'settings.json', 'mcp.json', 'opencode.jsonc'].filter((f) => existsSync(join(outside, f))),
+      [],
+    )
   })
 }
 

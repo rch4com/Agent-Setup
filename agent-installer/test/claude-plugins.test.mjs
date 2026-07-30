@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, writeFileSync, mkdirSync, mkdtempSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { isPluginEnabled, enablePlugin, disablePlugin } from '../lib/claude-plugins.mjs'
 import { readJson, setKey } from '../lib/jsonfile.mjs'
@@ -61,6 +62,21 @@ test('배열 양식에서 disablePlugin은 항목 제거와 고아 마켓 정리
   const s = readJson(settingsPath(repo))
   assert.deepEqual(s.enabledPlugins, ['superpowers@claude-plugins-official'])
   assert.equal(s.extraKnownMarketplaces?.['bkit-marketplace'], undefined)
+})
+
+// clis.mjs의 add·remove와 같은 규칙: 쓰기 경로는 링크를 통한 저장소 이탈까지
+// 검사한다. `.claude`가 홈을 가리키는 Junction이면 플러그인 기록 한 번으로
+// 글로벌 settings.json이 생성·수정된다.
+test('.claude가 저장소 밖 링크면 enablePlugin·disablePlugin이 거부한다', () => {
+  const repo = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-plugins-'))
+  symlinkSync(outside, join(repo, '.claude'), 'junction')
+
+  assert.throws(() => enablePlugin(repo, 'x@y', { name: 'y', repo: 'a/b' }), /외부 링크/)
+  assert.throws(() => disablePlugin(repo, ['x@y']), /외부 링크/)
+  assert.equal(existsSync(join(outside, 'settings.json')), false)
+  // 읽기는 어휘적 경로로 충분하다.
+  assert.equal(isPluginEnabled(repo, ['x@y']), false)
 })
 
 test('disablePlugin은 무관한 마켓플레이스를 보존한다', () => {

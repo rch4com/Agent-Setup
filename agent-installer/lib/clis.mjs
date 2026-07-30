@@ -1,7 +1,11 @@
-import { repoPath } from './context.mjs'
+import { repoPath, repoPathStrict } from './context.mjs'
 import { readJson, setKey, removeKey, getIn } from './jsonfile.mjs'
 import { hasSection, appendSection, removeSection } from './tomlfile.mjs'
 
+// 읽기(has)는 어휘적 경로면 충분하고, 실제로 만들거나 고치는 경로(add·remove)만
+// 링크를 통한 저장소 이탈까지 검사한다 — bootstrap의 apply.mjs, design-md의
+// designPaths와 같은 규칙이다. 저장소 안 `.codex`·`.claude`가 홈을 가리키는
+// Junction일 때 MCP 등록 한 번으로 글로벌 설정이 생성·수정되는 것을 막는다.
 function jsonAdapter(relFile, topKey, toEntry) {
   return {
     has(root, name) {
@@ -9,10 +13,10 @@ function jsonAdapter(relFile, topKey, toEntry) {
       return getIn(data, [topKey, name]) !== undefined
     },
     add(root, name, server) {
-      setKey(repoPath(root, relFile), [topKey, name], toEntry(server))
+      setKey(repoPathStrict(root, relFile), [topKey, name], toEntry(server))
     },
     remove(root, name) {
-      removeKey(repoPath(root, relFile), [topKey, name])
+      removeKey(repoPathStrict(root, relFile), [topKey, name])
     },
   }
 }
@@ -36,8 +40,8 @@ export const CLIS = {
   codex: {
     label: 'Codex',
     has: (root, name) => hasSection(repoPath(root, '.codex/config.toml'), name),
-    add: (root, name, s) => appendSection(repoPath(root, '.codex/config.toml'), name, tomlLines(s)),
-    remove: (root, name) => removeSection(repoPath(root, '.codex/config.toml'), name),
+    add: (root, name, s) => appendSection(repoPathStrict(root, '.codex/config.toml'), name, tomlLines(s)),
+    remove: (root, name) => removeSection(repoPathStrict(root, '.codex/config.toml'), name),
   },
   gemini: {
     label: 'Gemini CLI',
@@ -73,8 +77,8 @@ export const CLIS = {
   grok: {
     label: 'Grok Build',
     has: (root, name) => hasSection(repoPath(root, '.grok/config.toml'), name),
-    add: (root, name, s) => appendSection(repoPath(root, '.grok/config.toml'), name, tomlLines(s)),
-    remove: (root, name) => removeSection(repoPath(root, '.grok/config.toml'), name),
+    add: (root, name, s) => appendSection(repoPathStrict(root, '.grok/config.toml'), name, tomlLines(s)),
+    remove: (root, name) => removeSection(repoPathStrict(root, '.grok/config.toml'), name),
   },
   copilot: {
     label: 'GitHub Copilot CLI',
