@@ -6,6 +6,7 @@ import { scan } from '../engine.mjs'
 import { loadItems } from '../catalog.mjs'
 import { runBootstrap } from '../bootstrap/flow.mjs'
 import { MANIFEST } from '../bootstrap/manifest.mjs'
+import { createT } from '../i18n/index.mjs'
 import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale } from '../design-md/flow.mjs'
@@ -92,7 +93,9 @@ export function buildActions(root, { designItems = [] } = {}) {
       id: 'action.bootstrap',
       label: '부트스트랩 실행',
       hint: bootstrapHint(root),
-      run: ({ dryRun, skillMode, log }) => runBootstrap(root, { dryRun, skillMode, log }),
+      // TUI는 아직 로케일을 고르지 않는다(Task 9~11) — 지금까지와 같은 한국어
+      // 출력을 유지하기 위해 못박아 둔다.
+      run: ({ dryRun, skillMode, log }) => runBootstrap(root, { dryRun, skillMode, log, t: createT('ko') }),
     }),
     actionRow({
       id: 'action.sync.installed',

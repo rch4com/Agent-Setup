@@ -4,6 +4,7 @@
 import { cpSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
+import { createT, msg } from '../i18n/index.mjs'
 import { pathExists } from './apply.mjs'
 
 const MARKER = '.agent-kit-managed-copy'
@@ -34,7 +35,7 @@ function createCopy(source, target) {
   writeFileSync(join(target, MARKER), '', { encoding: 'utf8' })
 }
 
-export function configureAdapter(root, { tool, path: rel }, { dryRun = false, skillMode = 'auto', log }) {
+export function configureAdapter(root, { tool, path: rel }, { dryRun = false, skillMode = 'auto', log, t = createT('en') }) {
   // 기존 상태를 살펴보는 데에는 어휘적 경로를 쓴다. target이 저장소 밖을 가리키는
   // 링크일 수 있는데, 그 경우도 "보존 + 경고"가 정답이라 지켜야 할 쓰기가 없다.
   // repoPathStrict를 여기서 쓰면 이탈 링크에서 예외가 던져져 경고 대신 죽는다.
@@ -43,17 +44,17 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
   const linked = linkTarget(target)
   if (linked !== null) {
     if (linked === repoPath(root, SOURCE_REL)) {
-      log(`${tool} 스킬 링크 확인: ${rel}`)
+      log(t('log.skill.linkOk', { tool, path: rel }))
       return { ok: true, action: 'skip', path: rel }
     }
-    log(`경고: ${rel} 경로가 다른 위치를 가리키는 링크입니다. 변경하지 않습니다.`)
-    return { ok: true, action: 'warn', path: rel, message: '다른 위치를 가리키는 링크' }
+    log(t('log.skill.warnForeignLink', { path: rel }))
+    return { ok: true, action: 'warn', path: rel, message: msg('msg.foreignLink') }
   }
 
   const managedCopy = pathExists(target) && pathExists(join(target, MARKER))
   if (pathExists(target) && !managedCopy) {
-    log(`경고: ${rel} 경로가 이미 존재하며 agent-kit 관리 대상이 아닙니다. 변경하지 않습니다.`)
-    return { ok: true, action: 'warn', path: rel, message: '관리 대상이 아닌 기존 항목' }
+    log(t('log.skill.warnUnmanaged', { path: rel }))
+    return { ok: true, action: 'warn', path: rel, message: msg('msg.unmanagedExisting') }
   }
 
   // 여기부터는 실제로 링크/복사본을 만드는 경로다. 엄격 검사는 dry-run 여부와
@@ -64,12 +65,12 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
   const strictTarget = repoPathStrict(root, rel)
 
   if (dryRun) {
-    log(`${tool} 스킬 어댑터 생성 예정: ${rel} (${skillMode})`)
+    log(t('log.skill.plan', { tool, path: rel, mode: skillMode }))
     return { ok: true, action: 'skip', path: rel }
   }
 
   if (managedCopy) {
-    log(`${tool} 스킬 복제본 동기화: ${rel}`)
+    log(t('log.skill.copySync', { tool, path: rel }))
     // 마커가 확인된 복사본만 지운다.
     rmSync(strictTarget, { recursive: true, force: true })
   }
@@ -79,17 +80,17 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
   if (skillMode !== 'copy') {
     try {
       createLink(source, strictTarget)
-      log(`${tool} 스킬 링크 생성: ${rel} -> ${SOURCE_REL}`)
+      log(t('log.skill.linkCreate', { tool, path: rel, target: SOURCE_REL }))
       return { ok: true, action: 'link', path: rel }
     } catch (err) {
       if (skillMode === 'link') {
-        return { ok: false, action: 'link', path: rel, message: `링크 생성 실패: ${err.message}` }
+        return { ok: false, action: 'link', path: rel, message: msg('msg.linkFailed', { message: err.message }) }
       }
-      log(`경고: ${tool} 링크 생성에 실패하여 복사 방식으로 전환합니다.`)
+      log(t('log.skill.linkFellBack', { tool }))
     }
   }
 
   createCopy(source, strictTarget)
-  log(`${tool} 스킬 복제본 생성: ${rel}`)
+  log(t('log.skill.copyCreate', { tool, path: rel }))
   return { ok: true, action: 'copy', path: rel }
 }

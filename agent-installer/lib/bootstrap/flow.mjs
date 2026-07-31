@@ -5,21 +5,22 @@ import {
   configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
 } from './apply.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
+import { createT, LocalizedError, toText } from '../i18n/index.mjs'
 
 const SKILL_MODES = ['auto', 'link', 'copy']
 
 export function runBootstrap(root, opts = {}) {
-  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST } = opts
+  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST, t = createT('en') } = opts
 
   if (!SKILL_MODES.includes(skillMode)) {
-    throw new Error(`--skill-mode는 ${SKILL_MODES.join(', ')} 중 하나여야 합니다: ${skillMode}`)
+    throw new LocalizedError('error.badSkillModeRuntime', { list: SKILL_MODES.join(', '), value: skillMode })
   }
 
   const say = (message) => log(`[agent-setup] ${message}`)
-  const ctx = { dryRun, log: say }
+  const ctx = { dryRun, log: say, t }
 
-  say(`저장소 루트: ${root}`)
-  say('글로벌 설정 경로는 읽거나 수정하지 않습니다.')
+  say(t('log.repoRoot', { path: root }))
+  say(t('log.noGlobalWrites'))
 
   // --adopt는 이미 있는 저장소를 기록 체계로 끌어오는 용도라 파일을 만들지
   // 않는다. 설치기를 복사해 쓰던 저장소가 여기로 들어온다.
@@ -57,16 +58,16 @@ export function runBootstrap(root, opts = {}) {
   const failed = results.filter((r) => !r.ok)
   log('')
   if (failed.length > 0) {
-    say(`실패 ${failed.length}건:`)
-    for (const f of failed) say(`  ✖ ${f.path} — ${f.message}`)
+    say(t('bootstrap.failures', { count: failed.length }))
+    for (const f of failed) say(`  ✖ ${f.path} — ${toText(t, f.message)}`)
   }
-  say('완료되었습니다.')
-  say('공통 지침: AGENTS.md')
-  say('공통 스킬: .agents/skills/')
-  say(`적용 도구: ${manifest.tools.join(', ')}`)
-  say('도구별 설정은 모두 현재 저장소 안에만 생성되었습니다.')
-  say('기존 설정 파일은 덮어쓰지 않았습니다.')
-  say(`설치 기록: ${RECORD_REL}`)
+  say(t('bootstrap.done'))
+  say(t('bootstrap.sharedGuide'))
+  say(t('bootstrap.sharedSkills'))
+  say(t('bootstrap.tools', { list: manifest.tools.join(', ') }))
+  say(t('bootstrap.repoOnly'))
+  say(t('bootstrap.noOverwrite'))
+  say(t('bootstrap.record', { path: RECORD_REL }))
 
   return { results, failed, record }
 }

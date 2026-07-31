@@ -6,10 +6,15 @@ import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { MANIFEST } from '../lib/bootstrap/manifest.mjs'
 import { RECORD_REL, readRecord, toolVersion } from '../lib/bootstrap/record.mjs'
+import { createT } from '../lib/i18n/index.mjs'
+
+// 이 스위트는 함수를 직접 부르므로 로케일을 한국어로 못박는다 — 기존 단언이
+// 그대로 뜻을 유지하도록. 영어 쪽 회귀는 test/i18n.en.test.mjs가 담당한다.
+const t = createT('ko')
 
 test('매니페스트가 선언한 모든 대상을 만든다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
 
   for (const rel of MANIFEST.dirs) {
     assert.ok(existsSync(join(root, rel)), `디렉터리 누락: ${rel}`)
@@ -28,8 +33,8 @@ test('매니페스트가 선언한 모든 대상을 만든다', () => {
 
 test('두 번 실행해도 두 번째는 아무것도 만들지 않는다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })
-  const second = runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
+  const second = runBootstrap(root, { t, log() {} })
 
   const created = second.results.filter((r) => ['create', 'append', 'copy', 'insert'].includes(r.action))
   assert.deepEqual(created.map((r) => r.path), [], '멱등하지 않다')
@@ -38,7 +43,7 @@ test('두 번 실행해도 두 번째는 아무것도 만들지 않는다', () =
 
 test('settings 선언대로 VS Code 설정 키를 넣는다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
 
   const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
   assert.deepEqual(JSON.parse(text), { 'chat.useAgentsMdFile': true })
@@ -49,7 +54,7 @@ test('기존 .vscode/settings.json의 다른 키를 보존한다', () => {
   mkdirSync(join(root, '.vscode'))
   writeFileSync(join(root, '.vscode/settings.json'), '{\n  "editor.tabSize": 2\n}\n')
 
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
 
   const parsed = JSON.parse(readFileSync(join(root, '.vscode/settings.json'), 'utf8'))
   assert.equal(parsed['editor.tabSize'], 2)
@@ -59,14 +64,14 @@ test('기존 .vscode/settings.json의 다른 키를 보존한다', () => {
 test('기존 파일을 보존한다', () => {
   const root = makeTempRepo()
   writeFileSync(join(root, 'AGENTS.md'), '내가 쓴 지침\n')
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
   assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), '내가 쓴 지침\n')
 })
 
 test('dry-run은 파일시스템을 전혀 바꾸지 않는다', () => {
   const root = makeTempRepo()
   const cap = makeCapture()
-  runBootstrap(root, { dryRun: true, log: cap.log })
+  runBootstrap(root, { t, dryRun: true, log: cap.log })
 
   for (const rel of [...MANIFEST.dirs, ...MANIFEST.files.map((f) => f.path)]) {
     assert.equal(existsSync(join(root, rel)), false, `dry-run이 만들었다: ${rel}`)
@@ -77,7 +82,7 @@ test('dry-run은 파일시스템을 전혀 바꾸지 않는다', () => {
 test('출력에 저장소 루트와 완료 안내가 있다', () => {
   const root = makeTempRepo()
   const cap = makeCapture()
-  runBootstrap(root, { log: cap.log })
+  runBootstrap(root, { t, log: cap.log })
 
   assert.match(cap.text(), /저장소 루트/)
   assert.match(cap.text(), /글로벌 설정 경로는 읽거나 수정하지 않습니다/)
@@ -89,7 +94,7 @@ test('출력에 저장소 루트와 완료 안내가 있다', () => {
 test('실패는 격리되어 나머지 진행을 막지 않는다', () => {
   const root = makeTempRepo()
   const manifest = { ...MANIFEST, adapters: [{ tool: '실패용', path: '../escape' }] }
-  const { results, failed } = runBootstrap(root, { log() {}, manifest })
+  const { results, failed } = runBootstrap(root, { t, log() {}, manifest })
 
   assert.equal(failed.length, 1, '어댑터 하나만 실패해야 한다')
   // LocalizedError.message는 언제나 영어다 — apply.mjs가 raw 오류를 그대로
@@ -102,13 +107,13 @@ test('실패는 격리되어 나머지 진행을 막지 않는다', () => {
 
 test('실패가 있으면 failed에 모인다', () => {
   const root = makeTempRepo()
-  const { failed } = runBootstrap(root, { log() {} })
+  const { failed } = runBootstrap(root, { t, log() {} })
   assert.deepEqual(failed, [], '정상 실행에는 실패가 없어야 한다')
 })
 
 test('bootstrap이 설치 기록을 남긴다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
 
   const record = readRecord(root)
   assert.equal(record.pinnedVersion, toolVersion())
@@ -121,15 +126,15 @@ test('bootstrap이 설치 기록을 남긴다', () => {
 
 test('bootstrap 재실행은 기록을 바꾸지 않는다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
   const first = readFileSync(join(root, RECORD_REL), 'utf8')
-  runBootstrap(root, { log() {} })
+  runBootstrap(root, { t, log() {} })
   assert.equal(readFileSync(join(root, RECORD_REL), 'utf8'), first)
 })
 
 test('--adopt는 파일을 만들지 않고 기록만 만든다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { adopt: true, log() {} })
+  runBootstrap(root, { t, adopt: true, log() {} })
 
   assert.equal(existsSync(join(root, 'AGENTS.md')), false, 'adopt가 파일을 만들었다')
   const record = readRecord(root)
@@ -140,9 +145,9 @@ test('--adopt는 파일을 만들지 않고 기록만 만든다', () => {
 
 test('--adopt는 템플릿과 같은 파일만 채택한다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { log() {} })            // 정상 배선
+  runBootstrap(root, { t, log() {} })            // 정상 배선
   writeFileSync(join(root, 'AGENTS.md'), '팀이 고친 지침\n')
-  runBootstrap(root, { adopt: true, log() {} })
+  runBootstrap(root, { t, adopt: true, log() {} })
 
   const record = readRecord(root)
   assert.equal(record.managed['AGENTS.md'], null, '고친 파일이 채택됐다')
@@ -151,6 +156,6 @@ test('--adopt는 템플릿과 같은 파일만 채택한다', () => {
 
 test('dry-run은 기록도 쓰지 않는다', () => {
   const root = makeTempRepo()
-  runBootstrap(root, { dryRun: true, log() {} })
+  runBootstrap(root, { t, dryRun: true, log() {} })
   assert.equal(readRecord(root), null)
 })

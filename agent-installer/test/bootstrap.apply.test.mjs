@@ -5,8 +5,12 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { ensureDirs, ensureFiles, ensureBlocks, ensureIgnore, ensureJsonKeys } from '../lib/bootstrap/apply.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 
-const ctx = (cap, dryRun = false) => ({ dryRun, log: cap.log })
+// 이 스위트는 함수를 직접 부르므로 로케일을 한국어로 못박는다 — 기존 단언이
+// 그대로 뜻을 유지하도록. 영어 쪽 회귀는 test/i18n.en.test.mjs가 담당한다.
+const t = createT('ko')
+const ctx = (cap, dryRun = false) => ({ dryRun, log: cap.log, t })
 
 test('ensureDirs: 없는 디렉터리를 만든다', () => {
   const root = makeTempRepo()

@@ -7,9 +7,13 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 import { configureAdapter } from '../lib/bootstrap/adapter.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 
+// 이 스위트는 함수를 직접 부르므로 로케일을 한국어로 못박는다 — 기존 단언이
+// 그대로 뜻을 유지하도록. 영어 쪽 회귀는 test/i18n.en.test.mjs가 담당한다.
+const t = createT('ko')
 const ENTRY = { tool: 'Claude Code', path: '.claude/skills' }
-const ctx = (cap, over = {}) => ({ dryRun: false, skillMode: 'auto', log: cap.log, ...over })
+const ctx = (cap, over = {}) => ({ dryRun: false, skillMode: 'auto', log: cap.log, t, ...over })
 
 // .agents/skills에 스킬 하나를 둔 저장소를 만든다.
 function repoWithSkills() {

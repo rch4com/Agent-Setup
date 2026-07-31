@@ -4,6 +4,7 @@ import { lstatSync, mkdirSync, writeFileSync, readFileSync, appendFileSync } fro
 import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
+import { createT, msg } from '../i18n/index.mjs'
 import { hashBody, normalizeBody } from './text.mjs'
 import { BEGIN_MARKER, END_MARKER, extractBlock, managedKey } from './record.mjs'
 import { configureAdapter } from './adapter.mjs'
@@ -29,42 +30,42 @@ function writeText(file, text) {
   writeFileSync(file, body, { encoding: 'utf8' })
 }
 
-export function ensureDirs(root, dirs, { dryRun = false, log }) {
+export function ensureDirs(root, dirs, { dryRun = false, log, t = createT('en') }) {
   return dirs.map((rel) => {
     // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
     if (pathExists(repoPath(root, rel))) return { ok: true, action: 'skip', path: rel }
     // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
     // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const target = repoPathStrict(root, rel)
-    log(`디렉터리 생성: ${rel}`)
+    log(t('log.dir.create', { path: rel }))
     if (!dryRun) mkdirSync(target, { recursive: true })
     return { ok: true, action: 'create', path: rel }
   })
 }
 
-export function ensureFiles(root, files, { dryRun = false, log }) {
+export function ensureFiles(root, files, { dryRun = false, log, t = createT('en') }) {
   return files.map(({ path: rel, template }) => {
     // 깨진 링크도 lstat으로는 존재한다 — 내용을 보지 않고 그대로 보존한다.
     if (pathExists(repoPath(root, rel))) {
-      log(`기존 파일 유지: ${rel}`)
+      log(t('log.file.keep', { path: rel }))
       return { ok: true, action: 'keep', path: rel }
     }
     // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const target = repoPathStrict(root, rel)
-    log(`파일 생성: ${rel}`)
+    log(t('log.file.create', { path: rel }))
     if (!dryRun) writeText(target, template)
     return { ok: true, action: 'create', path: rel }
   })
 }
 
-export function ensureBlocks(root, blocks, { dryRun = false, log }) {
+export function ensureBlocks(root, blocks, { dryRun = false, log, t = createT('en') }) {
   return blocks.map(({ path: rel, block }) => {
     // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
     if (!pathExists(repoPath(root, rel))) {
       // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
       // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
       const target = repoPathStrict(root, rel)
-      log(`파일 생성: ${rel}`)
+      log(t('log.file.create', { path: rel }))
       if (!dryRun) writeText(target, block)
       return { ok: true, action: 'create', path: rel }
     }
@@ -74,12 +75,12 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
     try {
       text = readFileSync(target, 'utf8')
     } catch (err) {
-      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다 (${err.code ?? err.message})`)
-      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+      log(t('log.warn.unreadable', { path: rel, code: err.code ?? err.message }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
     }
 
     if (text.includes(BEGIN_MARKER)) {
-      log(`관리 블록 확인: ${rel}`)
+      log(t('log.block.keep', { path: rel }))
       return { ok: true, action: 'skip', path: rel }
     }
 
@@ -88,7 +89,7 @@ export function ensureBlocks(root, blocks, { dryRun = false, log }) {
     // 이탈하는 기존 파일에 대해 오류 없이 append 예정이라고 보고하게 된다.
     // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const strictTarget = repoPathStrict(root, rel)
-    log(`관리 블록 추가: ${rel}`)
+    log(t('log.block.add', { path: rel }))
     if (!dryRun) {
       // 기존 마지막 줄을 닫고 빈 줄 하나를 띄운 뒤 블록을 붙인다.
       const separator = text.endsWith('\n') ? '\n' : '\n\n'
@@ -110,22 +111,21 @@ const IGNORE_HEADER = '# agent-kit: local skill adapters (do not commit duplicat
 // 템플릿에서 흔한 두 형태(`.vscode`, `.vscode/`)만 검사한다 — gitignore
 // 전체 문법을 구현하지 않고 실제로 부딪히는 모양만 잡는다. 위치는 무관하다:
 // git은 부정 항목의 순서와 무관하게 부모 제외를 우선한다.
-function warnBlockedNegations(lines, entries, log) {
+function warnBlockedNegations(lines, entries, log, t) {
   const warnings = []
   for (const entry of entries) {
     if (!entry.startsWith('!')) continue
     const negated = entry.slice(1)
     const parent = negated.split('/').slice(0, -1).join('/')
     if (parent && (lines.has(parent) || lines.has(`${parent}/`))) {
-      const message = `.gitignore의 "${parent}"가 디렉터리 전체를 제외해 "${entry}" 부정 항목이 무효화됩니다`
-      log(`경고: ${message}. "${parent}/*" 형태로 바꾸면 다시 포함됩니다.`)
-      warnings.push({ ok: true, action: 'warn', path: entry, message })
+      log(t('log.warn.ignoreShadowed', { parent, entry }))
+      warnings.push({ ok: true, action: 'warn', path: entry, message: msg('log.warn.ignoreShadowed', { parent, entry }) })
     }
   }
   return warnings
 }
 
-export function ensureIgnore(root, entries, { dryRun = false, log }) {
+export function ensureIgnore(root, entries, { dryRun = false, log, t = createT('en') }) {
   // ensureDirs/ensureFiles/ensureBlocks와 달리 경로가 '.gitignore' 하나로 고정돼
   // 있고, 함수 자체의 목적이 "항목을 보장한다"는 쓰기 의도이므로 존재 확인과
   // 쓰기 판단을 나누지 않고 맨 앞에서 한 번만 엄격 검사한다. ensureGitignoreEntries
@@ -138,14 +138,14 @@ export function ensureIgnore(root, entries, { dryRun = false, log }) {
   // 이미 있는 항목이든 새로 추가하는 항목이든, 기존 .gitignore가 부모
   // 디렉터리를 통째로 제외하고 있으면 매 실행마다 경고한다 — 사용자가
   // 직접 고치기 전까지는 계속 알려야 "조용한 실패"가 아니게 된다.
-  const warnings = warnBlockedNegations(lines, entries, log)
+  const warnings = warnBlockedNegations(lines, entries, log, t)
 
   if (missing.length === 0) {
-    log(`.gitignore 항목 확인: ${entries.join(', ')}`)
+    log(t('log.ignore.keep', { entries: entries.join(', ') }))
     return [...entries.map((e) => ({ ok: true, action: 'skip', path: e })), ...warnings]
   }
 
-  log(`.gitignore 항목 추가: ${missing.join(', ')}`)
+  log(t('log.ignore.add', { entries: missing.join(', ') }))
   if (!dryRun) {
     // 헤더가 아직 없을 때만 항목들보다 먼저 넣는다. ensureGitignoreEntries는
     // 넘긴 항목 중 파일에 없는 줄만 추가하므로, 헤더도 그 목록의 맨 앞에
@@ -210,7 +210,7 @@ function isEmptyObjectBody(rest) {
 // 부트스트랩은 외부 의존성을 쓸 수 없어(jsonc-parser는 설치기 경로 전용)
 // 파싱·재직렬화 대신 텍스트 삽입으로 처리한다. 재직렬화하지 않으므로
 // 사용자의 주석·들여쓰기·줄바꿈이 그대로 남는다.
-export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
+export function ensureJsonKeys(root, entries, { dryRun = false, log, t = createT('en') }) {
   return entries.map(({ path: rel, key, value }) => {
     const pair = `${JSON.stringify(key)}: ${JSON.stringify(value)}`
 
@@ -218,7 +218,7 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
     if (!pathExists(repoPath(root, rel))) {
       // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
       const target = repoPathStrict(root, rel)
-      log(`파일 생성: ${rel}`)
+      log(t('log.file.create', { path: rel }))
       if (!dryRun) writeText(target, `{\n  ${pair}\n}`)
       return { ok: true, action: 'create', path: rel }
     }
@@ -227,8 +227,8 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
     try {
       text = readFileSync(repoPath(root, rel), 'utf8')
     } catch (err) {
-      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다 (${err.code ?? err.message})`)
-      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+      log(t('log.warn.unreadable', { path: rel, code: err.code ?? err.message }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
     }
 
     // 주석 안에 있어도 건드리지 않는다 — 사용자가 언급한 키를 스크립트가
@@ -237,18 +237,18 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log }) {
     // 쪽으로 틀리는 것(넣지 않음)이라 파일을 망가뜨리지는 않는다. 정확히 하려면
     // 최상위 키만 보는 파서가 필요한데, 부트스트랩은 의존성을 쓸 수 없다.
     if (text.includes(JSON.stringify(key))) {
-      log(`설정 키 확인: ${rel} — ${key}`)
+      log(t('log.json.keep', { path: rel, key }))
       return { ok: true, action: 'skip', path: rel }
     }
 
     const brace = findRootBrace(text)
     if (brace === -1) {
-      log(`경고: ${rel}에서 루트 객체를 찾지 못해 건너뜁니다`)
-      return { ok: true, action: 'warn', path: rel, message: '루트 객체 없음' }
+      log(t('log.warn.noRootObject', { path: rel }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.noRootObject') }
     }
 
     const strictTarget = repoPathStrict(root, rel)
-    log(`설정 키 추가: ${rel} — ${key}`)
+    log(t('log.json.add', { path: rel, key }))
     if (!dryRun) {
       const rest = text.slice(brace + 1)
       // 빈 객체면 콤마 없이, 뒤에 항목이 있으면 콤마를 붙여 유효한 JSON을 유지한다.
@@ -272,6 +272,9 @@ export function configureAdapterSafe(root, entry, ctx) {
   try {
     return configureAdapter(root, entry, ctx)
   } catch (err) {
+    // err.message는 항상 영어다(LocalizedError 또는 원시 Error) — 여기서는
+    // 구조화하지 않고 그대로 옮긴다. flow.mjs·bootstrap.flow.test.mjs가
+    // 이 사실에 기대어 실패 메시지를 검증한다.
     return { ok: false, action: 'link', path: entry.path, message: err.message }
   }
 }
@@ -291,22 +294,18 @@ function decide(current, recorded, force) {
   return force ? 'update' : 'drift'
 }
 
-function readOrNull(target) {
-  try {
-    return readFileSync(target, 'utf8')
-  } catch {
-    return null
-  }
-}
-
-export function updateFiles(root, files, { managed = {}, dryRun = false, force = false, log }) {
+export function updateFiles(root, files, { managed = {}, dryRun = false, force = false, log, t = createT('en') }) {
   return files.map(({ path: rel, template }) => {
     const lexical = repoPath(root, rel)
     const exists = pathExists(lexical)
-    const current = exists ? readOrNull(lexical) : null
-    if (exists && current === null) {
-      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다`)
-      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    let current = null
+    if (exists) {
+      try {
+        current = readFileSync(lexical, 'utf8')
+      } catch (err) {
+        log(t('log.warn.unreadable', { path: rel, code: err.code ?? err.message }))
+        return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
+      }
     }
 
     const wanted = hashBody(template)
@@ -318,34 +317,36 @@ export function updateFiles(root, files, { managed = {}, dryRun = false, force =
 
     const verdict = decide(current, managed[rel], force)
     if (verdict === 'drift') {
-      log(`사용자 수정 — 건드리지 않음: ${rel}`)
+      log(t('log.file.userEdited', { path: rel }))
       return { ok: true, action: 'drift', path: rel }
     }
 
     // 검사가 던지면 하지 않은 동작을 보고하지 않도록 로그보다 먼저 수행한다.
     const target = repoPathStrict(root, rel)
-    log(verdict === 'create' ? `파일 생성: ${rel}` : `파일 갱신: ${rel}`)
+    log(verdict === 'create' ? t('log.file.create', { path: rel }) : t('log.file.update', { path: rel }))
     if (!dryRun) writeText(target, template)
     return { ok: true, action: verdict, path: rel, hash: wanted }
   })
 }
 
-export function updateBlocks(root, blocks, { managed = {}, dryRun = false, force = false, log }) {
+export function updateBlocks(root, blocks, { managed = {}, dryRun = false, force = false, log, t = createT('en') }) {
   return blocks.map(({ path: rel, block }) => {
     const key = managedKey(rel, true)
     const wanted = hashBody(extractBlock(block) ?? block)
 
     if (!pathExists(repoPath(root, rel))) {
       const target = repoPathStrict(root, rel)
-      log(`파일 생성: ${rel}`)
+      log(t('log.file.create', { path: rel }))
       if (!dryRun) writeText(target, block)
       return { ok: true, action: 'create', path: rel, hash: wanted }
     }
 
-    const text = readOrNull(repoPath(root, rel))
-    if (text === null) {
-      log(`경고: ${rel}을 읽을 수 없어 건너뜁니다`)
-      return { ok: true, action: 'warn', path: rel, message: '읽기 실패' }
+    let text
+    try {
+      text = readFileSync(repoPath(root, rel), 'utf8')
+    } catch (err) {
+      log(t('log.warn.unreadable', { path: rel, code: err.code ?? err.message }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
     }
 
     const current = extractBlock(text)
@@ -353,19 +354,19 @@ export function updateBlocks(root, blocks, { managed = {}, dryRun = false, force
     // 생성 경로(ensureBlocks)의 일이고, 갱신이 append까지 하면 사용자가
     // 일부러 지운 블록을 되살리게 된다.
     if (current === null) {
-      log(`관리 블록 없음 — 건드리지 않음: ${rel}`)
-      return { ok: true, action: 'drift', path: rel, message: '관리 블록 없음' }
+      log(t('log.block.missing', { path: rel }))
+      return { ok: true, action: 'drift', path: rel, message: msg('msg.noManagedBlock') }
     }
 
     if (hashBody(current) === wanted) return { ok: true, action: 'skip', path: rel, hash: wanted }
 
     if (hashBody(current) !== managed[key] && !force) {
-      log(`블록 사용자 수정 — 건드리지 않음: ${rel}`)
+      log(t('log.block.userEdited', { path: rel }))
       return { ok: true, action: 'drift', path: rel }
     }
 
     const target = repoPathStrict(root, rel)
-    log(`관리 블록 갱신: ${rel}`)
+    log(t('log.block.update', { path: rel }))
     if (!dryRun) {
       // 마커를 포함한 구간을 통째로 새 블록으로 바꾼다. 앞뒤 사용자 본문은
       // 손대지 않으므로 줄바꿈 스타일도 그대로 남는다.

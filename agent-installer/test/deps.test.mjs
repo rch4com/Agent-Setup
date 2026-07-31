@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { withDeps } from '../lib/deps.mjs'
 import { createT } from '../lib/i18n/index.mjs'
-import { makeTempRepo } from './helpers.mjs'
+import { makeTempRepo, KO } from './helpers.mjs'
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // LocalizedError.message는 언제나 영어다 — 카탈로그 원문을 그대로 계산해 비교한다.
@@ -86,8 +86,9 @@ test('의존성이 없어도 부트스트랩은 끝까지 동작한다', () => {
   })
 
   const root = makeTempRepo()
+  // 기본 로케일은 영어다 — 이 스위트의 기존 단언은 한국어를 보므로 못박는다.
   const r = spawnSync(process.execPath, [join(bare, 'install.mjs'), 'bootstrap'], {
-    cwd: root, encoding: 'utf8', timeout: 30000, input: '',
+    cwd: root, encoding: 'utf8', timeout: 30000, input: '', env: { ...process.env, ...KO },
   })
 
   assert.equal(r.status, 0, r.stderr)
