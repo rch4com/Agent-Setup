@@ -8,7 +8,7 @@ import { LocalizedError } from '../i18n/index.mjs'
 const REL_DIR = '.claude/skills/gstack'
 
 export default defineSkill({
-  id: 'skill.gstack', label: 'gstack', scope: 'project',
+  id: 'skill.gstack', label: 'gstack', group: '__flow', scope: 'project',
   note: 'item.skill.gstack.note',
   async detect({ root }) {
     return { status: existsSync(repoPath(root, REL_DIR)) ? 'installed' : 'absent' }

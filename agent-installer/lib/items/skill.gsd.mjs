@@ -8,7 +8,7 @@ function hasGsdFiles(dir) {
 }
 
 export default defineSkill({
-  id: 'skill.gsd', label: 'GSD (Get Shit Done)', scope: 'project',
+  id: 'skill.gsd', label: 'GSD (Get Shit Done)', group: '__flow', scope: 'project',
   note: 'item.skill.gsd.note',
   async detect({ root }) {
     const found = hasGsdFiles(join(root, '.claude', 'commands')) || hasGsdFiles(join(root, '.claude', 'skills'))
