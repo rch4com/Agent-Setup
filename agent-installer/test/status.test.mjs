@@ -119,5 +119,13 @@ test('status 표의 값이 두 로케일 모두에서 같은 열에서 시작한
     ].map((line) => width(line.slice(0, line.indexOf('|') === -1 ? undefined : line.indexOf('|'))))
     // tool과 items는 값 앞 여백이 같아야 한다. files는 자리 구조가 달라 제외한다.
     assert.equal(cols[0], cols[2], `${locale}: tool과 items의 값 시작 열이 다르다`)
+
+    // 힌트 줄(→)은 자신이 가리키는 행의 값 열에서 화살표가 시작해야 한다 —
+    // 행 여백만 고치고 힌트를 빠뜨리면 화살표가 값보다 한참 왼쪽에 남는다.
+    for (const hintKey of ['status.hint.update', 'status.hint.pending', 'status.hint.drift']) {
+      const line = t(hintKey)
+      const arrowCol = width(line.slice(0, line.indexOf('→')))
+      assert.equal(arrowCol, cols[0], `${locale}: ${hintKey}의 화살표가 값 시작 열과 다르다`)
+    }
   }
 })
