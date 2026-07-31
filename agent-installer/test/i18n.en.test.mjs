@@ -76,10 +76,32 @@ test('영어 비대화형 목록 출력의 UI 문구가 영어로 나온다', ()
   const root = makeTempRepo()
   const r = runInstaller(root, [], { env: EN })
   assert.equal(r.status, 0, r.stderr)
-  assert.match(r.stdout, /\[ACTION\]/)
-  assert.match(r.stdout, /Run bootstrap/)
+
+  // 섹션 헤더 다섯 개 전부. PLUGIN·MCP·SKILL·DESIGN.MD는 두 로케일 값이 같아서
+  // 아래 한국어 부재 검사로는 raw id(`[mcp]`) 유출조차 잡히지 않는다 — 긍정
+  // 단언으로만 잡힌다.
+  for (const header of ['[ACTION]', '[PLUGIN]', '[MCP]', '[SKILL]', '[DESIGN.MD]']) {
+    assert.ok(r.stdout.includes(header), `섹션 헤더 없음: ${header}`)
+  }
+
+  // 액션 라벨 네 개와 힌트 네 개 전부 — 이 문구는 design.md 데이터가 아니라
+  // 우리 카탈로그 값이라 전수 검사해도 데이터 위험이 없다.
+  for (const label of ['Run bootstrap', 'Update installed', 'Refresh catalog', 'Check stale']) {
+    assert.ok(r.stdout.includes(label), `액션 라벨 없음: ${label}`)
+  }
+  for (const hint of ['per-tool config', 'refetch installed', 'rebuild the design.md list', 'compare installed copies']) {
+    assert.ok(r.stdout.includes(hint), `액션 힌트 없음: ${hint}`)
+  }
+
   assert.match(r.stdout, /interactive screen only opens in a terminal/)
-  for (const ours of ['[작업]', '부트스트랩 실행', '대화형 화면은 터미널에서만']) {
+
+  // 한국어 부재 — 두 로케일에서 값이 갈리는 문구만 의미가 있다.
+  // PLUGIN·MCP·SKILL·DESIGN.MD는 로케일이 같은 값이라 여기 넣어도 무의미하다.
+  for (const ours of [
+    '[작업]', '부트스트랩 실행', '설치본 업데이트', '카탈로그 새로고침', '오래된 항목 확인',
+    '도구별 설정', '원본 최신으로 다시 받는다', '목록·카테고리를 소스에서', '설치본을 원본과 해시 비교한다',
+    '대화형 화면은 터미널에서만',
+  ]) {
     assert.equal(r.stdout.includes(ours), false, `우리 문구가 한국어로 남았습니다: ${ours}`)
   }
 })

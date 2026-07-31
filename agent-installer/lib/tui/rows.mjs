@@ -139,17 +139,18 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
       hint: t('action.sync.stale.hint'),
       run: async ({ dryRun, log, confirm }) => {
         const stale = await findStale(root, designItems, { log, t: T_KO })
-        if (stale.length === 0) { log('모든 설치본이 최신입니다.'); return }
-        log(`오래된 항목 ${stale.length}개: ${stale.map((i) => i.name).join(', ')}`)
+        // 이 네 줄은 flow.mjs의 runSync(design --sync=stale)가 쓰는 문구와 같다 —
+        // 새 키를 만들지 않고 그 키(design.allCurrent 등)를 그대로 재사용한다.
+        if (stale.length === 0) { log(T_KO('design.allCurrent')); return }
+        log(T_KO('design.staleList', { count: stale.length, names: stale.map((i) => i.name).join(', ') }))
         if (dryRun) return
-        // 실제 confirm 다이얼로그가 카탈로그 키 없이 하드코딩돼 있던 자리다 — 키를 연결한다.
         if (!(await confirm(T_KO('design.staleConfirm', { count: stale.length })))) return
         for (const item of stale) {
           try {
             await item.install({ root, dryRun, fresh: true })
-            log(`  ✔ 업데이트 ${item.label}`)
+            log(T_KO('design.updated', { label: item.label }))
           } catch (err) {
-            log(`  ✖ 업데이트 ${item.label} — ${err.message}`)
+            log(T_KO('design.updateFailed', { label: item.label, message: err.message }))
           }
         }
       },
