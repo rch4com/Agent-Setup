@@ -104,3 +104,20 @@ test('dry-run은 파일도 기록도 바꾸지 않는다', async () => {
   assert.notEqual(readFileSync(join(root, '.agent-kit/README.md'), 'utf8'), '새 안내 문서\n')
   assert.match(cap.text(), /README\.md/)
 })
+
+// 회귀 가드: updateBlocks의 드리프트 message는 msg() 구조체다(문자열이 아니다).
+// update.mjs가 이를 문자열 삽입 위치에 그대로 꽂으면 "[object Object]"가
+// 찍힌다 — toText로 풀지 않으면 조용히 깨지는 자리라 반드시 지켜야 한다.
+test('관리 블록이 사라진 파일은 드리프트 메시지를 문자열로 렌더한다', async () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+  // 마커를 지워 updateBlocks의 "관리 블록 없음" 드리프트 경로를 밟게 한다.
+  writeFileSync(join(root, 'CLAUDE.md'), '마커가 사라진 파일\n')
+
+  const cap = makeCapture()
+  const r = await runUpdate(root, { log: cap.log })
+
+  assert.deepEqual(r.drift.map((d) => d.path), ['CLAUDE.md'])
+  assert.doesNotMatch(cap.text(), /\[object Object\]/)
+  assert.match(cap.text(), /관리 블록 없음/)
+})

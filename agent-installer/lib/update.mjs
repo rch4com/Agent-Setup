@@ -8,6 +8,7 @@ import {
   configureAdapterSafe, ensureIgnore, ensureJsonKeys, updateBlocks, updateFiles,
 } from './bootstrap/apply.mjs'
 import { RECORD_REL, managedKey, readRecord, toolVersion, writeRecord } from './bootstrap/record.mjs'
+import { createT, toText } from './i18n/index.mjs'
 
 // git이 유일한 되돌리기 수단이다. 커밋되지 않은 변경 위에 덮어쓰면 사용자가
 // 잃은 것을 복구할 방법이 없다.
@@ -77,7 +78,13 @@ export async function runUpdate(root, opts = {}) {
   say(`갱신 ${updated.length}건 · 신규 ${created.length}건 · 드리프트 ${drift.length}건`)
   if (drift.length > 0) {
     say('드리프트 (건드리지 않았습니다)')
-    for (const d of drift) say(`  ${d.path}${d.message ? ` — ${d.message}` : ''}`)
+    // 결과 message는 이제 구조화 메시지다. 이 파일의 나머지 문구가 아직
+    // 한국어 리터럴이라 여기서도 한국어로 고정한다 — Task 7이 파일 전체를
+    // 지역화하면서 이 고정을 걷어낸다.
+    for (const d of drift) {
+      const drifted = toText(createT('ko'), d.message)
+      say(`  ${d.path}${drifted ? ` — ${drifted}` : ''}`)
+    }
     say('최신 템플릿을 반영하려면 update --force (워킹트리가 깨끗해야 합니다)')
   }
 
