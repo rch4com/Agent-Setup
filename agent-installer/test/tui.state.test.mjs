@@ -12,19 +12,19 @@ function item(id, section, label, hint = '', group = null) {
   }
 }
 function action(id, label) {
-  return { kind: 'action', id, section: '작업', group: null, label, hint: '', searchText: `${label} 작업`.toLowerCase() }
+  return { kind: 'action', id, section: 'action', group: null, label, hint: '', searchText: `${label} action`.toLowerCase() }
 }
 
 const ROWS = [
   action('action.bootstrap', '부트스트랩 실행'),
-  item('plugin.a', 'PLUGIN', 'Superpowers', 'claude 전용'),
-  item('mcp.b', 'MCP', 'Supabase', 'dark postgres'),
-  item('design.stripe', 'DESIGN.MD', 'Stripe', 'fintech dark', 'Fintech'),
-  item('design.wise', 'DESIGN.MD', 'Wise', 'fintech', 'Fintech'),
-  item('design.linear', 'DESIGN.MD', 'Linear', 'productivity', 'Productivity'),
+  item('plugin.a', 'plugin', 'Superpowers', 'claude 전용'),
+  item('mcp.b', 'mcp', 'Supabase', 'dark postgres'),
+  item('design.stripe', 'design', 'Stripe', 'fintech dark', 'Fintech'),
+  item('design.wise', 'design', 'Wise', 'fintech', 'Fintech'),
+  item('design.linear', 'design', 'Linear', 'productivity', 'Productivity'),
 ]
 
-// DESIGN.MD 탭(인덱스 3)으로 옮긴 상태를 만든다.
+// design 탭(인덱스 3)으로 옮긴 상태를 만든다.
 const onDesign = (s) => setTab(s, 3)
 
 test('빈 검색어는 전체 통과한다 — 초기 화면이 곧 빈 검색어다', () => {
@@ -42,9 +42,9 @@ test('filterRows는 탭을 가로지르고 토큰을 AND로 묶는다 — 탭별
 // ── 탭 ────────────────────────────────────────────────────────────
 
 test('탭은 행 등장 순서를 따르고, 처음에는 첫 탭이 활성이다', () => {
-  assert.deepEqual(tabsOf(ROWS), ['작업', 'PLUGIN', 'MCP', 'DESIGN.MD'])
+  assert.deepEqual(tabsOf(ROWS), ['action', 'plugin', 'mcp', 'design'])
   const s = createState(ROWS)
-  assert.equal(activeTab(s), '작업')
+  assert.equal(activeTab(s), 'action')
   assert.deepEqual(s.filtered.map((r) => r.id), ['action.bootstrap'])
 })
 
@@ -55,9 +55,9 @@ test('보이는 목록은 활성 탭으로 스코프된다 — 다른 탭 항목
 
 test('탭 이동은 순환한다 — 탭은 몇 개뿐이라 끝에서 막히면 오히려 불편하다', () => {
   const s = createState(ROWS)
-  assert.equal(activeTab(moveTab(s, -1)), 'DESIGN.MD')
-  assert.equal(activeTab(moveTab(s, 1)), 'PLUGIN')
-  assert.equal(activeTab(moveTab(moveTab(s, 1), -1)), '작업')
+  assert.equal(activeTab(moveTab(s, -1)), 'design')
+  assert.equal(activeTab(moveTab(s, 1)), 'plugin')
+  assert.equal(activeTab(moveTab(moveTab(s, 1), -1)), 'action')
 })
 
 test('탭을 옮겨도 검색어는 유지된다 — 같은 검색어로 탭을 훑는 것이 탭의 쓸모다', () => {
@@ -71,10 +71,10 @@ test('탭을 옮겨도 검색어는 유지된다 — 같은 검색어로 탭을 
 test('tabCounts: 검색 중 어느 탭에 결과가 있는지 알려 준다', () => {
   const s = setQuery(createState(ROWS), 'fintech')
   assert.deepEqual(tabCounts(s), [
-    { tab: '작업', shown: 0, total: 1 },
-    { tab: 'PLUGIN', shown: 0, total: 1 },
-    { tab: 'MCP', shown: 0, total: 1 },
-    { tab: 'DESIGN.MD', shown: 2, total: 3 },
+    { tab: 'action', shown: 0, total: 1 },
+    { tab: 'plugin', shown: 0, total: 1 },
+    { tab: 'mcp', shown: 0, total: 1 },
+    { tab: 'design', shown: 2, total: 3 },
   ])
 })
 
@@ -206,6 +206,6 @@ test('replaceRows: 검색어와 활성 탭은 유지하고 선택은 새 설치 
   s = setQuery(s, 'stripe')
   s = replaceRows(s, ROWS, ['design.stripe'])
   assert.equal(s.query, 'stripe')
-  assert.equal(activeTab(s), 'DESIGN.MD')
+  assert.equal(activeTab(s), 'design')
   assert.deepEqual([...s.selected], ['design.stripe'])
 })

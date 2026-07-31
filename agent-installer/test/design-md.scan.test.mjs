@@ -12,6 +12,7 @@ import {
 import { buildItems } from '../lib/design-md/catalog.mjs'
 import { runDesign } from '../lib/design-md/flow.mjs'
 import { UNCATEGORIZED } from '../lib/design-md/providers/awesome-design-md.mjs'
+import { CATCH_ALL_CATEGORY } from '../lib/tui/rows.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 
 function tempDir() {
@@ -36,6 +37,9 @@ test('분류 못 한 항목의 카테고리는 표시 문자열이 아니라 id�
   assert.equal(BUNDLE_CATEGORY, '__other')
   assert.equal(UNCATEGORIZED, '__other')
   assert.equal(LOCAL_CATEGORY, '__local')
+  // tui/rows.mjs의 CATCH_ALL_CATEGORY까지 세 번째 손 맞춤 복사본이다 — 갈리면
+  // 같은 카테고리가 헤더 두 개로 쪼개지는데 어떤 테스트도 못 잡는다.
+  assert.equal(CATCH_ALL_CATEGORY, BUNDLE_CATEGORY)
 })
 
 // ── 메타데이터 파싱 ────────────────────────────────────────────────

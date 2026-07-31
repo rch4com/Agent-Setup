@@ -248,6 +248,14 @@ export default {
   'error.itemReasonMissing': '{id}: needs a reason for unsupported CLI \'{cli}\' (unsupported.{cli})',
   'error.shellQuote': 'The argument contains a double quote that cannot be passed to the shell: {value}',
 
+  // TUI 탭 이름. rows.mjs의 SECTION_ORDER id(action·plugin·mcp·skill·design)를
+  // 그대로 따른다 — 탭 순서·검색 스코프는 id로 갈리고, 여기서는 표시만 맡는다.
+  'section.action': 'ACTION',
+  'section.plugin': 'PLUGIN',
+  'section.mcp': 'MCP',
+  'section.skill': 'SKILL',
+  'section.design': 'DESIGN.MD',
+
   // design.md 서브시스템. category.*는 우리가 만든 catch-all id(__other·__local)를
   // 화면에 낼 때만 쓴다 — 공급자가 준 카테고리는 이미 영어 데이터라 번역하지 않는다.
   'category.other': 'Other',

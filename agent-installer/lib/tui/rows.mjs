@@ -11,16 +11,17 @@ import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/ca
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale, categoryLabel } from '../design-md/flow.mjs'
 
-const AGENT_SECTION = { plugin: 'PLUGIN', mcp: 'MCP', skill: 'SKILL' }
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
 const DESIGN_STATUS = { installed: '설치됨', partial: '일부', absent: '미설치' }
 
-export const ACTION_SECTION = '작업'
-// scan.mjs의 BUNDLE_CATEGORY와 같은 값이어야 한다 — 카테고리를 못 얻은 항목이
-// 모이는 자리다. 갈리면 같은 그룹이 헤더 두 개로 쪼개진다. 표시 문구로
-// 옮기는 일은 Task 9가 한다(이 파일 전체의 id화).
+// 섹션은 탭 이름이자 정렬 키이자 state.tabs의 원소다. 표시 문자열을 그대로
+// 쓰면 번역하는 순간 정렬이 깨진다 — id를 두고 render.mjs가 표시할 때만
+// t로 바꾼다. 덕분에 state.mjs는 계속 아무것도 import 하지 않는다.
+export const ACTION_SECTION = 'action'
+// design-md/scan.mjs의 BUNDLE_CATEGORY와 같은 값이다 — 카테고리를 못 얻은
+// 항목이 모이는 자리. 두 값이 갈리면 같은 그룹이 두 개로 쪼개진다.
 export const CATCH_ALL_CATEGORY = '__other'
-export const SECTION_ORDER = [ACTION_SECTION, 'PLUGIN', 'MCP', 'SKILL', 'DESIGN.MD']
+export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'design']
 
 function short(text, n = 60) {
   const t = (text ?? '').replace(/\s+/g, ' ').trim()
@@ -149,7 +150,7 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
   const agents = agentStates.map((s) =>
     itemRow({
       id: s.item.id,
-      section: AGENT_SECTION[s.item.category] ?? s.item.category.toUpperCase(),
+      section: s.item.category,
       label: s.item.label,
       hint: agentHint(s.item, s),
       status: s.status,
@@ -164,7 +165,7 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
     .map((s) =>
       itemRow({
         id: s.item.id,
-        section: 'DESIGN.MD',
+        section: 'design',
         group: s.item.designCategory || CATCH_ALL_CATEGORY,
         label: s.item.label,
         hint: designHint(s, multiProvider),

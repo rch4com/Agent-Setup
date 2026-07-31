@@ -43,10 +43,13 @@ function itemStates(rows) {
   return rows.filter((r) => r.kind === 'item').map((r) => ({ item: r.item, status: r.status }))
 }
 
-function printPlain(rows, log) {
+// row.section은 이제 소문자 id다(rows.mjs Task 9) — t 없이 그대로 찍으면
+// 화면에 'action'·'plugin' 같은 raw id가 새어 나간다. 이 경로도 사용자가
+// 보는 출력이라 여기서도 t를 받는다.
+function printPlain(rows, log, t = createT('en')) {
   let section = null
   for (const row of rows) {
-    if (row.section !== section) { section = row.section; log(`[${section}]`) }
+    if (row.section !== section) { section = row.section; log(`[${t(`section.${section}`)}]`) }
     const mark = row.kind === 'action' ? '▶' : row.status === 'absent' ? ' ' : '×'
     log(`  [${mark}] ${row.label}${row.hint ? ` — ${row.hint}` : ''}`)
   }
@@ -77,7 +80,9 @@ export async function runTui(root, opts = {}) {
 
   // raw 모드를 켤 수 없으면(CI·파이프) 목록만 내고 끝낸다.
   if (!stdin.isTTY || typeof stdin.setRawMode !== 'function') {
-    printPlain(collected.rows, log)
+    // TUI는 아직 로케일을 고르지 않는다(Task 11) — 지금까지와 같은 한국어
+    // 출력을 유지하기 위해 못박아 둔다.
+    printPlain(collected.rows, log, createT('ko'))
     log('\n대화형 화면은 터미널에서만 열립니다. --list · --set 으로도 다룰 수 있습니다.')
     return { interactive: false }
   }
@@ -98,7 +103,9 @@ export async function runTui(root, opts = {}) {
   const paint = () => {
     const height = stdout.rows ?? 24
     state = scroll(state, bodyHeight(height))
-    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status }))
+    // render()가 이제 t를 받아 탭 이름·그룹 헤더를 번역한다. TUI는 아직
+    // 로케일을 고르지 않으므로(Task 11) 지금까지와 같은 한국어를 못박아 둔다.
+    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t: createT('ko') }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.

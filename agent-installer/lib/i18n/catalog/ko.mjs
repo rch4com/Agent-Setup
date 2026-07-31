@@ -241,6 +241,14 @@ export default {
   'error.itemReasonMissing': '{id}: 미지원 CLI \'{cli}\'의 사유(unsupported.{cli})가 필요합니다',
   'error.shellQuote': '셸에 넘길 수 없는 큰따옴표가 인자에 있습니다: {value}',
 
+  // TUI 탭 이름. en.mjs 쪽 주석 참고. PLUGIN·MCP·SKILL·DESIGN.MD는 형식·브랜드
+  // 이름이라 번역하지 않는다 — 두 로케일에서 값이 같은 게 맞다.
+  'section.action': '작업',
+  'section.plugin': 'PLUGIN',
+  'section.mcp': 'MCP',
+  'section.skill': 'SKILL',
+  'section.design': 'DESIGN.MD',
+
   // design.md 서브시스템. en.mjs 쪽 주석 참고.
   'category.other': '기타',
   'category.local': '사내',

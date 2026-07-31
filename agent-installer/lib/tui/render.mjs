@@ -1,6 +1,8 @@
 // 순수 렌더 — 상태와 크기를 받아 화면 줄 배열을 돌려준다.
 // 커서 이동·지우기 같은 제어 시퀀스는 run.mjs가 맡는다.
 import { displayList, tabCounts, activeTab } from './state.mjs'
+import { createT } from '../i18n/index.mjs'
+import { categoryLabel } from '../design-md/flow.mjs'
 
 const ESC = String.fromCharCode(27)
 const DIM = `${ESC}[2m`
@@ -67,21 +69,26 @@ function checkbox(row, selected) {
 // 탭 줄. 검색 중이면 탭마다 적중 수를 보여 준다 —
 // 검색은 활성 탭 안으로만 걸리므로, 다른 탭에 결과가 있다는 사실을 여기서 알린다.
 // 폭이 모자라면 활성 탭 하나 + 위치 표시로 줄인다(줄바꿈은 화면을 무너뜨린다).
-export function tabBar(state, { width: limit, color = false, searching = false } = {}) {
+// tab 자체는 rows.mjs가 만든 소문자 id다 — 화면에는 t로 번역한 이름만 낸다.
+export function tabBar(state, { width: limit, color = false, searching = false, t = createT('en') } = {}) {
   const counts = tabCounts(state)
   if (counts.length === 0) return ''
   const active = activeTab(state)
 
   const segs = counts.map(({ tab, shown, total }) => ({
     tab,
-    text: searching ? `${tab} ${shown}/${total}` : `${tab} ${total}`,
+    text: searching ? `${t(`section.${tab}`)} ${shown}/${total}` : `${t(`section.${tab}`)} ${total}`,
     active: tab === active,
     empty: searching && shown === 0,
   }))
 
   const SEP = '  '
   const plain = segs.map((s) => s.text).join(SEP)
-  if (width(plain) > limit) {
+  // 실제로 그려지는 줄은 plain보다 늘 2칸 더 넓다 — 세그먼트 사이의 구분 공백(SEP)이
+  // 아니라 각 세그먼트 앞뒤의 표시(활성은 대괄호, 나머지는 공백)가 SEP 하나만큼을
+  // 대체하고 그 위에 1칸씩 더 얹기 때문이다(세그먼트 수와 무관하게 항상 +2).
+  // 이 2칸을 빼먹으면 영어처럼 긴 라벨에서 줄바꿈을 놓친다.
+  if (width(plain) + 2 > limit) {
     const i = segs.findIndex((s) => s.active)
     const compact = `‹ ${segs[i]?.text ?? ''} ›  ${i + 1}/${segs.length}`
     return color ? `${BOLD}${cut(compact, limit)}${RESET}` : cut(compact, limit)
@@ -108,7 +115,7 @@ function searchLine(state, { limit, color, paint }) {
 
 export function render(state, opts = {}) {
   // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
-  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '' } = opts
+  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', t = createT('en') } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
   const w = Math.max(24, columns - 1)
@@ -124,7 +131,7 @@ export function render(state, opts = {}) {
 
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
-    tabBar(state, { width: w, color, searching }),
+    tabBar(state, { width: w, color, searching, t }),
     searchLine(state, { limit: w, color, paint }),
     '',
   ]
@@ -140,7 +147,10 @@ export function render(state, opts = {}) {
     for (const entry of window) {
       if (entry.type === 'header') {
         const count = entry.shown === entry.total ? `${entry.total}` : `${entry.shown}/${entry.total}`
-        lines.push(paint(DIM, cut(`  ${entry.section} (${count})`, w)))
+        // entry.section은 사실 row.group(디자인 카테고리) 값이다. categoryLabel은
+        // 우리가 만든 catch-all(__other·__local)만 번역하고, 공급자가 준 실제
+        // 카테고리는 이미 영어 데이터라 그대로 통과시킨다.
+        lines.push(paint(DIM, cut(`  ${categoryLabel(t, entry.section)} (${count})`, w)))
         continue
       }
       const { row, index } = entry

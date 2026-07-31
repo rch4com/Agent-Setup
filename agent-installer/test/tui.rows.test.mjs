@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRows, agentHint, designHint, installedIds, SECTION_ORDER, CATCH_ALL_CATEGORY } from '../lib/tui/rows.mjs'
+import {
+  buildRows, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
+} from '../lib/tui/rows.mjs'
+import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
@@ -8,7 +11,7 @@ import { runTui } from '../lib/tui/run.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 
 const ACTIONS = [{
-  kind: 'action', id: 'action.bootstrap', section: '작업', label: '부트스트랩 실행',
+  kind: 'action', id: 'action.bootstrap', section: 'action', label: '부트스트랩 실행',
   hint: '지침 · 스킬', status: 'absent', previewTarget: null, searchText: '부트스트랩 실행 작업',
 }]
 
@@ -25,10 +28,30 @@ const DESIGN_STATES = [
 test('세 갈래가 하나의 배열로 합쳐지고 섹션 순서가 고정된다', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
   const sections = [...new Set(rows.map((r) => r.section))]
-  assert.deepEqual(sections, ['작업', 'PLUGIN', 'MCP', 'DESIGN.MD'])
+  assert.deepEqual(sections, ['action', 'plugin', 'mcp', 'design'])
   // 섹션 순서는 SECTION_ORDER를 따른다 — displayList가 인접한 같은 섹션을 하나로 묶기 때문이다.
   const ranks = rows.map((r) => SECTION_ORDER.indexOf(r.section))
   assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b))
+})
+
+test('섹션은 표시 문자열이 아니라 id다', () => {
+  assert.deepEqual(SECTION_ORDER, ['action', 'plugin', 'mcp', 'skill', 'design'])
+  assert.equal(ACTION_SECTION, 'action')
+})
+
+test('catch-all 카테고리는 scan.mjs와 같은 값이다', () => {
+  // 두 값이 갈리면 '기타' 그룹이 두 개로 쪼개져 나온다.
+  assert.equal(CATCH_ALL_CATEGORY, BUNDLE_CATEGORY)
+})
+
+test('행의 section은 item.category를 그대로 쓴다', () => {
+  const rows = buildRows({
+    agentStates: [
+      { item: { id: 'mcp.x', category: 'mcp', label: 'X' }, status: 'absent' },
+      { item: { id: 'plugin.y', category: 'plugin', label: 'Y' }, status: 'absent' },
+    ],
+  })
+  assert.deepEqual(rows.map((r) => r.section), ['plugin', 'mcp'])
 })
 
 test('액션 행은 항상 맨 위이고 체크 대상이 아니다', () => {
@@ -111,16 +134,40 @@ test('render: 프레임 높이가 터미널 높이와 맞는다', () => {
 
 test('render: 탭 줄이 모든 섹션을 싣고 활성 탭을 표시한다', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
-  const bar = render(createState(rows), { width: 100, height: 24 })[1]
-  for (const section of ['작업', 'PLUGIN', 'MCP', 'DESIGN.MD']) assert.ok(bar.includes(section), `${section} 없음`)
+  const bar = render(createState(rows), { width: 100, height: 24, t: createT('ko') })[1]
+  for (const label of ['작업', 'PLUGIN', 'MCP', 'DESIGN.MD']) assert.ok(bar.includes(label), `${label} 없음`)
   assert.ok(bar.includes('[작업 1]'), `활성 표시 없음: ${bar}`)
 })
 
 test('render: 검색 중이면 탭마다 적중 수를 보여 준다 — 다른 탭의 결과를 놓치지 않게', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
-  const bar = render(setQuery(createState(rows), 'stripe'), { width: 100, height: 24 })[1]
+  const bar = render(setQuery(createState(rows), 'stripe'), { width: 100, height: 24, t: createT('ko') })[1]
   assert.ok(bar.includes('DESIGN.MD 2/2'), `탭별 적중 수 없음: ${bar}`)
   assert.ok(bar.includes('[작업 0/1]'), `활성 탭 0건 표시 없음: ${bar}`)
+})
+
+// 카테고리를 id로 바꾼 뒤로 tabBar가 raw id를 그대로 찍던 회귀 —
+// t가 section.<id> 키를 번역해야 하고, 두 로케일 모두 raw id가 새지 않아야 한다.
+test('render: 탭 줄은 raw 섹션 id가 아니라 t로 번역된 이름을 보인다 — 두 로케일 모두', () => {
+  const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
+  const barKo = render(createState(rows), { width: 100, height: 24, t: createT('ko') })[1]
+  const barEn = render(createState(rows), { width: 100, height: 24, t: createT('en') })[1]
+  assert.ok(barKo.includes('작업'), `ko 탭 이름 없음: ${barKo}`)
+  assert.ok(barEn.includes('ACTION'), `en 탭 이름 없음: ${barEn}`)
+  for (const bar of [barKo, barEn]) assert.doesNotMatch(bar, /\baction\b/, `raw id가 새어 나갔다: ${bar}`)
+})
+
+// design 그룹 헤더(render.mjs:143)도 같은 회귀에 노출된다 — categoryLabel을
+// 거쳐야 catch-all id가 로케일 라벨로 나온다.
+test('render: design 그룹 헤더는 catch-all id를 로케일 라벨로 보여준다 — raw id가 새지 않는다', () => {
+  const states = [{ item: { id: 'd.x', name: 'x', providerId: 'a', label: 'X', designCategory: '' }, status: 'absent' }]
+  const rows = buildRows({ designStates: states })
+  const ko = render(createState(rows), { width: 80, height: 24, t: createT('ko') }).join('\n')
+  const en = render(createState(rows), { width: 80, height: 24, t: createT('en') }).join('\n')
+  assert.match(ko, /기타/)
+  assert.match(en, /Other/)
+  assert.doesNotMatch(ko, /__other/)
+  assert.doesNotMatch(en, /__other/)
 })
 
 test('render: 폭이 좁으면 탭 줄이 활성 탭 하나로 줄어든다 — 접히면 화면이 무너진다', () => {
