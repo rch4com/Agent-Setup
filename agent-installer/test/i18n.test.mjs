@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { baseTag, detectLocale } from '../lib/i18n/detect.mjs'
-import { LOCALES, createT, resolveLocale, LocalizedError, msg, toText } from '../lib/i18n/index.mjs'
+import { LOCALES, createT, isLocaleForced, resolveLocale, LocalizedError, msg, toText } from '../lib/i18n/index.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 import KO from '../lib/i18n/catalog/ko.mjs'
 import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
@@ -155,6 +155,17 @@ test('resolveLocale은 지원하지 않는 값을 건너뛴다', () => {
   assert.equal(resolveLocale({ env: { AGENT_SETUP_LANG: 'de' }, record: { lang: 'ko' } }), 'ko')
   assert.equal(resolveLocale({ record: { lang: 'zz' }, detected: 'fr' }), 'en')
   assert.equal(resolveLocale({}), 'en')
+})
+
+test('isLocaleForced는 지원하는 값이 못박았을 때만 참이다', () => {
+  assert.equal(isLocaleForced({ flag: 'ko', env: {} }), true)
+  assert.equal(isLocaleForced({ env: { AGENT_SETUP_LANG: 'en' } }), true)
+  assert.equal(isLocaleForced({}), false)
+  assert.equal(isLocaleForced({ env: { AGENT_SETUP_LANG: '' } }), false)
+  // 셸에 남은 지원 밖 값은 resolveLocale이 이미 건너뛴다. 여기서 참을
+  // 돌려주면 화면이 "환경변수가 이긴다"고 거짓말한다.
+  assert.equal(isLocaleForced({ env: { AGENT_SETUP_LANG: 'ja' } }), false)
+  assert.equal(resolveLocale({ env: { AGENT_SETUP_LANG: 'ja' }, record: { lang: 'ko' } }), 'ko')
 })
 
 // ── LocalizedError · msg ──────────────────────────────────────────

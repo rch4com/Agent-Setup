@@ -142,7 +142,11 @@ export async function runTui(root, opts = {}) {
       // 언어는 부수적 설정이다. 저장에 실패했다고 화면이 죽으면 설치기를 못 쓴다.
       note = t('tui.lang.saveFailed', { message: err.message })
     }
-    if (localeForced) note = `${note} ${t('tui.lang.overridden')}`
+    // 전환은 이번 실행에 이미 적용됐다(위에서 t를 갈아끼우고 아래에서 다시
+    // 그린다) — 읽을 수 없는 언어에 갇힌 사용자가 빠져나올 길이 있어야 한다.
+    // 알릴 것은 "다음 실행에서는 플래그·환경변수가 다시 이긴다"뿐이다.
+    // note는 이미 "저장했다"를 말하므로 겹치지 않게 이어 붙인다.
+    if (localeForced) note = `${note} · ${t('tui.lang.overridden')}`
     await rebuild(true)
     return note
   }

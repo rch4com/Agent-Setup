@@ -3,8 +3,9 @@ import { findRepoRoot } from './lib/context.mjs'
 import { runBootstrap } from './lib/bootstrap/flow.mjs'
 import { readRecord } from './lib/bootstrap/record.mjs'
 import { withDeps } from './lib/deps.mjs'
-import { LocalizedError, createT, resolveLocale, toText } from './lib/i18n/index.mjs'
+import { LocalizedError, createT, isLocaleForced, resolveLocale, toText } from './lib/i18n/index.mjs'
 import { detectLocale } from './lib/i18n/detect.mjs'
+import { labelWidth, pad } from './lib/width.mjs'
 import {
   bootstrapUsage, designUsage, rootUsage, statusUsage, updateUsage,
   parseBootstrapArgs, parseDesignArgs, parseRootArgs, parseStatusArgs, parseUpdateArgs, preScanLang,
@@ -31,6 +32,14 @@ function tryReadRecord(root) {
 const argv = process.argv.slice(2)
 const flag = preScanLang(argv)
 
+// main()이 로케일을 확정하는 즉시 여기에 담고, 아래 catch가 이 값을 쓴다.
+// main() 안의 지역변수로만 두면 catch에서 보이지 않아, 오류 메시지가 성공
+// 경로와 다른 언어로 나온다.
+let sessionT = null
+
+// 상태 라벨은 로케일마다 길이가 다르다 — 폭을 상수로 박으면 한쪽이 어긋난다.
+const STATUS_KEYS = ['status.installed', 'status.partial', 'status.absent']
+
 // 대화형 화면은 TUI가 맡는다.
 async function openTui(root, { dryRun, skillMode, designDirs, t, localeForced }) {
   const { runTui } = await withDeps(() => import('./lib/tui/run.mjs'), t)
@@ -45,11 +54,12 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const { scan, planChanges, apply } = await withDeps(() => import('./lib/engine.mjs'), t)
   const items = await loadItems()
   const states = await scan(root, items)
+  const statusWidth = labelWidth(t, STATUS_KEYS)
 
   if (listOnly) {
     for (const s of states) {
       const detail = toText(t, s.detail)
-      console.log(`${t(`status.${s.status}`).padEnd(13)} ${s.item.id} — ${s.item.label}${detail ? ` (${detail})` : ''}`)
+      console.log(`${pad(t(`status.${s.status}`), statusWidth)} ${s.item.id} — ${s.item.label}${detail ? ` (${detail})` : ''}`)
     }
     return
   }
@@ -68,7 +78,7 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
 
   const after = await scan(root, items)
   console.log(`\n${t('apply.finalState')}`)
-  for (const s of after) console.log(`  ${t(`status.${s.status}`).padEnd(13)} ${s.item.label}`)
+  for (const s of after) console.log(`  ${pad(t(`status.${s.status}`), statusWidth)} ${s.item.label}`)
   console.log(`\n${t('apply.seeGitDiff')}`)
   if (results.some((r) => !r.ok)) process.exitCode = 1
 }
@@ -78,9 +88,10 @@ async function main() {
   const record = root === null ? null : tryReadRecord(root)
   const locale = resolveLocale({ flag, env: process.env, record, detected: detectLocale(process.env) })
   const t = createT(locale)
-  // 플래그·환경변수가 로케일을 강제하면 TUI의 언어 전환이 이번 실행에
-  // 반영되지 않는다. 조용히 안 먹는 대신 화면이 그 사실을 알리게 한다.
-  const localeForced = Boolean(flag) || Boolean(process.env.AGENT_SETUP_LANG)
+  sessionT = t
+  // 플래그·환경변수가 로케일을 못박으면 TUI에서 고른 언어는 이번 실행에만
+  // 살아남는다. 조용히 되돌아가는 대신 화면이 그 사실을 알리게 한다.
+  const localeForced = isLocaleForced({ flag, env: process.env })
 
   if (root === null) throw new LocalizedError('error.notGitRepo')
 
@@ -127,11 +138,15 @@ async function main() {
 }
 
 // 오류는 한 곳에서 지역화한다. LocalizedError의 .message는 영어라
-// 스택 트레이스가 읽히고, 여기서 활성 로케일로 다시 렌더한다. 기록은 다시
-// 읽지 않는다 — 오류 경로에서 그 기록을 실제로 쓴 명령이 실패했을 수도
-// 있는 파일을 재차 읽을 이유가 없다. flag·환경변수·OS는 그대로 반영된다.
+// 스택 트레이스가 읽히고, 여기서 활성 로케일로 다시 렌더한다.
+//
+// 기록 파일은 다시 읽지 않는다 — 오류 경로에서 그 기록을 실제로 쓴 명령이
+// 실패했을 수도 있는 파일을 재차 읽을 이유가 없다. 대신 main()이 이미 정한
+// t를 그대로 쓴다. 재차 해석하면 record가 빠져, TUI에서 한국어를 고른 팀이
+// 성공은 한국어로 오류는 영어로 받는다. sessionT가 비어 있는 경우는 로케일
+// 확정 전에 던진 때뿐이라 플래그·환경변수·OS만으로 정한다.
 main().catch((err) => {
-  const t = createT(resolveLocale({ flag, env: process.env, detected: detectLocale(process.env) }))
+  const t = sessionT ?? createT(resolveLocale({ flag, env: process.env, detected: detectLocale(process.env) }))
   console.error(err.key ? t(err.key, err.params) : err.message)
   process.exit(1)
 })

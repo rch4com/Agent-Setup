@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createT } from '../lib/i18n/index.mjs'
 import { bootstrapUsage, rootUsage, designUsage, updateUsage, statusUsage } from '../lib/args.mjs'
-import { makeTempRepo, runInstaller } from './helpers.mjs'
+import { itemRows, makeTempRepo, nameColumn, runInstaller } from './helpers.mjs'
 
 // 번역 누락의 본질은 "어디를 빠뜨렸는지 모른다"이다.
 // 영어 로케일 출력에 한글이 하나라도 있으면 그 자리가 누락이다.
@@ -56,15 +56,31 @@ test('영어 status와 --list 출력에 한글이 없다', () => {
 // design.md 데이터에서 온다(예: 사내 소스로 번들된 실제 한국어 디자인
 // 시스템 문서). 데이터는 어떤 언어든 담을 수 있고 그건 번역 누락이 아니다
 // — 그래서 "한글이 없다"가 아니라 "우리 문구가 영어로 나온다"를 본다.
-test('영어 design --list의 UI 문구가 영어로 나온다', () => {
+//
+// 항목을 하나 설치해 두고 본다. 빈 저장소에서는 모든 항목이 absent라
+// 'Installed'와 'Not installed'가 나란히 찍힌 적이 한 번도 없었고, 그래서
+// 두 라벨의 길이 차이에서 오는 열 어긋남이 이 스위트를 그대로 통과했다.
+test('영어 design --list의 UI 문구가 영어로 나오고 열이 맞는다', () => {
   const root = makeTempRepo()
   runInstaller(root, ['bootstrap'], { env: EN })
+  assert.equal(runInstaller(root, ['design', '--set', 'stripe'], { env: EN }).status, 0)
+
   const r = runInstaller(root, ['design', '--list'], { env: EN })
   assert.equal(r.status, 0, r.stderr)
-  assert.match(r.stdout, /Not installed/)
   for (const ours of ['미설치', '설치됨', '일부 설치됨', '기타', '사내']) {
     assert.doesNotMatch(r.stdout, new RegExp(ours), `우리 문구가 한국어로 남았습니다: ${ours}`)
   }
+
+  // 두 상태가 실제로 함께 찍혔는가 — 이게 아니면 아래 정렬 검사는 공회전이다.
+  const installed = itemRows(r.stdout, 'Installed')
+  const absent = itemRows(r.stdout, 'Not installed')
+  assert.ok(installed.length > 0, "'Installed' 행이 없다 — design --set이 듣지 않았다")
+  assert.ok(absent.length > 0, "'Not installed' 행이 없다")
+
+  // 'Installed'(9칸)와 'Not installed'(13칸)는 길이가 다르다. 상태 열 폭이
+  // 라벨보다 좁으면(padEnd(4)) 채움이 아예 일어나지 않아 이름 열이 어긋난다.
+  const columns = new Set([...installed, ...absent].map(nameColumn))
+  assert.equal(columns.size, 1, `이름 열이 행마다 다른 칸에서 시작한다: ${[...columns].join(', ')}`)
 })
 
 // TTY가 아니면 TUI는 목록만 찍고 끝난다 — CI가 늘 밟는 경로다. 이 목록에는

@@ -3,6 +3,12 @@
 import { displayList, tabCounts, activeTab } from './state.mjs'
 import { createT } from '../i18n/index.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
+import { cut, pad, width } from '../width.mjs'
+
+// 폭 계산은 화면 전용이 아니다 — 비대화형 목록도 같은 열 맞춤이 필요해
+// lib/width.mjs에 있다. 여기서 다시 내보내는 것은 호출부(테스트 포함)가
+// "화면 폭"을 render에서 찾는 기존 습관을 깨지 않기 위해서다.
+export { cut, width }
 
 const ESC = String.fromCharCode(27)
 const DIM = `${ESC}[2m`
@@ -16,47 +22,6 @@ export const LABEL_WIDTH = 24
 
 export function bodyHeight(height) {
   return Math.max(3, height - CHROME)
-}
-
-// 동아시아 글자는 터미널에서 두 칸을 차지한다. 전체 wcwidth 표 대신
-// 실제로 쓰이는 구간(한글·한자·가나·전각)만 넓게 센다 — 액션 행 라벨이 전부 한글이라
-// 한 칸씩 밀리면 첫 화면부터 열이 어긋난다.
-function charWidth(cp) {
-  return (cp >= 0x1100 && cp <= 0x115f) // 한글 자모
-    || (cp >= 0x2e80 && cp <= 0xa4cf) // 한자 부수·가나·한자
-    || (cp >= 0xac00 && cp <= 0xd7a3) // 한글 음절
-    || (cp >= 0xf900 && cp <= 0xfaff) // 한자 호환
-    || (cp >= 0xfe30 && cp <= 0xfe6f) // 전각 형태
-    || (cp >= 0xff00 && cp <= 0xff60) // 전각 영숫자
-    || (cp >= 0xffe0 && cp <= 0xffe6)
-    ? 2 : 1
-}
-
-export function width(text) {
-  let w = 0
-  for (const ch of String(text ?? '')) w += charWidth(ch.codePointAt(0))
-  return w
-}
-
-// 색 코드는 폭에 포함되면 안 되므로, 자르기는 항상 색을 입히기 **전에** 한다.
-export function cut(text, limit) {
-  if (limit <= 0) return ''
-  const s = String(text ?? '')
-  if (width(s) <= limit) return s
-  let out = ''
-  let w = 0
-  for (const ch of s) {
-    const cw = charWidth(ch.codePointAt(0))
-    if (w + cw > limit - 1) break
-    out += ch
-    w += cw
-  }
-  return `${out}…`
-}
-
-function pad(text, limit) {
-  const s = cut(text, limit)
-  return s + ' '.repeat(Math.max(0, limit - width(s)))
 }
 
 const MARK = { action: '▶', on: '×', off: ' ' }

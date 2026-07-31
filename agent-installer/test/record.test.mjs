@@ -8,7 +8,12 @@ import {
 } from '../lib/bootstrap/record.mjs'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { hashBody } from '../lib/bootstrap/text.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { makeCapture, makeTempRepo } from './helpers.mjs'
+
+// writeRecord는 log를 주면 t도 요구한다 — 영어 리터럴 폴백을 없앤 뒤로는
+// 로그를 받는 호출부가 로케일을 반드시 넘겨야 한다.
+const T = createT('ko')
 
 function putRecord(root, obj) {
   mkdirSync(join(root, '.agent-kit'), { recursive: true })
@@ -30,7 +35,7 @@ test('쓰고 읽으면 같은 값이 돌아온다', () => {
   record.items = ['mcp.notion']
   record.managed['AGENTS.md'] = 'sha256:abc'
 
-  writeRecord(root, record, { dryRun: false, log: cap.log })
+  writeRecord(root, record, { dryRun: false, log: cap.log, t: T })
   const back = readRecord(root)
 
   assert.equal(back.formatVersion, FORMAT_VERSION)
@@ -43,7 +48,7 @@ test('쓰고 읽으면 같은 값이 돌아온다', () => {
 test('dryRun이면 파일을 만들지 않는다', () => {
   const root = makeTempRepo()
   const cap = makeCapture()
-  writeRecord(root, emptyRecord({ skillMode: 'auto' }), { dryRun: true, log: cap.log })
+  writeRecord(root, emptyRecord({ skillMode: 'auto' }), { dryRun: true, log: cap.log, t: T })
   assert.equal(readRecord(root), null)
   // 무엇이 바뀔지는 보고해야 한다 — dry-run이 조용하면 확인 도구가 아니다.
   assert.match(cap.text(), /agent-setup\.json/)
@@ -77,7 +82,7 @@ test('필드가 없어도 기본값으로 읽힌다', () => {
 
 test('사람이 읽을 수 있게 들여쓰기하고 끝 개행을 둔다', () => {
   const root = makeTempRepo()
-  writeRecord(root, emptyRecord({ skillMode: 'auto' }), { dryRun: false, log: makeCapture().log })
+  writeRecord(root, emptyRecord({ skillMode: 'auto' }), { dryRun: false, log: makeCapture().log, t: T })
   const text = readFileSync(join(root, RECORD_REL), 'utf8')
   // 커밋되어 git diff로 읽는 파일이다. 한 줄 JSON이면 diff가 무의미하다.
   assert.match(text, /\n {2}"formatVersion"/)

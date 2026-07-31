@@ -12,6 +12,10 @@ import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
 // 타임아웃은 필수다 — 키 시퀀스가 루프를 빠져나오지 못하면 runTui가 영원히
 // 다음 키를 기다리고, 테스트 스위트가 통째로 멈춘 채 죽는다. 빨리 실패시킨다.
 async function drive(keys, opts = {}) {
+  // columns는 runTui가 아니라 가짜 stdout이 받는다. 상태줄은 폭에 맞춰
+  // 잘리므로, 긴 문구를 통째로 단언하려면 넓은 터미널이 필요하다.
+  const { columns = 100, ...rest } = opts
+
   const stdin = new EventEmitter()
   stdin.isTTY = true
   stdin.setRawMode = () => {}
@@ -19,11 +23,11 @@ async function drive(keys, opts = {}) {
   stdin.pause = () => {}
 
   const frames = []
-  const stdout = { columns: 100, rows: 24, isTTY: true, write: (s) => frames.push(s) }
+  const stdout = { columns, rows: 24, isTTY: true, write: (s) => frames.push(s) }
 
   const cap = makeCapture()
-  const done = runTui(opts.root ?? makeTempRepo(), {
-    dryRun: true, log: cap.log, env: { NO_COLOR: '1' }, stdin, stdout, t: createT('ko'), ...opts,
+  const done = runTui(rest.root ?? makeTempRepo(), {
+    dryRun: true, log: cap.log, env: { NO_COLOR: '1' }, stdin, stdout, t: createT('ko'), ...rest,
   })
 
   while (stdin.listenerCount('keypress') === 0) await new Promise((r) => setImmediate(r))
@@ -159,6 +163,29 @@ test('언어 전환은 순환한다', async () => {
   const root = makeTempRepo()
   await drive([ENTER, ENTER, ESC], { root, t: createT('en'), dryRun: false })
   assert.equal(readRecord(root).lang, 'en')
+})
+
+// localeForced는 "이번 전환이 안 먹는다"가 아니다 — 전환은 그 자리에서
+// 적용된다(읽을 수 없는 언어에 갇힌 사용자가 빠져나올 길이다). 상태줄이
+// 알릴 것은 다음 실행에서 플래그·환경변수가 다시 이긴다는 사실뿐이다.
+test('로케일이 강제돼도 전환은 이번 실행에 적용되고, 다음 실행을 안내한다', async () => {
+  const root = makeTempRepo()
+  const { screen, lastListFrame } = await drive([ENTER, ESC], {
+    root, t: createT('en'), dryRun: false, localeForced: true, columns: 160,
+  })
+
+  // 화면은 실제로 한국어로 바뀌었다.
+  assert.match(screen, /한국어/, '강제 로케일에서 전환이 화면에 반영되지 않았다')
+  // 그리고 상태줄이 다음 실행을 예고한다.
+  assert.match(lastListFrame, /다음 실행에서는 --lang \/ AGENT_SETUP_LANG이 여전히 이깁니다/)
+  // "저장했습니다"가 두 번 나오면 안 된다 — 저장 알림과 이어 붙는 문구다.
+  assert.equal(lastListFrame.match(/저장했습니다/g).length, 1, '저장 알림이 중복됐다')
+})
+
+test('로케일이 강제되지 않으면 다음 실행 안내를 붙이지 않는다', async () => {
+  const root = makeTempRepo()
+  const { lastListFrame } = await drive([ENTER, ESC], { root, t: createT('en'), dryRun: false })
+  assert.doesNotMatch(lastListFrame, /여전히 이깁니다/)
 })
 
 test('언어 전환이 선택 집합을 보존한다', async () => {

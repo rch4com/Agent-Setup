@@ -77,10 +77,14 @@ export function readRecord(root) {
 
 // pinnedVersion은 여기서 실행 중 버전으로 맞춘다 — 기록을 쓰는 명령만
 // 버전을 옮길 수 있어야 고정이 거짓말하지 않는다.
+//
+// log를 주면 t도 반드시 줘야 한다. 영어 리터럴 폴백을 두면 t를 빠뜨린
+// 호출부가 한국어 출력 한가운데에 영어 한 줄을 흘리면서도 아무 신호를 내지
+// 않는다 — update.mjs가 실제로 그렇게 새어 나갔다.
 export function writeRecord(root, record, { dryRun = false, log, t } = {}) {
   const target = repoPathStrict(root, RECORD_REL)
   const body = `${JSON.stringify({ ...record, pinnedVersion: toolVersion() }, null, 2)}\n`
-  log?.(t ? t('log.record.write', { path: RECORD_REL }) : `record: ${RECORD_REL}`)
+  log?.(t('log.record.write', { path: RECORD_REL }))
   if (!dryRun) {
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, body, { encoding: 'utf8' })

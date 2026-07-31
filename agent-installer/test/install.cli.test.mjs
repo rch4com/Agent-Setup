@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, runInstaller, KO } from './helpers.mjs'
@@ -167,6 +167,29 @@ test('git 저장소가 아니면 선택한 언어로 거부한다', () => {
   const ko = runInstaller(outside, ['--list'], { env: KO })
   assert.equal(ko.status, 1)
   assert.match(ko.stderr, /git 저장소/)
+})
+
+// 결정 사슬에서 기록(record.lang)은 플래그·환경변수 다음이다. 성공 경로는
+// main()이 기록까지 넣어 해석하는데, 오류 경로가 기록을 빠뜨리면 TUI에서
+// 한국어를 고른 팀이 성공은 한국어로 오류는 영어로 받는다 — 실제로 그랬다.
+test('설치 기록의 lang이 오류 메시지에도 적용된다', () => {
+  const root = makeTempRepo()
+  // TUI의 언어 전환이 남기는 것과 같은 기록을 만든다.
+  assert.equal(runInstaller(root, ['bootstrap'], { env: KO }).status, 0)
+  const target = join(root, '.agent-kit', 'agent-setup.json')
+  const record = JSON.parse(readFileSync(target, 'utf8'))
+  writeFileSync(target, `${JSON.stringify({ ...record, lang: 'ko' }, null, 2)}\n`)
+
+  // 플래그도 환경변수도 없다 — 기록만이 한국어를 가리킨다.
+  const env = { AGENT_SETUP_LANG: '' }
+  const ok = runInstaller(root, ['status'], { env })
+  assert.equal(ok.status, 0, ok.stderr)
+  assert.match(ok.stdout, /도구/, '성공 경로가 기록의 언어를 따르지 않았다')
+
+  const failed = runInstaller(root, ['--set', 'no.such.item'], { env })
+  assert.equal(failed.status, 1)
+  assert.match(failed.stderr, /알 수 없는 항목/, '오류 경로가 기록의 언어를 버렸다')
+  assert.doesNotMatch(failed.stderr, /Unknown item/)
 })
 
 test('--lang은 오류 메시지에도 적용된다', () => {

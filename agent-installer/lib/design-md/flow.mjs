@@ -4,6 +4,11 @@ import { PROVIDERS } from './providers/index.mjs'
 import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
 import { createT, toText } from '../i18n/index.mjs'
+import { labelWidth, pad } from '../width.mjs'
+
+// design 항목의 detect는 installed/absent만 돌려준다(catalog.mjs) — partial은
+// 열을 넓히기만 하고 실제로 나오지 않는다.
+const DESIGN_STATUS_KEYS = ['status.installed', 'status.absent']
 
 // 카탈로그의 카테고리는 공급자가 준 영어 데이터라 번역하지 않는다.
 // 우리가 만든 catch-all(__other·__local)만 번역 대상이다.
@@ -26,10 +31,13 @@ function printList(states, log, t) {
     if (!byProvider.has(s.item.providerId)) byProvider.set(s.item.providerId, [])
     byProvider.get(s.item.providerId).push(s)
   }
+  // 폭은 그 로케일의 실제 라벨에서 뽑는다. padEnd는 코드 유닛을 세어 한글이
+  // 밀리고, 상수로 박으면 영어('Not installed' 13칸)가 넘쳐 이름 열이 어긋난다.
+  const statusWidth = labelWidth(t, DESIGN_STATUS_KEYS)
   for (const [pid, group] of byProvider) {
     log(`[${pid}${group[0].item.local ? ` · ${t('design.localTag')}` : ''}]`)
     for (const s of group) {
-      log(`  ${t(`status.${s.status}`).padEnd(4)} ${s.item.name} — ${s.item.label} [${categoryLabel(t, s.item.designCategory)}]`)
+      log(`  ${pad(t(`status.${s.status}`), statusWidth)} ${s.item.name} — ${s.item.label} [${categoryLabel(t, s.item.designCategory)}]`)
     }
   }
 }

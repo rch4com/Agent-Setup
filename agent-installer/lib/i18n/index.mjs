@@ -59,6 +59,15 @@ export function resolveLocale({ flag = null, env = {}, record = null, detected =
   return 'en'
 }
 
+// 플래그나 환경변수가 로케일을 못박았는가. TUI에서 고른 언어는 이번 실행에는
+// 적용되지만 기록에만 남고 다음 실행에서 다시 밀리므로, 화면이 그 사실을
+// 알려야 한다. 판정 규칙이 resolveLocale과 갈리면 안 되므로 같은 모듈에 둔다 —
+// 지원하지 않는 값은 resolveLocale이 이미 건너뛰었고, 셸에 남은
+// AGENT_SETUP_LANG=ja까지 "환경변수가 이긴다"고 말하면 거짓말이 된다.
+export function isLocaleForced({ flag = null, env = {} } = {}) {
+  return [flag, env.AGENT_SETUP_LANG].some((v) => typeof v === 'string' && LOCALES.includes(v))
+}
+
 // 옵션 주머니가 없어 t를 꿸 수 없는 곳(context.mjs의 repoPath,
 // record.mjs의 readRecord)이 쓴다. .message는 영어로 즉시 채워 스택
 // 트레이스가 그대로 읽히게 하고, 진입점이 .key를 보고 다시 렌더한다.

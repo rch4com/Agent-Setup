@@ -133,7 +133,7 @@ export default {
   'status.absent': 'Not installed',
 
   'change.install': 'Install',
-  'change.complete': 'Complete',
+  'change.complete': 'Finish',
   'change.uninstall': 'Remove',
 
   'apply.noChanges': 'Nothing to change.',
@@ -264,8 +264,8 @@ export default {
   'tui.search.placeholder': 'type to search · ↓ for the list',
   'tui.empty.filtered': '  Nothing matches in this tab. Press Tab to try another.',
   'tui.empty.none': '  Nothing here.',
-  'tui.hint.search': 'type=query (space included)   ↓ to list   Tab switch tab   Esc clear',
-  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview',
+  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab switch tab   Esc clear',
+  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab switch tab   Enter run/submit   Ctrl+A all   Ctrl+O preview',
   'tui.review.title': 'Review — {count} change(s)',
   'tui.review.more': '  …and {count} more',
   'tui.review.hint': 'Enter apply   Esc cancel',
@@ -285,7 +285,7 @@ export default {
   'tui.lang.saved': 'Saved to {path}',
   'tui.lang.dryRun': 'dry-run — applied to this session only',
   'tui.lang.saveFailed': 'Could not save the language: {message}',
-  'tui.lang.overridden': '--lang / AGENT_SETUP_LANG wins for this run.',
+  'tui.lang.overridden': '--lang / AGENT_SETUP_LANG still wins on the next run.',
 
   'item.location.user': 'installs to: user global',
   'item.unsupportedList': 'unsupported: {list}',

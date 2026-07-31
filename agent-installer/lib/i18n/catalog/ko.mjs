@@ -276,7 +276,7 @@ export default {
   'tui.lang.saved': '{path}에 저장했습니다',
   'tui.lang.dryRun': 'dry-run — 이번 세션에만 적용했습니다',
   'tui.lang.saveFailed': '언어를 저장하지 못했습니다: {message}',
-  'tui.lang.overridden': '이번 실행은 --lang / AGENT_SETUP_LANG이 이깁니다.',
+  'tui.lang.overridden': '다음 실행에서는 --lang / AGENT_SETUP_LANG이 여전히 이깁니다.',
 
   'item.location.user': '설치 위치: 사용자 글로벌',
   'item.unsupportedList': '미지원: {list}',

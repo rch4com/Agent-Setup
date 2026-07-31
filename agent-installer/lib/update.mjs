@@ -66,7 +66,7 @@ export async function runUpdate(root, opts = {}) {
   const updated = results.filter((r) => r.action === 'update')
   const created = results.filter((r) => r.action === 'create')
 
-  if (!dryRun) writeRecord(root, { ...record, managed }, { dryRun, log: say })
+  if (!dryRun) writeRecord(root, { ...record, managed }, { dryRun, log: say, t })
 
   log('')
   say(t('update.summary', { updated: updated.length, created: created.length, drift: drift.length }))
