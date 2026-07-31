@@ -357,6 +357,16 @@ SKILL·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출해 **�
 | `Ctrl+O` | 커서 항목 미리보기 (design.md는 브라우저) |
 | `Esc` | 검색어 지우기 → 목록으로 → 한 번 더 누르면 종료 |
 
+- **항목마다 `CLI n/10`이 상태 바로 뒤에 붙습니다** — 그 항목이 지원 도구 10개
+  가운데 몇 개에 실제로 배선되는지입니다. 일부만 되는 항목은 뒤에
+  `미배선 9곳: codex·gemini·… — 사유`가 이어지고, 같은 사유의 CLI는 하나로
+  묶입니다. 전부 되는 항목도 `CLI 10/10`을 찍습니다 — 표시가 없는 것과 "전부
+  된다"는 뜻이 다르기 때문입니다. 제출 직전 검토 화면에서도 일부만 되는 항목은
+  커버리지를 한 번 더 보여 줍니다.
+- **탭 안쪽은 성격으로 묶입니다** — 토큰 절감 · 코드 이해 · 디자인 감각 ·
+  작업 방식 · 외부 서비스 순으로 소분류 헤더가 붙고 개수가 함께 나옵니다.
+  탭(PLUGIN·MCP·SKILL)은 "무엇으로 설치되는가"라 고를 때 비교가 되지 않습니다 —
+  같은 탭에 토큰을 아끼는 것과 디자인을 봐 주는 것이 섞여 있기 때문입니다.
 - 검색은 활성 탭 안에서 걸리지만, **탭 줄에 탭별 적중 수**가 함께 표시되어
   다른 탭의 결과를 놓치지 않습니다(`DESIGN.MD 19/76`). 여러 단어는 AND로 좁힙니다.
 - 제출하면 적용 직전에 **무엇이 설치/보완/제거되는지 검토 화면**으로 확인한 뒤
@@ -395,8 +405,13 @@ node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 �
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 플러그인 | `plugin.superpowers`, `plugin.bkit`, `plugin.mattpocock-skills` | Claude Code 전용, `--scope project` 설치. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
+| 플러그인 | `plugin.ponytail` | Claude Code 플러그인과 OpenCode `opencode.jsonc`의 `plugin` 배열에 동시 배선(둘 다 프로젝트 스코프). 기존 `plugin` 항목은 보존하고 끝에만 덧붙입니다. 나머지 CLI는 상류 설치가 사용자 스코프이거나(Codex·Copilot·Gemini) 플러그인 기구가 없어 항목 note에 사유를 표시합니다 |
 | MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
+| MCP | `mcp.graphify` | stdio 방식 — PATH에 `graphify-mcp`가 필요합니다 (`uv tool install "graphifyy[mcp]"`). 인자 없이 실행 디렉터리의 `graphify-out/graph.json`을 읽으므로 그래프도 저장소 안에 남습니다 |
+| MCP | `mcp.headroom` | stdio 방식 — PATH에 `headroom`이 필요합니다 (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`). 상류 `server.json`과 같은 `headroom mcp serve` 계약으로 등록합니다 |
+| 플러그인 | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code 마켓플레이스 플러그인, `--scope project`. 세 도구 모두 다른 CLI용 설치 경로가 있지만 사용자 스코프이거나(ECC·Understand Anything) 이 저장소의 `.agents/skills` 연결을 끊어서(impeccable) 쓰지 않습니다 — 항목 note에 사유가 나옵니다 |
+| 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 10개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다 |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리) |
 
