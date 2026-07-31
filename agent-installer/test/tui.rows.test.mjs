@@ -4,6 +4,7 @@ import {
   buildRows, buildActions, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
 } from '../lib/tui/rows.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
+import { CLI_IDS } from '../lib/clis.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
@@ -37,6 +38,30 @@ test('세 갈래가 하나의 배열로 합쳐지고 섹션 순서가 고정된�
 test('섹션은 표시 문자열이 아니라 id다', () => {
   assert.deepEqual(SECTION_ORDER, ['action', 'plugin', 'mcp', 'skill', 'design'])
   assert.equal(ACTION_SECTION, 'action')
+})
+
+// 성격 그룹은 탭 안쪽 소분류 헤더가 된다. displayList가 **인접한** 같은 group을
+// 하나로 묶으므로, 정렬이 흐트러지면 한 탭에서 같은 헤더가 여러 번 나온다.
+test('항목 행은 성격 그룹을 달고 GROUP_ORDER 순으로 붙는다', () => {
+  const states = [
+    { item: { id: 'mcp.notion', category: 'mcp', label: 'Notion', scope: 'project', group: '__service', supports: [], unsupported: {} }, status: 'absent' },
+    { item: { id: 'mcp.headroom', category: 'mcp', label: 'Headroom', scope: 'project', group: '__token', supports: [], unsupported: {} }, status: 'absent' },
+    { item: { id: 'mcp.graphify', category: 'mcp', label: 'Graphify', scope: 'project', group: '__context', supports: [], unsupported: {} }, status: 'absent' },
+    { item: { id: 'mcp.supabase', category: 'mcp', label: 'Supabase', scope: 'project', group: '__service', supports: [], unsupported: {} }, status: 'absent' },
+  ]
+  const rows = buildRows({ agentStates: states })
+  assert.deepEqual(rows.map((r) => r.group), ['__token', '__context', '__service', '__service'])
+  // 같은 그룹 안은 라벨 순 — id순으로 두면 화면에 이유 없는 순서가 남는다.
+  assert.deepEqual(rows.slice(2).map((r) => r.label), ['Notion', 'Supabase'])
+})
+
+test('성격 그룹이 없는 항목은 맨 뒤에 헤더 없이 붙는다', () => {
+  const states = [
+    { item: { id: 'mcp.x', category: 'mcp', label: 'X', scope: 'project', supports: [], unsupported: {} }, status: 'absent' },
+    { item: { id: 'mcp.y', category: 'mcp', label: 'Y', scope: 'project', group: '__token', supports: [], unsupported: {} }, status: 'absent' },
+  ]
+  const rows = buildRows({ agentStates: states })
+  assert.deepEqual(rows.map((r) => r.group), ['__token', null])
 })
 
 test('catch-all 카테고리는 scan.mjs와 같은 값이다', () => {
@@ -108,35 +133,69 @@ test('에이전트 항목은 이름으로도 검색된다 — 라벨과 id가 �
   assert.equal(rows.find((r) => r.id === 'mcp.supabase').searchText.includes('mcp.supabase'), true)
 })
 
-test('agentHint: 미지원 사유와 전용 표시를 담는다', () => {
+test('agentHint: 상태와 커버리지와 미지원 사유를 함께 담는다', () => {
   const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1], createT('ko'))
   assert.equal(hint.includes('설치됨'), true)
-  assert.equal(hint.includes('Claude Code 전용'), true)
+  assert.match(hint, /CLI 1\/10/)
+  assert.equal(hint.includes('전용'), true)
 })
 
-test('힌트는 활성 로케일로 나온다', () => {
+// 커버리지는 상태 **바로 뒤**여야 한다. 힌트 끝은 좁은 터미널에서 잘려 나가는데,
+// 하필 그때가 "이 항목이 내가 쓰는 CLI에서 되나"를 가장 알고 싶은 순간이다.
+test('agentHint: CLI 커버리지가 상태 바로 뒤에 온다', () => {
   const state = {
     item: { id: 'mcp.x', category: 'mcp', label: 'X', note: 'item.mcp.notion.note', supports: ['claude', 'codex'], unsupported: {} },
     status: 'partial',
     detail: msg('item.mcp.partial', { present: 'claude', missing: 'codex' }),
   }
-  assert.match(agentHint(state.item, state, createT('en')), /Partial · registered: claude/)
-  assert.match(agentHint(state.item, state, createT('ko')), /일부 설치됨 · 등록됨: claude/)
+  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/10 · registered: claude/)
+  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/10 · 등록됨: claude/)
 })
 
-// agentHint의 unsupported 분기는 실제 카탈로그에서도 기존 테스트에서도 밟힌 적이
-// 없다 — MCP 항목 넷 모두 unsupported가 비어 있었다. 두 로케일에서 실제로
-// 지나가는지 여기서 직접 확인한다.
-test('agentHint: MCP 항목의 unsupported 사유가 두 로케일 모두에서 나온다', () => {
+// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
+// 없으면 "빠뜨린 것"과 "전부 되는 것"을 화면에서 가를 수 없다.
+test('agentHint: 10개 전부 지원하면 그 사실도 명시한다', () => {
+  const item = { id: 'skill.all', category: 'skill', label: 'All', scope: 'project', supports: [...CLI_IDS], unsupported: {} }
+  const hint = agentHint(item, { item, status: 'absent' }, createT('ko'))
+  assert.match(hint, /CLI 10\/10/)
+  assert.ok(!hint.includes('미배선'), '미지원이 없는데 미배선 문구가 나왔다')
+})
+
+// 이전에는 이 분기가 category === 'mcp'일 때만 돌았다. 그래서 CLI 두 개만
+// 지원하는 플러그인(ponytail)이 나머지 여덟 개를 화면에 한 글자도 알리지
+// 않았다 — 고를 때 알 방법이 없었다. 카테고리와 무관하게 나와야 한다.
+test('agentHint: 플러그인·스킬도 미지원 CLI를 밝힌다', () => {
   const item = {
+    id: 'plugin.partial', category: 'plugin', label: 'P', scope: 'project', supports: ['claude', 'opencode'],
+    unsupported: { codex: msg('item.unsupported.ponytailUser'), kilo: msg('item.unsupported.ponytailRules') },
+  }
+  const ko = agentHint(item, { item, status: 'absent' }, createT('ko'))
+  assert.match(ko, /CLI 2\/10/)
+  assert.match(ko, /미배선 2곳/)
+  assert.match(ko, /codex/)
+  assert.match(ko, /kilo/)
+})
+
+// 사유 하나가 CLI 아홉 개에 그대로 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"는
+// 오히려 묻힌다. 같은 사유는 한 번만 적고 CLI를 묶는다.
+test('agentHint: 같은 사유의 CLI는 하나로 묶고, 다른 사유는 갈라 놓는다', () => {
+  const same = {
     id: 'mcp.multi', category: 'mcp', label: 'Multi', scope: 'project', supports: ['claude'],
     unsupported: { codex: msg('item.unsupported.claudePlugin'), gemini: msg('item.unsupported.claudePlugin') },
   }
-  const state = { item, status: 'absent' }
-  const en = agentHint(item, state, createT('en'))
-  const ko = agentHint(item, state, createT('ko'))
-  assert.match(en, /unsupported: codex\(Claude Code plugin only\), gemini\(Claude Code plugin only\)/)
-  assert.match(ko, /미지원: codex\(Claude Code 전용 플러그인\), gemini\(Claude Code 전용 플러그인\)/)
+  const en = agentHint(same, { item: same, status: 'absent' }, createT('en'))
+  const ko = agentHint(same, { item: same, status: 'absent' }, createT('ko'))
+  assert.match(en, /not wired for 2: codex·gemini — Claude Code plugin only/)
+  assert.match(ko, /미배선 2곳: codex·gemini — Claude Code 전용 플러그인/)
+  // 사유가 반복되지 않는다 — 같은 문장이 두 번 나오면 묶기가 깨진 것이다.
+  assert.equal(en.split('Claude Code plugin only').length - 1, 1)
+
+  const mixed = {
+    id: 'mcp.mixed', category: 'mcp', label: 'Mixed', scope: 'project', supports: ['claude'],
+    unsupported: { codex: msg('item.unsupported.claudePlugin'), gemini: msg('item.unsupported.claudeSkill') },
+  }
+  const two = agentHint(mixed, { item: mixed, status: 'absent' }, createT('en'))
+  assert.match(two, /codex — Claude Code plugin only \/ gemini — Claude Code skill install/)
 })
 
 test('검색어는 섹션 id와 두 로케일 라벨에 모두 걸린다', () => {
@@ -283,6 +342,19 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
   assert.ok(text.includes('제거') && text.includes('Stripe'))
   assert.ok(text.includes('Enter 적용') && text.includes('Esc 취소'))
   assert.equal(lines.length, bodyHeight(24) + 4)
+})
+
+// 적용 직전 마지막 화면이다. 목록에서 커버리지를 지나쳤더라도 여기서 한 번 더
+// 보여야 되돌릴 수 있다. 다만 전부 지원하는 항목까지 표시하면 경고가 흔해져
+// 아무도 읽지 않게 되므로, 일부만 들어가는 항목에만 붙인다.
+test('renderReview: 일부 CLI에만 들어가는 항목은 커버리지를 함께 보인다', () => {
+  const changes = [
+    { action: 'install', item: { label: '일부', supports: ['claude', 'opencode'] } },
+    { action: 'install', item: { label: '전부', supports: [...CLI_IDS] } },
+  ]
+  const text = renderReview(changes, { width: 80, height: 24, t: createT('ko') }).join('\n')
+  assert.match(text, /일부 · CLI 2\/10/)
+  assert.doesNotMatch(text, /전부 · CLI/)
 })
 
 test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 알린다', () => {

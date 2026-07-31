@@ -295,8 +295,10 @@ export default {
   'tui.lang.overridden': '다음 실행에서는 --lang / AGENT_SETUP_LANG이 여전히 이깁니다.',
 
   'item.location.user': '설치 위치: 사용자 글로벌',
-  'item.unsupportedList': '미지원: {list}',
-  'item.claudeOnly': 'Claude Code 전용',
+  // en.mjs 쪽 주석 참고.
+  'item.cliCoverage': 'CLI {covered}/{total}',
+  'item.unsupportedList': '미배선 {count}곳: {groups}',
+  'item.unsupportedGroup': '{clis} — {why}',
 
   // 상주 언어 행 — en.mjs 쪽 주석 참고.
   'action.language.label': '언어',
@@ -313,6 +315,12 @@ export default {
   // design.md 서브시스템. en.mjs 쪽 주석 참고.
   'category.other': '기타',
   'category.local': '사내',
+  // 항목 탭 안쪽의 성격 그룹. en.mjs 쪽 주석 참고.
+  'category.token': '토큰 절감',
+  'category.context': '코드 이해',
+  'category.style': '디자인 감각',
+  'category.flow': '작업 방식',
+  'category.service': '외부 서비스',
   'design.localSuffix': '{id} (로컬)',
   'design.localTag': '로컬',
   'design.unknownItem': '  알 수 없는 항목: {token}',

@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { scan } from '../engine.mjs'
 import { loadItems } from '../catalog.mjs'
+import { CLI_IDS } from '../clis.mjs'
 import { runBootstrap } from '../bootstrap/flow.mjs'
 import { MANIFEST } from '../bootstrap/manifest.mjs'
 import { createT, toText } from '../i18n/index.mjs'
@@ -19,6 +20,18 @@ export const ACTION_SECTION = 'action'
 // 항목이 모이는 자리. 두 값이 갈리면 같은 그룹이 두 개로 쪼개진다.
 export const CATCH_ALL_CATEGORY = '__other'
 export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'design']
+
+// 탭 안쪽 소분류는 **성격**으로 가른다 — 같은 탭에 "무엇으로 설치되는가"가 같고
+// "무엇을 해 주는가"가 다른 항목이 섞여 있어서, 기구(plugin·mcp·skill)만으로는
+// 고를 때 비교가 되지 않는다. 표시 순서는 이 배열이 정한다.
+// `__`로 시작하는 id만 categoryLabel이 번역한다(design.md 카테고리와 같은 규칙).
+export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__service']
+
+function groupRank(group) {
+  const i = GROUP_ORDER.indexOf(group)
+  // 그룹이 없거나 목록에 없는 항목은 맨 뒤로 — 헤더 없이 평평하게 붙는다.
+  return i === -1 ? GROUP_ORDER.length : i
+}
 
 function short(text, n = 60) {
   const t = (text ?? '').replace(/\s+/g, ' ').trim()
@@ -37,21 +50,39 @@ function sectionTerms(t, section) {
 }
 
 // 에이전트 항목 힌트 — 상태·설치 위치·미지원 CLI 사유까지 한 줄에 담는다.
+// 미지원 CLI를 **같은 사유끼리 묶어** 한 줄로 만든다. 사유 하나가 CLI 아홉 개에
+// 그대로 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"는 오히려 묻힌다.
+// 사유가 둘 이상이면(ponytail처럼) 갈래가 그대로 보인다.
+export function unsupportedText(item, t) {
+  const entries = Object.entries(item.unsupported ?? {})
+  if (entries.length === 0) return null
+  const byReason = new Map()
+  for (const [cli, why] of entries) {
+    const text = toText(t, why)
+    if (!byReason.has(text)) byReason.set(text, [])
+    byReason.get(text).push(cli)
+  }
+  const groups = [...byReason].map(([why, clis]) => t('item.unsupportedGroup', { clis: clis.join('·'), why }))
+  return t('item.unsupportedList', { count: entries.length, groups: groups.join(' / ') })
+}
+
+// 에이전트 항목 힌트 — 상태·CLI 커버리지·설치 위치·미지원 사유까지 한 줄에 담는다.
 export function agentHint(item, state, t = createT('en')) {
   const parts = []
   if (state.status !== 'absent') parts.push(t(`status.${state.status}`))
+  // 커버리지는 상태 바로 뒤에 둔다. 힌트 끝은 좁은 터미널에서 잘려 나가는데,
+  // 하필 그때가 "이 항목이 내가 쓰는 CLI에서 되나"를 가장 알고 싶은 순간이다.
+  // 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
+  if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
   const detail = toText(t, state.detail)
   if (detail) parts.push(detail)
   if (item.scope === 'user') parts.push(t('item.location.user'))
-  const un = Object.entries(item.unsupported ?? {})
-  if (item.category === 'mcp' && un.length > 0) {
-    parts.push(t('item.unsupportedList', {
-      list: un.map(([cli, why]) => `${cli}(${toText(t, why)})`).join(', '),
-    }))
-  }
-  if (item.supports?.length === 1 && item.supports[0] === 'claude') parts.push(t('item.claudeOnly'))
   // note는 이제 카탈로그 키다.
   if (item.note) parts.push(t(item.note))
+  // 사유는 길어질 수 있어 맨 뒤에 둔다 — 앞의 커버리지가 이미 "빠진 게 있다"를
+  // 알려 주므로, 잘려도 존재 자체를 놓치지는 않는다.
+  const un = unsupportedText(item, t)
+  if (un) parts.push(un)
   return parts.join(' · ')
 }
 
@@ -163,18 +194,23 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
 
 // 순수 조립 — 이미 스캔된 상태를 받아 행 배열을 만든다. 테스트는 여기를 겨눈다.
 export function buildRows({ actions = [], agentStates = [], designStates = [], multiProvider = false, t = createT('en') }) {
-  const agents = agentStates.map((s) =>
-    itemRow({
-      id: s.item.id,
-      section: s.item.category,
-      label: s.item.label,
-      hint: agentHint(s.item, s, t),
-      status: s.status,
-      item: s.item,
-      extra: s.item.id,
-      t,
-    }),
-  )
+  const agents = agentStates
+    .map((s) =>
+      itemRow({
+        id: s.item.id,
+        section: s.item.category,
+        group: s.item.group ?? null,
+        label: s.item.label,
+        hint: agentHint(s.item, s, t),
+        status: s.status,
+        item: s.item,
+        extra: s.item.id,
+        t,
+      }),
+    )
+    // 성격 → 라벨 순. 헤더는 인접한 같은 group을 하나로 묶으므로, 정렬이
+    // 흐트러지면 같은 성격이 한 탭에서 여러 번 쪼개져 나온다(design과 같은 규칙).
+    .sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.label.localeCompare(b.label))
 
   // 카테고리 → 라벨 순으로 정렬한다. 그룹 헤더는 인접한 같은 group을 하나로 묶으므로
   // 정렬이 흐트러지면 같은 카테고리가 여러 번 쪼개져 나온다.

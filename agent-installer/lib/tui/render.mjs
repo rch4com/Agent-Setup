@@ -1,6 +1,7 @@
 // 순수 렌더 — 상태와 크기를 받아 화면 줄 배열을 돌려준다.
 // 커서 이동·지우기 같은 제어 시퀀스는 run.mjs가 맡는다.
 import { displayList, tabCounts, activeTab } from './state.mjs'
+import { CLI_IDS } from '../clis.mjs'
 import { createT } from '../i18n/index.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
 import { cut, pad, width } from '../width.mjs'
@@ -149,7 +150,12 @@ export function renderReview(changes, opts = {}) {
   const room = Math.max(1, body - 1)
   const shown = changes.slice(0, room)
   for (const c of shown) {
-    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(t(`change.${c.action}`), 10)} ${c.item.label}`, w))
+    // 적용 직전 마지막 화면이다. 일부 CLI에만 들어가는 항목은 여기서도 그 사실을
+    // 밝힌다 — 목록에서 지나쳤더라도 되돌릴 수 있는 마지막 지점이다.
+    // 전부 지원하는 항목은 조용히 둔다: 경고가 흔해지면 아무도 읽지 않는다.
+    const partial = c.item.supports && c.item.supports.length < CLI_IDS.length
+    const cov = partial ? ` · ${t('item.cliCoverage', { covered: c.item.supports.length, total: CLI_IDS.length })}` : ''
+    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(t(`change.${c.action}`), 10)} ${c.item.label}${cov}`, w))
   }
   if (changes.length > shown.length) {
     lines.push(paint(DIM, cut(t('tui.review.more', { count: changes.length - shown.length }), w)))

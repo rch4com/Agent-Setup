@@ -304,8 +304,10 @@ export default {
   'tui.lang.overridden': '--lang / AGENT_SETUP_LANG still wins on the next run.',
 
   'item.location.user': 'installs to: user global',
-  'item.unsupportedList': 'unsupported: {list}',
-  'item.claudeOnly': 'Claude Code only',
+  // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
+  'item.cliCoverage': 'CLI {covered}/{total}',
+  'item.unsupportedList': 'not wired for {count}: {groups}',
+  'item.unsupportedGroup': '{clis} — {why}',
 
   // 상주 언어 행 — 작업 탭 맨 위. hint는 현재 로케일의 자기 이름을 담는다.
   'action.language.label': 'Language',
@@ -323,6 +325,12 @@ export default {
   // 화면에 낼 때만 쓴다 — 공급자가 준 카테고리는 이미 영어 데이터라 번역하지 않는다.
   'category.other': 'Other',
   'category.local': 'In-house',
+  // 항목 탭 안쪽의 성격 그룹. rows.mjs의 GROUP_ORDER가 표시 순서를 정한다.
+  'category.token': 'Token savings',
+  'category.context': 'Code understanding',
+  'category.style': 'Design taste',
+  'category.flow': 'Way of working',
+  'category.service': 'External services',
   'design.localSuffix': '{id} (local)',
   'design.localTag': 'local',
   'design.unknownItem': '  unknown item: {token}',
