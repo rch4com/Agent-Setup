@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { defineMcp, makeExec, shellQuote } from '../lib/catalog.mjs'
 import { CLIS, CLI_IDS } from '../lib/clis.mjs'
+import { createT, toText } from '../lib/i18n/index.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 const CATALOG_URL = pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'catalog.mjs')).href
@@ -32,6 +33,34 @@ test('defineMcp detect: 지원 CLI 전부 등록 시 installed, 일부면 partia
   assert.equal((await item.detect(ctx)).status, 'partial')
   CLIS.gemini.add(root, 't', { kind: 'http', url: 'https://t/mcp' })
   assert.equal((await item.detect(ctx)).status, 'installed')
+})
+
+// 회귀: partial의 detail이 평문 템플릿 문자열로 되돌아가면(msg() 없이)
+// .key 단언이 깨지고, present/missing 값이 실제 CLI를 담지 않으면
+// toText로 풀어도 내용이 비어 있는 채 통과할 수 있다 — 값까지 확인한다.
+test('defineMcp detect: partial의 detail은 구조화 메시지이고 실제 등록·누락 CLI를 담는다', async () => {
+  const item = defineMcp({
+    id: 'mcp.t3', label: 'T3',
+    server: { kind: 'http', url: 'https://t3/mcp' },
+    supports: ['claude', 'gemini'],
+    unsupported: Object.fromEntries(CLI_IDS.filter((c) => !['claude', 'gemini'].includes(c)).map((c) => [c, '테스트용 제외'])),
+  })
+  const root = makeTempRepo()
+  CLIS.claude.add(root, 't3', { kind: 'http', url: 'https://t3/mcp' })
+
+  const r = await item.detect({ root })
+  assert.equal(r.status, 'partial')
+  assert.equal(typeof r.detail, 'object')
+  assert.equal(r.detail.key, 'item.mcp.partial')
+  assert.equal(r.detail.params.present, 'claude')
+  assert.equal(r.detail.params.missing, 'gemini')
+
+  const ko = toText(createT('ko'), r.detail)
+  assert.match(ko, /claude/)
+  assert.match(ko, /gemini/)
+  const en = toText(createT('en'), r.detail)
+  assert.match(en, /claude/)
+  assert.match(en, /gemini/)
 })
 
 test('defineMcp install은 누락 CLI만 채우고 uninstall은 전부 제거한다', async () => {
