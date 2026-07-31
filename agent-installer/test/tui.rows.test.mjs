@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildRows, agentHint, designHint, installedIds, SECTION_ORDER, CATCH_ALL_CATEGORY } from '../lib/tui/rows.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
@@ -41,6 +42,19 @@ test('design 제공자가 하나뿐이면 힌트에 제공자명을 붙이지 �
   const many = designHint(DESIGN_STATES[0], true)
   assert.equal(one.includes('a · '), false)
   assert.equal(many.startsWith('a · '), true)
+})
+
+// 카테고리를 id로 바꾼 뒤로 designHint가 raw id를 그대로 찍던 회귀 —
+// categoryLabel을 거쳐야 catch-all만 번역되고 카탈로그의 실제 카테고리는
+// 그대로 통과한다. 두 로케일 모두 raw id가 새지 않아야 한다.
+test('designHint: catch-all 카테고리는 raw id가 아니라 로케일 라벨로 나온다', () => {
+  const state = { item: { id: 'd.x', name: 'x', providerId: 'a', label: 'X', designCategory: '__other' }, status: 'absent' }
+  const ko = designHint(state, false, createT('ko'))
+  const en = designHint(state, false, createT('en'))
+  assert.doesNotMatch(ko, /__other/)
+  assert.doesNotMatch(en, /__other/)
+  assert.match(ko, /기타/)
+  assert.match(en, /Other/)
 })
 
 test('미리보기 대상은 webUrl 우선, 없으면 로컬 원본 파일', () => {

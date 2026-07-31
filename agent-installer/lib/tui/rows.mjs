@@ -9,7 +9,7 @@ import { MANIFEST } from '../bootstrap/manifest.mjs'
 import { createT, toText } from '../i18n/index.mjs'
 import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
-import { refreshCatalog, updateInstalled, findStale } from '../design-md/flow.mjs'
+import { refreshCatalog, updateInstalled, findStale, categoryLabel } from '../design-md/flow.mjs'
 
 const AGENT_SECTION = { plugin: 'PLUGIN', mcp: 'MCP', skill: 'SKILL' }
 const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', absent: '미설치' }
@@ -48,10 +48,14 @@ export function agentHint(item, state) {
   return parts.join(' · ')
 }
 
-export function designHint(state, multiProvider = false) {
+export function designHint(state, multiProvider = false, t = T_KO) {
   const parts = []
   if (multiProvider) parts.push(state.item.providerId)
-  parts.push(state.item.designCategory)
+  // 카탈로그가 준 카테고리는 그대로, 우리가 만든 catch-all(__other·__local)만
+  // categoryLabel이 번역한다. TUI는 아직 로케일을 고르지 않으므로(Task 10)
+  // 기본값은 이 파일이 이미 쓰는 T_KO 고정이다 — t는 테스트가 두 로케일을
+  // 확인할 수 있게 열어 둔 것이다.
+  parts.push(categoryLabel(t, state.item.designCategory))
   if (state.status !== 'absent') parts.push(DESIGN_STATUS[state.status])
   if (state.item.description) parts.push(short(state.item.description))
   return parts.filter(Boolean).join(' · ')
