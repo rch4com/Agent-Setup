@@ -113,3 +113,39 @@ test('영어 update dry-run 출력에 한글이 없다', () => {
   assert.equal(r.status, 0, r.stderr)
   assertNoHangul(r.stdout, 'update --dry-run')
 })
+
+// 오류 경로는 design.md 데이터를 찍지 않는다 — 사용법 텍스트·인자 검증
+// 메시지·기록 오류뿐이라 전부 우리 카탈로그 문구다. assertNoHangul을
+// 그대로 걸어도 데이터 오탐 위험이 없다.
+test('영어 오류 출력에 한글이 없다', () => {
+  const root = makeTempRepo()
+  const cases = [
+    ['--dryrun'],                    // 알 수 없는 인자
+    ['--list', '--set', 'x'],        // 동작 플래그 중복
+    ['--skill-mode', 'nope'],        // 잘못된 값
+    ['--lang', 'zz'],                // 지원하지 않는 로케일
+    ['--set', 'no.such.item'],       // 알 수 없는 항목
+    ['design', '--sync=nope'],       // 잘못된 sync
+    ['update'],                      // 기록 없음(부트스트랩 전이라 없다)
+  ]
+  for (const args of cases) {
+    const r = runInstaller(root, args, { env: EN })
+    assert.notEqual(r.status, 0, `${args.join(' ')}는 실패해야 한다`)
+    assertNoHangul(r.stderr, `${args.join(' ')} stderr`)
+    assertNoHangul(r.stdout, `${args.join(' ')} stdout`)
+  }
+})
+
+// --set이 다루는 항목(mcp.notion 등)은 lib/items의 우리 카탈로그 라벨이다
+// — design.md처럼 외부 문서에서 온 데이터가 아니므로 여기도 안전하게
+// assertNoHangul을 건다.
+test('영어 --set 적용 출력에 한글이 없다', () => {
+  const root = makeTempRepo()
+  runInstaller(root, ['bootstrap'], { env: EN })
+  const on = runInstaller(root, ['--set', 'mcp.notion'], { env: EN })
+  assert.equal(on.status, 0, on.stderr)
+  assertNoHangul(on.stdout, '--set 설치')
+  const off = runInstaller(root, ['--set', ''], { env: EN })
+  assert.equal(off.status, 0, off.stderr)
+  assertNoHangul(off.stdout, '--set 제거')
+})

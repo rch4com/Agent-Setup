@@ -30,6 +30,11 @@ npx @rch4com/agent-setup
 The package name is scoped, but the installed command is just `agent-setup` —
 the long form only appears when invoking it through `npx`.
 
+The screen speaks your OS language by default, falling back to English. Pass
+`--lang en|ko` (or set `AGENT_SETUP_LANG`) to pick one for this run. The
+interactive screen's first row also switches it, and the choice is remembered
+in `.agent-kit/agent-setup.json`.
+
 ## Keeping in sync
 
 ```bash
@@ -122,6 +127,11 @@ npx @rch4com/agent-setup
 
 패키지 이름에는 스코프가 붙지만 설치 후 실행 명령은 `agent-setup`입니다 —
 길어지는 것은 `npx`로 직접 부를 때뿐입니다.
+
+화면 언어는 기본으로 OS 언어를 따르고, 지원하지 않으면 영어로 갑니다.
+이번 실행만 다른 언어로 보려면 `--lang en|ko`를 주거나 `AGENT_SETUP_LANG`을
+설정하세요. 대화형 화면의 첫 행에서도 바꿀 수 있고, 고른 언어는
+`.agent-kit/agent-setup.json`에 저장되어 다음 실행에도 이어집니다.
 
 ## 최신으로 갱신하기
 

@@ -123,6 +123,12 @@ Node.js 표준 라이브러리만으로 동작하며 `npm install`이 필요 없
 `--skill-mode` / `-SkillMode`는 대화형 화면에도 전달되어, 화면 안의
 `부트스트랩 실행` 작업이 같은 연결 방식을 씁니다.
 
+`--lang` / `-Lang`도 마찬가지로 전달되어 이번 실행의 화면 언어를 정합니다
+(`en`|`ko`). 지정하지 않으면 OS 언어를 따르고, 지원하지 않는 언어면
+영어로 갑니다. 대화형 화면의 첫 행(언어)에서 `Enter`로 바꿀 수도 있고,
+고른 언어는 `.agent-kit/agent-setup.json`에 저장되어 다음 실행에 이어집니다.
+`AGENT_SETUP_LANG` 환경 변수도 같은 우선순위로 동작합니다.
+
 설치기를 거치지 않고 직접 부를 수도 있습니다.
 
 ```bash
@@ -244,6 +250,13 @@ pwsh -File .\setup-agents.ps1 -SkillMode Link
 pwsh -File .\setup-agents.ps1 -SkillMode Copy
 ```
 
+표시 언어 선택 (기본은 OS 언어, 지원하지 않으면 영어):
+
+```powershell
+pwsh -File .\setup-agents.ps1 -Lang en
+pwsh -File .\setup-agents.ps1 -Lang ko
+```
+
 실제 변경 없이 확인:
 
 ```powershell
@@ -274,6 +287,13 @@ Claude, Kiro, Grok Build의 스킬 어댑터 방식:
 
 # 복사만 사용
 ./setup-agents.sh --skill-mode copy
+```
+
+표시 언어 선택 (기본은 OS 언어, 지원하지 않으면 영어):
+
+```bash
+./setup-agents.sh --lang en
+./setup-agents.sh --lang ko
 ```
 
 실제 변경 없이 확인:
@@ -359,6 +379,8 @@ node agent-installer/install.mjs --list --dry-run
                                               #  대화형 화면이 열립니다
 node agent-installer/install.mjs --design-dir 사내=//nas/design --list
                                               # design.md 소스 추가 (반복 지정 가능)
+node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 지정
+                                              #  (en|ko, 기본은 OS 언어 → 영어 순 폴백)
 ```
 
 값을 받는 플래그는 `--set a,b`와 `--set=a,b` 두 형식을 모두 받습니다.
