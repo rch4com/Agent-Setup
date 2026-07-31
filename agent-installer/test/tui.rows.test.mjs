@@ -4,7 +4,7 @@ import {
   buildRows, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
 } from '../lib/tui/rows.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
-import { createT } from '../lib/i18n/index.mjs'
+import { createT, msg } from '../lib/i18n/index.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
@@ -61,8 +61,8 @@ test('액션 행은 항상 맨 위이고 체크 대상이 아니다', () => {
 })
 
 test('design 제공자가 하나뿐이면 힌트에 제공자명을 붙이지 않는다', () => {
-  const one = designHint(DESIGN_STATES[0], false)
-  const many = designHint(DESIGN_STATES[0], true)
+  const one = designHint(DESIGN_STATES[0], false, createT('ko'))
+  const many = designHint(DESIGN_STATES[0], true, createT('ko'))
   assert.equal(one.includes('a · '), false)
   assert.equal(many.startsWith('a · '), true)
 })
@@ -93,9 +93,43 @@ test('에이전트 항목은 이름으로도 검색된다 — 라벨과 id가 �
 })
 
 test('agentHint: 미지원 사유와 전용 표시를 담는다', () => {
-  const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1])
+  const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1], createT('ko'))
   assert.equal(hint.includes('설치됨'), true)
   assert.equal(hint.includes('Claude Code 전용'), true)
+})
+
+test('힌트는 활성 로케일로 나온다', () => {
+  const state = {
+    item: { id: 'mcp.x', category: 'mcp', label: 'X', note: 'item.mcp.notion.note', supports: ['claude', 'codex'], unsupported: {} },
+    status: 'partial',
+    detail: msg('item.mcp.partial', { present: 'claude', missing: 'codex' }),
+  }
+  assert.match(agentHint(state.item, state, createT('en')), /Partial · registered: claude/)
+  assert.match(agentHint(state.item, state, createT('ko')), /일부 설치됨 · 등록됨: claude/)
+})
+
+// agentHint의 unsupported 분기는 실제 카탈로그에서도 기존 테스트에서도 밟힌 적이
+// 없다 — MCP 항목 넷 모두 unsupported가 비어 있었다. 두 로케일에서 실제로
+// 지나가는지 여기서 직접 확인한다.
+test('agentHint: MCP 항목의 unsupported 사유가 두 로케일 모두에서 나온다', () => {
+  const item = {
+    id: 'mcp.multi', category: 'mcp', label: 'Multi', scope: 'project', supports: ['claude'],
+    unsupported: { codex: msg('item.unsupported.claudePlugin'), gemini: msg('item.unsupported.claudePlugin') },
+  }
+  const state = { item, status: 'absent' }
+  const en = agentHint(item, state, createT('en'))
+  const ko = agentHint(item, state, createT('ko'))
+  assert.match(en, /unsupported: codex\(Claude Code plugin only\), gemini\(Claude Code plugin only\)/)
+  assert.match(ko, /미지원: codex\(Claude Code 전용 플러그인\), gemini\(Claude Code 전용 플러그인\)/)
+})
+
+test('검색어는 섹션 id와 두 로케일 라벨에 모두 걸린다', () => {
+  const rows = buildRows({
+    agentStates: [{ item: { id: 'mcp.x', category: 'mcp', label: 'X' }, status: 'absent' }],
+    t: createT('ko'),
+  })
+  // 한국어 화면에서도 영어 탭 이름으로 찾을 수 있어야 한다.
+  assert.match(rows[0].searchText, /mcp/)
 })
 
 test('design 행은 카테고리 → 라벨 순으로 정렬된다 — 그룹 헤더가 쪼개지지 않게', () => {
@@ -185,7 +219,7 @@ test('render: 어떤 줄도 터미널 폭을 넘지 않는다 — 넘으면 줄�
 
 test('render: 검색 결과가 없으면 다른 탭을 보라고 안내한다', () => {
   const rows = buildRows({ agentStates: AGENT_STATES })
-  const lines = render(setQuery(createState(rows), 'zzz'), { width: 80, height: 24 })
+  const lines = render(setQuery(createState(rows), 'zzz'), { width: 80, height: 24, t: createT('ko') })
   assert.equal(lines.join('\n').includes('이 탭에는 일치하는 항목이 없습니다'), true)
 })
 
@@ -226,7 +260,7 @@ const CHANGES = [
 ]
 
 test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
-  const lines = renderReview(CHANGES, { width: 80, height: 24 })
+  const lines = renderReview(CHANGES, { width: 80, height: 24, t: createT('ko') })
   const text = lines.join('\n')
   assert.ok(text.includes('변경 2건'))
   assert.ok(text.includes('설치') && text.includes('Supabase'))
@@ -237,7 +271,7 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
 
 test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 알린다', () => {
   const many = Array.from({ length: 50 }, (_, i) => ({ action: 'install', item: { label: `항목${i}` } }))
-  const lines = renderReview(many, { width: 80, height: 12 })
+  const lines = renderReview(many, { width: 80, height: 12, t: createT('ko') })
   assert.ok(lines.join('\n').includes('…외'), '남은 건수 안내 없음')
   assert.equal(lines.length, bodyHeight(12) + 4)
   for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
@@ -251,6 +285,7 @@ test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async
     log: cap.log,
     stdin: { isTTY: false },
     stdout: { columns: 80, rows: 24, write() {} },
+    t: createT('ko'),
   })
   assert.equal(result.interactive, false)
   assert.equal(cap.text().includes('[작업]'), true)

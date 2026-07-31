@@ -20,8 +20,6 @@ const HOME = `${ESC}[H`
 const CLEAR_LINE = `${ESC}[K`
 const CLEAR_DOWN = `${ESC}[J`
 
-const ACTION_LABEL = { install: '설치', complete: '보완 설치', uninstall: '제거' }
-
 // 키를 큐에 쌓아 두고 하나씩 꺼내 쓴다. 이벤트 상태 기계 대신
 // `for(;;) await next()` 루프로 흐름을 읽을 수 있게 하기 위해서다.
 function keyReader(stdin) {
@@ -75,15 +73,15 @@ export async function runTui(root, opts = {}) {
     stdout = process.stdout,
   } = opts
   const opener = opts.opener ?? makeOpener(dryRun, log)
+  // let으로 둔다 — Task 11의 언어 전환 행이 실행 중에 갈아끼운다.
+  let t = opts.t ?? createT('en')
 
-  let collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {} })
+  let collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {}, t })
 
   // raw 모드를 켤 수 없으면(CI·파이프) 목록만 내고 끝낸다.
   if (!stdin.isTTY || typeof stdin.setRawMode !== 'function') {
-    // TUI는 아직 로케일을 고르지 않는다(Task 11) — 지금까지와 같은 한국어
-    // 출력을 유지하기 위해 못박아 둔다.
-    printPlain(collected.rows, log, createT('ko'))
-    log('\n대화형 화면은 터미널에서만 열립니다. --list · --set 으로도 다룰 수 있습니다.')
+    printPlain(collected.rows, log, t)
+    log(`\n${t('tui.nonInteractive')}`)
     return { interactive: false }
   }
 
@@ -103,9 +101,7 @@ export async function runTui(root, opts = {}) {
   const paint = () => {
     const height = stdout.rows ?? 24
     state = scroll(state, bodyHeight(height))
-    // render()가 이제 t를 받아 탭 이름·그룹 헤더를 번역한다. TUI는 아직
-    // 로케일을 고르지 않으므로(Task 11) 지금까지와 같은 한국어를 못박아 둔다.
-    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t: createT('ko') }))
+    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
@@ -114,24 +110,24 @@ export async function runTui(root, opts = {}) {
     try { return await fn() } finally { stdout.write(ALT_ON + HIDE_CURSOR) }
   }
   const confirm = async (message) => {
-    stdout.write(`\n${message} [y/N] `)
+    stdout.write(`\n${message}${t('tui.confirmSuffix')}`)
     const key = await keys.next()
     stdout.write('\n')
     return String(key.str ?? '').toLowerCase() === 'y'
   }
   const pause = async () => {
-    stdout.write('\n계속하려면 아무 키나 누르세요…')
+    stdout.write(`\n${t('tui.pressAnyKey')}`)
     await keys.next()
   }
 
   const recollect = async () => {
-    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {} })
+    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {}, t })
     state = replaceRows(state, collected.rows, installedIds(collected.rows))
   }
 
   const select = () => {
     const row = currentRow(state)
-    if (row?.kind !== 'item') return '이 행은 Enter로 실행합니다.'
+    if (row?.kind !== 'item') return t('tui.notItemRow')
     state = toggle(state)
     return ''
   }
@@ -139,18 +135,16 @@ export async function runTui(root, opts = {}) {
   // 미리보기는 두 포커스에서 모두 통해야 한다 — 검색으로 찾은 직후가 가장 열어 보고 싶은 순간이다.
   const preview = () => {
     const row = currentRow(state)
-    if (row?.kind !== 'item' || !row.previewTarget) return '이 항목은 미리보기를 제공하지 않습니다.'
+    if (row?.kind !== 'item' || !row.previewTarget) return t('tui.noPreview')
     const notes = []
-    // TUI는 아직 로케일을 고르지 않는다(Task 10) — 지금까지와 같은 한국어
-    // 출력을 유지하기 위해 못박아 둔다.
-    openPreview(opener, row.item, (m) => notes.push(String(m).trim()), createT('ko'))
-    return notes.length > 0 ? notes.join(' ') : `열었습니다: ${row.previewTarget}`
+    openPreview(opener, row.item, (m) => notes.push(String(m).trim()), t)
+    return notes.length > 0 ? notes.join(' ') : t('tui.opened', { target: row.previewTarget })
   }
 
   // 제출 검토 — 적용 직전에 변경 목록을 보여 주고 Enter/Esc만 받는다.
   const review = async (changes) => {
     for (;;) {
-      draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color }))
+      draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color, t }))
       const key = await keys.next()
       if (key.ctrl && key.name === 'c') return 'quit'
       if (key.name === 'escape') return 'cancel'
@@ -216,7 +210,8 @@ export async function runTui(root, opts = {}) {
       if (key.ctrl && key.name === 'a') {
         const before = state.selected.size
         state = toggleVisible(state)
-        status = `${activeTab(state)} 탭의 보이는 항목을 ${state.selected.size >= before ? '모두 선택' : '모두 해제'}했습니다.`
+        const statusKey = state.selected.size >= before ? 'tui.toggledAll' : 'tui.toggledNone'
+        status = t(statusKey, { tab: t(`section.${activeTab(state)}`) })
         continue
       }
 
@@ -235,26 +230,22 @@ export async function runTui(root, opts = {}) {
         }
 
         const changes = planChanges(itemStates(state.rows), state.selected)
-        if (changes.length === 0) { status = '변경할 항목이 없습니다.'; continue }
+        if (changes.length === 0) { status = t('tui.noChanges'); continue }
 
         const verdict = await review(changes)
         if (verdict === 'quit') break
-        if (verdict === 'cancel') { status = '제출을 취소했습니다.'; continue }
+        if (verdict === 'cancel') { status = t('tui.submitCancelled'); continue }
 
         await suspend(async () => {
-          log(`\n적용할 변경 ${changes.length}건${dryRun ? ' (dry-run)' : ''}:`)
-          for (const c of changes) log(`  ${ACTION_LABEL[c.action]} ${c.item.label}`)
-          // apply()의 message는 이제 구조체 또는 문자열이다. 파일 전체가 아직
-          // 한국어 리터럴이라 여기서도 한국어로 고정한다 — Task 10이 TUI를
-          // 지역화하면서 이 고정을 걷어낸다.
-          const t = createT('ko')
+          log(`\n${t('tui.applyHeader', { count: changes.length, suffix: dryRun ? ' (dry-run)' : '' })}`)
+          for (const c of changes) log(`  ${t(`change.${c.action}`)} ${c.item.label}`)
           const results = await apply(root, changes, { dryRun, log, t })
           for (const r of results) {
             const message = toText(t, r.message)
-            log(`  ${r.ok ? '✔' : '✖'} ${ACTION_LABEL[r.action]} ${r.item.label}${message ? ` — ${message}` : ''}`)
+            log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
           }
           if (results.some((r) => !r.ok)) process.exitCode = 1
-          log('\n설정 파일 변경 내용은 git diff로 확인할 수 있습니다.')
+          log(`\n${t('apply.seeGitDiff')}`)
           await pause()
         })
         await recollect()

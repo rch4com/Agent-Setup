@@ -67,6 +67,23 @@ test('영어 design --list의 UI 문구가 영어로 나온다', () => {
   }
 })
 
+// TTY가 아니면 TUI는 목록만 찍고 끝난다 — CI가 늘 밟는 경로다. 이 목록에는
+// design.md 항목의 실제 라벨·설명도 섞이는데, 그건 데이터라 어떤 언어든
+// 담을 수 있다(예: 이 저장소에 번들된 한국어 회사의 디자인 시스템 문서) —
+// design --list 테스트와 같은 이유로 assertNoHangul 대신 "우리 문구가
+// 영어로 나온다"만 확인한다.
+test('영어 비대화형 목록 출력의 UI 문구가 영어로 나온다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, [], { env: EN })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /\[ACTION\]/)
+  assert.match(r.stdout, /Run bootstrap/)
+  assert.match(r.stdout, /interactive screen only opens in a terminal/)
+  for (const ours of ['[작업]', '부트스트랩 실행', '대화형 화면은 터미널에서만']) {
+    assert.equal(r.stdout.includes(ours), false, `우리 문구가 한국어로 남았습니다: ${ours}`)
+  }
+})
+
 test('영어 update dry-run 출력에 한글이 없다', () => {
   const root = makeTempRepo()
   runInstaller(root, ['bootstrap'], { env: EN })

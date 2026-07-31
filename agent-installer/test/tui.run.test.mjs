@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { runTui } from '../lib/tui/run.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
 
 // 가짜 TTY로 키 루프를 돌린다. keyReader가 이벤트를 큐에 쌓으므로
@@ -21,7 +22,7 @@ async function drive(keys, opts = {}) {
 
   const cap = makeCapture()
   const done = runTui(opts.root ?? makeTempRepo(), {
-    dryRun: true, log: cap.log, env: { NO_COLOR: '1' }, stdin, stdout, ...opts,
+    dryRun: true, log: cap.log, env: { NO_COLOR: '1' }, stdin, stdout, t: createT('ko'), ...opts,
   })
 
   while (stdin.listenerCount('keypress') === 0) await new Promise((r) => setImmediate(r))

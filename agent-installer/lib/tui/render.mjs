@@ -102,15 +102,15 @@ export function tabBar(state, { width: limit, color = false, searching = false, 
 // 검색줄 = 하나의 입력칸이다. 포커스가 여기 있으면 입력 커서(▌)로 드러내고,
 // 컬러에서는 줄 전체를 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
 // 이 상태에서만 스페이스가 선택이 아니라 검색어로 들어가기 때문이다.
-function searchLine(state, { limit, color, paint }) {
-  const prefix = '검색 › '
+function searchLine(state, { limit, color, paint, t }) {
+  const prefix = t('tui.search.prefix')
   const room = Math.max(0, limit - width(prefix))
   if (state.focus === 'search') {
     const text = `${prefix}${cut(`${state.query}▌`, room)}`
     return color ? `${REVERSE}${pad(text, limit)}${RESET}` : text
   }
   if (state.query) return `${prefix}${cut(state.query, room)}`
-  return `${prefix}${paint(DIM, cut('타이핑하면 검색 · ↓ 로 목록', room))}`
+  return `${prefix}${paint(DIM, cut(t('tui.search.placeholder'), room))}`
 }
 
 export function render(state, opts = {}) {
@@ -125,14 +125,14 @@ export function render(state, opts = {}) {
   const picked = items.filter((r) => state.selected.has(r.id)).length
 
   const title = `agent-installer${dryRun ? ' (dry-run)' : ''}`
-  const counts = `선택 ${picked} / 전체 ${items.length}`
+  const counts = t('tui.counts', { picked, total: items.length })
   const head = cut(`${title}  ${counts}  ${repo}`, w)
   const searching = String(state.query ?? '').trim() !== ''
 
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
     tabBar(state, { width: w, color, searching, t }),
-    searchLine(state, { limit: w, color, paint }),
+    searchLine(state, { limit: w, color, paint, t }),
     '',
   ]
 
@@ -140,7 +140,7 @@ export function render(state, opts = {}) {
   const all = displayList(state)
 
   if (all.length === 0) {
-    lines.push(paint(DIM, cut(searching ? '  이 탭에는 일치하는 항목이 없습니다. Tab으로 다른 탭을 보세요.' : '  항목이 없습니다.', w)))
+    lines.push(paint(DIM, cut(searching ? t('tui.empty.filtered') : t('tui.empty.none'), w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
     const window = all.slice(state.offset, state.offset + body)
@@ -162,41 +162,38 @@ export function render(state, opts = {}) {
     for (let i = window.length; i < body; i++) lines.push('')
   }
 
-  const hint = state.focus === 'search'
-    ? '입력=검색어(스페이스 포함)   ↓ 목록으로   Tab 탭이동   Esc 검색해제'
-    : 'Space 선택   ↑↓ 이동(맨 위 ↑=검색칸)   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기'
+  const hint = state.focus === 'search' ? t('tui.hint.search') : t('tui.hint.list')
   lines.push('')
   lines.push(paint(DIM, cut(status || hint, w)))
   return lines
 }
 
 const CHANGE_MARK = { install: '+', complete: '±', uninstall: '−' }
-const CHANGE_LABEL = { install: '설치', complete: '보완 설치', uninstall: '제거' }
 
 // 제출 검토 화면 — 적용 직전에 무엇이 바뀌는지만 보여 준다.
 // 목록이 길면 잘라내고 남은 건수를 알린다(스크롤 대신) — 여기서 길을 잃을 이유는 없다.
 export function renderReview(changes, opts = {}) {
-  const { width: columns = 80, height = 24, dryRun = false, color = false } = opts
+  const { width: columns = 80, height = 24, dryRun = false, color = false, t = createT('en') } = opts
   const w = Math.max(24, columns - 1)
   const paint = (code, text) => (color ? `${code}${text}${RESET}` : text)
 
-  const title = `제출 검토 — 변경 ${changes.length}건${dryRun ? ' (dry-run)' : ''}`
+  const title = `${t('tui.review.title', { count: changes.length })}${dryRun ? ' (dry-run)' : ''}`
   const lines = [color ? `${BOLD}${cut(title, w)}${RESET}` : cut(title, w), '']
 
   const body = bodyHeight(height)
   const room = Math.max(1, body - 1)
   const shown = changes.slice(0, room)
   for (const c of shown) {
-    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(CHANGE_LABEL[c.action] ?? c.action, 10)} ${c.item.label}`, w))
+    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(t(`change.${c.action}`), 10)} ${c.item.label}`, w))
   }
   if (changes.length > shown.length) {
-    lines.push(paint(DIM, cut(`  …외 ${changes.length - shown.length}건`, w)))
+    lines.push(paint(DIM, cut(t('tui.review.more', { count: changes.length - shown.length }), w)))
   } else {
     lines.push('')
   }
   for (let i = shown.length + 1; i < body; i++) lines.push('')
 
   lines.push('')
-  lines.push(paint(DIM, cut('Enter 적용   Esc 취소', w)))
+  lines.push(paint(DIM, cut(t('tui.review.hint'), w)))
   return lines
 }

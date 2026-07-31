@@ -256,6 +256,44 @@ export default {
   'section.skill': 'SKILL',
   'section.design': 'DESIGN.MD',
 
+  // TUI 목록·검토 화면 문구. item.*는 agentHint가, action.*.label/hint는
+  // buildActions가 쓴다. action.*.label과 section.*는 LABEL_WIDTH(24) 안에
+  // 들어야 한다 — i18n.test.mjs가 검사한다.
+  'tui.counts': 'selected {picked} / {total}',
+  'tui.search.prefix': 'Search › ',
+  'tui.search.placeholder': 'type to search · ↓ for the list',
+  'tui.empty.filtered': '  Nothing matches in this tab. Press Tab to try another.',
+  'tui.empty.none': '  Nothing here.',
+  'tui.hint.search': 'type=query (space included)   ↓ to list   Tab switch tab   Esc clear',
+  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview',
+  'tui.review.title': 'Review — {count} change(s)',
+  'tui.review.more': '  …and {count} more',
+  'tui.review.hint': 'Enter apply   Esc cancel',
+  'tui.notItemRow': 'Press Enter to run this row.',
+  'tui.noPreview': 'This item has no preview.',
+  'tui.opened': 'Opened: {target}',
+  'tui.noChanges': 'Nothing to change.',
+  'tui.submitCancelled': 'Submission cancelled.',
+  'tui.toggledAll': 'Selected every visible item in the {tab} tab.',
+  'tui.toggledNone': 'Cleared every visible item in the {tab} tab.',
+  'tui.nonInteractive': 'The interactive screen only opens in a terminal. --list and --set work too.',
+  'tui.applyHeader': '{count} change(s) to apply{suffix}:',
+  'tui.pressAnyKey': 'Press any key to continue…',
+  'tui.confirmSuffix': ' [y/N] ',
+
+  'item.location.user': 'installs to: user global',
+  'item.unsupportedList': 'unsupported: {list}',
+  'item.claudeOnly': 'Claude Code only',
+
+  'action.bootstrap.label': 'Run bootstrap',
+  'action.bootstrap.hint': 'guides · skills · per-tool config · {present} of {total} files exist',
+  'action.sync.installed.label': 'Update installed',
+  'action.sync.installed.hint': 'refetch installed design.md from their sources',
+  'action.sync.catalog.label': 'Refresh catalog',
+  'action.sync.catalog.hint': 'rebuild the design.md list and categories from sources',
+  'action.sync.stale.label': 'Check stale',
+  'action.sync.stale.hint': 'compare installed copies against their sources by hash',
+
   // design.md 서브시스템. category.*는 우리가 만든 catch-all id(__other·__local)를
   // 화면에 낼 때만 쓴다 — 공급자가 준 카테고리는 이미 영어 데이터라 번역하지 않는다.
   'category.other': 'Other',
