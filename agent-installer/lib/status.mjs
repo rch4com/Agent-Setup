@@ -6,6 +6,7 @@
 import { MANIFEST } from './bootstrap/manifest.mjs'
 import { updateBlocks, updateFiles } from './bootstrap/apply.mjs'
 import { readRecord, toolVersion } from './bootstrap/record.mjs'
+import { createT } from './i18n/index.mjs'
 
 export async function collectStatus(root, { manifest = MANIFEST, items = [], latest } = {}) {
   const record = readRecord(root)
@@ -56,37 +57,37 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
   }
 }
 
-export function formatStatus(report) {
+export function formatStatus(report, t = createT('en')) {
   const lines = []
   const { tool, files, items } = report
 
   if (!report.hasRecord) {
-    lines.push('설치 기록이 없습니다.')
-    lines.push('  이 저장소를 기록 체계로 끌어오려면 bootstrap --adopt 를 실행하세요.')
-    lines.push('  파일을 만들지 않고, 템플릿과 같은 파일만 관리 대상으로 기록합니다.')
+    lines.push(t('status.noRecord'))
+    lines.push(t('status.noRecord.hint1'))
+    lines.push(t('status.noRecord.hint2'))
     return lines.join('\n')
   }
 
   const version = tool.latest && tool.latest !== tool.running
-    ? `${tool.pinned} 고정 · 실행 중 ${tool.running} · 최신 ${tool.latest}`
-    : `${tool.pinned} 고정 · 실행 중 ${tool.running}`
-  lines.push(`도구        ${version}`)
-  if (tool.pinned !== tool.running) lines.push('            → update로 고정 버전을 옮길 수 있습니다')
+    ? t('status.version.latest', { pinned: tool.pinned, running: tool.running, latest: tool.latest })
+    : t('status.version.pinned', { pinned: tool.pinned, running: tool.running })
+  lines.push(t('status.row.tool', { version }))
+  if (tool.pinned !== tool.running) lines.push(t('status.hint.update'))
 
-  lines.push(`관리 파일   ${files.total}개 중 ${files.current} 최신 · ${files.pending} 갱신 대기 · ${files.drift} 사용자 수정`)
-  if (files.pending > 0) lines.push('            → update')
-  if (files.drift > 0) lines.push('            → 사용자 수정 파일은 update가 건드리지 않습니다')
+  lines.push(t('status.row.files', files))
+  if (files.pending > 0) lines.push(t('status.hint.pending'))
+  if (files.drift > 0) lines.push(t('status.hint.drift'))
 
-  lines.push(`항목        설치됨     ${items.installed.join(', ') || '(없음)'}`)
-  if (items.recordOnly.length) lines.push(`            기록에만   ${items.recordOnly.join(', ')}`)
-  if (items.repoOnly.length) lines.push(`            저장소에만 ${items.repoOnly.join(', ')}`)
+  lines.push(t('status.row.items', { list: items.installed.join(', ') || t('status.none') }))
+  if (items.recordOnly.length) lines.push(t('status.row.recordOnly', { list: items.recordOnly.join(', ') }))
+  if (items.repoOnly.length) lines.push(t('status.row.repoOnly', { list: items.repoOnly.join(', ') }))
 
   return lines.join('\n')
 }
 
-export async function runStatus(root, { json = false, log = console.log } = {}) {
+export async function runStatus(root, { json = false, log = console.log, t = createT('en') } = {}) {
   const { loadItems } = await import('./catalog.mjs')
   const report = await collectStatus(root, { items: await loadItems() })
-  log(json ? JSON.stringify(report, null, 2) : formatStatus(report))
+  log(json ? JSON.stringify(report, null, 2) : formatStatus(report, t))
   return report
 }

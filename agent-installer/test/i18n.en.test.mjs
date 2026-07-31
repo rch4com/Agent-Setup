@@ -41,3 +41,24 @@ test('영어 부트스트랩 실제 실행 출력에 한글이 없다', () => {
   assert.equal(second.status, 0, second.stderr)
   assertNoHangul(second.stdout, 'bootstrap 2회차 stdout')
 })
+
+test('영어 status와 --list 출력에 한글이 없다', () => {
+  const root = makeTempRepo()
+  runInstaller(root, ['bootstrap'], { env: EN })
+  // design --list는 뺐다 — lib/design-md/flow.mjs가 아직 한국어로 고정되어 있고
+  // (파일 상단 주석: "Task 8이 design-md를 지역화하면서 이 고정을 걷어낸다"),
+  // design-md는 이번 Task 7의 파일 목록 밖이다. Task 8에서 이 케이스를 되살려야 한다.
+  for (const args of [['status'], ['--list']]) {
+    const r = runInstaller(root, args, { env: EN })
+    assert.equal(r.status, 0, r.stderr)
+    assertNoHangul(r.stdout, args.join(' '))
+  }
+})
+
+test('영어 update dry-run 출력에 한글이 없다', () => {
+  const root = makeTempRepo()
+  runInstaller(root, ['bootstrap'], { env: EN })
+  const r = runInstaller(root, ['update', '--dry-run'], { env: EN })
+  assert.equal(r.status, 0, r.stderr)
+  assertNoHangul(r.stdout, 'update --dry-run')
+})

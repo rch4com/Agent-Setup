@@ -6,8 +6,12 @@ import { test } from 'node:test'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { MANIFEST } from '../lib/bootstrap/manifest.mjs'
 import { RECORD_REL, readRecord } from '../lib/bootstrap/record.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { runUpdate } from '../lib/update.mjs'
 import { makeCapture, makeTempRepo } from './helpers.mjs'
+
+// 기존 단언은 지역화 이전 한국어 출력을 가정하고 쓰였다 — t를 명시해 그 뜻을 지킨다.
+const KO_T = createT('ko')
 
 // 템플릿이 개선된 다음 릴리스를 흉내낸다.
 function bumpedManifest() {
@@ -29,7 +33,7 @@ test('템플릿이 개선되면 손대지 않은 파일이 갱신된다', async 
   const { record } = runBootstrap(root, { log() {} })
 
   const cap = makeCapture()
-  const r = await runUpdate(root, { manifest: bumpedManifest(), log: cap.log })
+  const r = await runUpdate(root, { manifest: bumpedManifest(), log: cap.log, t: KO_T })
 
   assert.equal(readFileSync(join(root, '.agent-kit/README.md'), 'utf8'), '새 안내 문서\n')
   assert.equal(r.drift.length, 0)
@@ -44,7 +48,7 @@ test('사용자가 고친 파일은 건드리지 않고 드리프트로 보고�
   writeFileSync(join(root, '.agent-kit/README.md'), '팀이 고친 안내\n')
 
   const cap = makeCapture()
-  const r = await runUpdate(root, { manifest: bumpedManifest(), log: cap.log })
+  const r = await runUpdate(root, { manifest: bumpedManifest(), log: cap.log, t: KO_T })
 
   assert.equal(readFileSync(join(root, '.agent-kit/README.md'), 'utf8'), '팀이 고친 안내\n')
   assert.deepEqual(r.drift.map((d) => d.path), ['.agent-kit/README.md'])
@@ -76,9 +80,10 @@ test('force는 워킹트리가 더러우면 거부한다', async () => {
   const root = makeTempRepo()
   runBootstrap(root, { log() {} })
   // 커밋하지 않은 상태 — 되돌릴 수 없는 덮어쓰기를 막아야 한다.
+  // LocalizedError.message는 언제나 영어다 — 텍스트가 아니라 키로 단언한다.
   await assert.rejects(
     () => runUpdate(root, { force: true, log() {} }),
-    /워킹트리|커밋/,
+    (err) => err.key === 'error.forceNeedsCleanTree',
   )
 })
 
@@ -115,7 +120,7 @@ test('관리 블록이 사라진 파일은 드리프트 메시지를 문자열�
   writeFileSync(join(root, 'CLAUDE.md'), '마커가 사라진 파일\n')
 
   const cap = makeCapture()
-  const r = await runUpdate(root, { log: cap.log })
+  const r = await runUpdate(root, { log: cap.log, t: KO_T })
 
   assert.deepEqual(r.drift.map((d) => d.path), ['CLAUDE.md'])
   assert.doesNotMatch(cap.text(), /\[object Object\]/)

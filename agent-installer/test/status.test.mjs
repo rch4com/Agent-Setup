@@ -4,10 +4,14 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { RECORD_REL } from '../lib/bootstrap/record.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { collectStatus, formatStatus } from '../lib/status.mjs'
-import { makeTempRepo } from './helpers.mjs'
+import { width } from '../lib/tui/render.mjs'
+import { KO, makeTempRepo, runInstaller } from './helpers.mjs'
 
 const NO_ITEMS = []
+// 기존 단언은 지역화 이전 한국어 출력을 가정하고 쓰였다 — t를 명시해 그 뜻을 지킨다.
+const KO_T = createT('ko')
 
 test('갓 배선한 저장소는 관리 파일이 전부 최신이다', async () => {
   const root = makeTempRepo()
@@ -34,7 +38,7 @@ test('기록이 없으면 hasRecord가 false이고 안내가 나온다', async (
   const report = await collectStatus(root, { items: NO_ITEMS })
 
   assert.equal(report.hasRecord, false)
-  assert.match(formatStatus(report), /--adopt/)
+  assert.match(formatStatus(report, KO_T), /--adopt/)
 })
 
 test('기록에만 있는 항목과 저장소에만 있는 항목을 갈라 센다', async () => {
@@ -72,7 +76,7 @@ test('버전 차이를 보고한다', async () => {
   const report = await collectStatus(root, { items: NO_ITEMS, latest: '9.9.9' })
 
   assert.equal(report.tool.latest, '9.9.9')
-  assert.match(formatStatus(report), /9\.9\.9/)
+  assert.match(formatStatus(report, KO_T), /9\.9\.9/)
 })
 
 test('네트워크로 최신 버전을 못 받아도 나머지는 보고한다', async () => {
@@ -81,7 +85,7 @@ test('네트워크로 최신 버전을 못 받아도 나머지는 보고한다',
   const report = await collectStatus(root, { items: NO_ITEMS, latest: null })
 
   assert.equal(report.tool.latest, null)
-  assert.doesNotMatch(formatStatus(report), /null/)
+  assert.doesNotMatch(formatStatus(report, KO_T), /null/)
 })
 
 test('status는 아무것도 바꾸지 않는다', async () => {
@@ -94,4 +98,26 @@ test('status는 아무것도 바꾸지 않는다', async () => {
 
   assert.equal(readFileSync(join(root, RECORD_REL), 'utf8'), before)
   assert.equal(readFileSync(join(root, '.agent-kit/README.md'), 'utf8'), readme)
+})
+
+test('--json 출력은 로케일과 무관하게 같다', () => {
+  const root = makeTempRepo()
+  runInstaller(root, ['bootstrap'], { env: KO })
+  const en = runInstaller(root, ['status', '--json'], { env: { AGENT_SETUP_LANG: 'en' } })
+  const ko = runInstaller(root, ['status', '--json'], { env: KO })
+  // 기계가 읽는 출력에 언어가 새면 CI 판정이 사람 설정에 흔들린다.
+  assert.deepEqual(JSON.parse(en.stdout), JSON.parse(ko.stdout))
+})
+
+test('status 표의 값이 두 로케일 모두에서 같은 열에서 시작한다', () => {
+  for (const locale of ['en', 'ko']) {
+    const t = createT(locale)
+    const cols = [
+      t('status.row.tool', { version: '|' }),
+      t('status.row.files', { total: '', current: '', pending: '', drift: '' }),
+      t('status.row.items', { list: '|' }),
+    ].map((line) => width(line.slice(0, line.indexOf('|') === -1 ? undefined : line.indexOf('|'))))
+    // tool과 items는 값 앞 여백이 같아야 한다. files는 자리 구조가 달라 제외한다.
+    assert.equal(cols[0], cols[2], `${locale}: tool과 items의 값 시작 열이 다르다`)
+  }
 })

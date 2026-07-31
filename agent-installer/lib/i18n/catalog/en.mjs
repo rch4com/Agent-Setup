@@ -198,6 +198,29 @@ export default {
 
   'error.badSkillModeRuntime': '--skill-mode must be one of {list}: {value}',
 
+  // status·update 화면 문구. status.row.*는 표 정렬용 공백을 포함한다 — tool과
+  // items의 값 시작 열이 같아야 한다(status.test.mjs의 열 정렬 테스트가 검증).
+  'status.noRecord': 'No install record.',
+  'status.noRecord.hint1': '  To bring this repository under the record, run bootstrap --adopt.',
+  'status.noRecord.hint2': '  It creates nothing and records only files that match the templates.',
+  'status.row.tool': 'tool                    {version}',
+  'status.version.pinned': '{pinned} pinned · running {running}',
+  'status.version.latest': '{pinned} pinned · running {running} · latest {latest}',
+  'status.hint.update': '            → update can move the pinned version',
+  'status.row.files': 'managed                 {current} of {total} current · {pending} pending · {drift} edited by you',
+  'status.hint.pending': '            → update',
+  'status.hint.drift': '            → update leaves files you edited alone',
+  'status.row.items': 'items       installed   {list}',
+  'status.row.recordOnly': '            record only {list}',
+  'status.row.repoOnly': '            repo only   {list}',
+  'status.none': '(none)',
+  'update.versionMove': 'pinned {pinned} → running {running}',
+  'update.summary': '{updated} updated · {created} created · {drift} drifted',
+  'update.driftHeader': 'drift (left alone)',
+  'update.driftHint': 'run update --force to take the latest templates (the working tree must be clean)',
+  'error.forceNeedsCleanTree': '--force needs a clean working tree. git is the only way back, so overwriting uncommitted changes cannot be undone.',
+  'error.noRecordForUpdate': '{path} does not exist. To bring this repository under the record, run bootstrap --adopt first — it creates nothing and only writes the record.',
+
   // 항목 카탈로그 — note·unsupported 사유·detect()의 detail은 만들어지는 시점에
   // 로케일을 모른다. catalog.mjs·lib/items/*가 여기 키를 담아 두고, 표시하는
   // 쪽이 렌더 시점에 t나 toText로 푼다.

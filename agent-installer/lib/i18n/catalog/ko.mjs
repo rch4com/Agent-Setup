@@ -192,6 +192,30 @@ export default {
 
   'error.badSkillModeRuntime': '--skill-mode는 {list} 중 하나여야 합니다: {value}',
 
+  // status·update 화면 문구. status.row.tool/files는 원본보다 공백을 늘려
+  // items 블록(설치됨·기록에만·저장소에만)과 값 시작 열을 맞췄다 — 나머지는
+  // 기존 status.mjs·update.mjs의 문구를 그대로 옮겼다.
+  'status.noRecord': '설치 기록이 없습니다.',
+  'status.noRecord.hint1': '  이 저장소를 기록 체계로 끌어오려면 bootstrap --adopt 를 실행하세요.',
+  'status.noRecord.hint2': '  파일을 만들지 않고, 템플릿과 같은 파일만 관리 대상으로 기록합니다.',
+  'status.row.tool': '도구                   {version}',
+  'status.version.pinned': '{pinned} 고정 · 실행 중 {running}',
+  'status.version.latest': '{pinned} 고정 · 실행 중 {running} · 최신 {latest}',
+  'status.hint.update': '            → update로 고정 버전을 옮길 수 있습니다',
+  'status.row.files': '관리 파일              {total}개 중 {current} 최신 · {pending} 갱신 대기 · {drift} 사용자 수정',
+  'status.hint.pending': '            → update',
+  'status.hint.drift': '            → 사용자 수정 파일은 update가 건드리지 않습니다',
+  'status.row.items': '항목        설치됨     {list}',
+  'status.row.recordOnly': '            기록에만   {list}',
+  'status.row.repoOnly': '            저장소에만 {list}',
+  'status.none': '(없음)',
+  'update.versionMove': '고정 {pinned} → 실행 중 {running}',
+  'update.summary': '갱신 {updated}건 · 신규 {created}건 · 드리프트 {drift}건',
+  'update.driftHeader': '드리프트 (건드리지 않았습니다)',
+  'update.driftHint': '최신 템플릿을 반영하려면 update --force (워킹트리가 깨끗해야 합니다)',
+  'error.forceNeedsCleanTree': '--force는 워킹트리가 깨끗할 때만 쓸 수 있습니다. git이 유일한 되돌리기 수단이라 커밋되지 않은 변경 위에 덮어쓰면 복구할 수 없습니다.',
+  'error.noRecordForUpdate': '{path}이 없습니다. 이 저장소를 기록 체계로 끌어오려면 먼저 `bootstrap --adopt`를 실행하세요 — 파일을 만들지 않고 기록만 만듭니다.',
+
   // 항목 카탈로그 — 기존 원문을 그대로 옮긴다. en.mjs 쪽 주석 참고.
   'item.unsupported.claudePlugin': 'Claude Code 전용 플러그인',
   'item.unsupported.claudeSkill': 'Claude Code 스킬 설치본',
