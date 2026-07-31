@@ -274,6 +274,9 @@ export default {
   'error.catalogUnreadable': 'design.md 카탈로그를 읽을 수 없습니다: {path}\n{message}\n`design --sync=catalog`로 다시 만들 수 있습니다.',
   'error.responseTooLarge': '응답이 상한({limit} 바이트)을 넘었습니다: {url}',
   'error.badDesignId': '잘못된 design.md 식별자: {provider}/{name}',
+  // resolveTokens(--set/--preview 토큰 해석)의 예외 전용 — design.ambiguous와
+  // 같은 상황이지만 로그 줄이 아니라 최상위 예외라 들여쓰기가 없다.
+  'error.ambiguousDesignId': '중복된 이름 \'{token}\' — 제공자를 지정하세요: {options}',
   'error.designDownload': '{provider}/{name}: DESIGN.md 다운로드 실패',
   'error.readmeFetch': 'README 가져오기 실패: HTTP {status}',
 }

@@ -176,8 +176,9 @@ test('resolveTokens: name / provider/name 해석, 미지원·중복 처리', () 
   assert.deepEqual(resolveTokens(items, ''), [])
   // 미지원 — LocalizedError의 .message는 언제나 영어다, 키로 단언한다.
   assert.throws(() => resolveTokens(items, 'nope'), (err) => err.key === 'error.unknownItem')
-  // 중복된 이름은 제공자 지정 요구
-  assert.throws(() => resolveTokens(items, 'stripe'), (err) => err.key === 'design.ambiguous')
+  // 중복된 이름은 제공자 지정 요구 — 로그 줄(design.ambiguous)과 달리
+  // 최상위 예외라 들여쓰기 없는 전용 키를 쓴다.
+  assert.throws(() => resolveTokens(items, 'stripe'), (err) => err.key === 'error.ambiguousDesignId')
 })
 
 test('saveCatalog/loadCatalog 왕복', () => {

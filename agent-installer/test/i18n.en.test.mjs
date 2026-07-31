@@ -52,13 +52,19 @@ test('영어 status와 --list 출력에 한글이 없다', () => {
   }
 })
 
-test('영어 design --list 출력에 한글이 없다', () => {
+// design --list는 assertNoHangul을 걸지 않는다: 항목 라벨·설명·카테고리는
+// design.md 데이터에서 온다(예: 사내 소스로 번들된 실제 한국어 디자인
+// 시스템 문서). 데이터는 어떤 언어든 담을 수 있고 그건 번역 누락이 아니다
+// — 그래서 "한글이 없다"가 아니라 "우리 문구가 영어로 나온다"를 본다.
+test('영어 design --list의 UI 문구가 영어로 나온다', () => {
   const root = makeTempRepo()
   runInstaller(root, ['bootstrap'], { env: EN })
   const r = runInstaller(root, ['design', '--list'], { env: EN })
   assert.equal(r.status, 0, r.stderr)
-  assertNoHangul(r.stdout, 'design --list stdout')
-  assertNoHangul(r.stderr, 'design --list stderr')
+  assert.match(r.stdout, /Not installed/)
+  for (const ours of ['미설치', '설치됨', '일부 설치됨', '기타', '사내']) {
+    assert.doesNotMatch(r.stdout, new RegExp(ours), `우리 문구가 한국어로 남았습니다: ${ours}`)
+  }
 })
 
 test('영어 update dry-run 출력에 한글이 없다', () => {

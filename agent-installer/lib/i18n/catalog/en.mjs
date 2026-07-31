@@ -282,6 +282,9 @@ export default {
   'error.catalogUnreadable': 'Cannot read the design.md catalog: {path}\n{message}\nRebuild it with `design --sync=catalog`.',
   'error.responseTooLarge': 'The response exceeded the {limit} byte cap: {url}',
   'error.badDesignId': 'Invalid design.md identifier: {provider}/{name}',
+  // resolveTokens(--set/--preview 토큰 해석)의 예외 전용 — design.ambiguous와
+  // 같은 상황이지만 로그 줄이 아니라 최상위 예외라 들여쓰기가 없다.
+  'error.ambiguousDesignId': 'ambiguous name \'{token}\' — pick a provider: {options}',
   'error.designDownload': '{provider}/{name}: DESIGN.md download failed',
   'error.readmeFetch': 'README fetch failed: HTTP {status}',
 }

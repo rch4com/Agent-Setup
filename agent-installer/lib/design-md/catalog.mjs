@@ -258,7 +258,7 @@ export function resolveTokens(items, tokensStr) {
       : items.filter((i) => i.name === tok)
     if (matches.length === 0) throw new LocalizedError('error.unknownItem', { id: tok })
     if (matches.length > 1) {
-      throw new LocalizedError('design.ambiguous', { token: tok, options: matches.map((m) => `${m.providerId}/${m.name}`).join(', ') })
+      throw new LocalizedError('error.ambiguousDesignId', { token: tok, options: matches.map((m) => `${m.providerId}/${m.name}`).join(', ') })
     }
     out.push(matches[0])
   }

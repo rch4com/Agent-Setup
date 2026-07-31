@@ -1,5 +1,5 @@
 ---
-name: Feelanet Teams In-App (Web·Desktop / Mobile) Design System
+name: 필라넷 팀즈인앱(웹·데스크톱 / 모바일) 디자인 시스템
 colors:
   # Brand
   brand-primary: '#5B5FC7'
