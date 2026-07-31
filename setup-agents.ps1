@@ -6,6 +6,10 @@
 param(
     [string]$SkillMode,
 
+    # .sh는 "$@"로 인자를 그대로 넘기지만 여기는 명명 파라미터라
+    # --lang이 저절로 닿지 않는다. 값 검증은 install.mjs 한 곳에 맡긴다.
+    [string]$Lang,
+
     [switch]$DryRun,
 
     # -Menu는 옛 이름이다. 지금 열리는 것은 메뉴가 아니라 리스트 화면이다.
@@ -21,7 +25,9 @@ $ErrorActionPreference = "Stop"
 $installer = Join-Path $PSScriptRoot "agent-installer"
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Error "Node.js 20 이상이 필요합니다: https://nodejs.org"
+    # Node가 없으면 i18n 기계장치가 아예 돌지 못한다. 런처에 로케일 감지
+    # 분기를 넣는 대신 이 한 문장만 병기한다.
+    Write-Error "Node.js 20 or later is required / Node.js 20 이상이 필요합니다: https://nodejs.org"
     exit 1
 }
 
@@ -31,6 +37,7 @@ if ($Tui -and -not $Help) {
     # 예전에는 여기서 버려져 대화형 경로가 늘 auto로 고정됐다.
     $tuiArgs = @()
     if ($SkillMode) { $tuiArgs += @("--skill-mode", $SkillMode.ToLower()) }
+    if ($Lang) { $tuiArgs += @("--lang", $Lang.ToLower()) }
     if ($DryRun) { $tuiArgs += "--dry-run" }
     & node (Join-Path $installer "install.mjs") @tuiArgs
     exit $LASTEXITCODE
@@ -40,6 +47,7 @@ if ($Tui -and -not $Help) {
 $nodeArgs = @((Join-Path $installer "install.mjs"), "bootstrap")
 if ($Help) { $nodeArgs += "--help" }
 if ($SkillMode) { $nodeArgs += @("--skill-mode", $SkillMode.ToLower()) }
+if ($Lang) { $nodeArgs += @("--lang", $Lang.ToLower()) }
 if ($DryRun) { $nodeArgs += "--dry-run" }
 
 & node @nodeArgs

@@ -7,7 +7,9 @@ set -Eeuo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/agent-installer"
 
 command -v node >/dev/null 2>&1 || {
-  echo "Node.js 20 이상이 필요합니다: https://nodejs.org" >&2
+  # Node가 없으면 i18n 기계장치가 아예 돌지 못한다. 런처에 로케일 감지
+  # 분기를 넣는 대신 이 한 문장만 병기한다.
+  echo "Node.js 20 or later is required / Node.js 20 이상이 필요합니다: https://nodejs.org" >&2
   exit 1
 }
 
