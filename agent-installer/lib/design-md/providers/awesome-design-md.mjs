@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LocalizedError } from '../../i18n/index.mjs'
 
 // lib/design-md/cache/<name>/DESIGN.md — 인스톨러에 동봉된 오프라인 번들.
 const BUNDLE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'cache')
@@ -14,7 +15,9 @@ const BRANCH = 'main'
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/design-md`
 const README_URL = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/README.md`
 const TREE_URL = `https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`
-const UNCATEGORIZED = '기타'
+// scan.mjs의 BUNDLE_CATEGORY와 같은 값이어야 한다 — 둘 다 카테고리 못 얻은
+// 항목이 모이는 자리라, 갈라지면 같은 그룹이 헤더 두 개로 쪼개진다.
+export const UNCATEGORIZED = '__other'
 
 const ENTRY_RE = /^-\s*\[\*\*(.+?)\*\*\]\(\s*https?:\/\/getdesign\.md\/([^/)]+)\/design-md\s*\)\s*-\s*(.*)$/
 
@@ -89,7 +92,7 @@ export const awesomeDesignMd = {
   // README 파싱(주) + tree orphan 보강(선택). 이름순 정렬 반환.
   async fetchCatalog(fetchImpl) {
     const readmeRes = await fetchImpl(README_URL)
-    if (!readmeRes.ok) throw new Error(`README 가져오기 실패: HTTP ${readmeRes.status}`)
+    if (!readmeRes.ok) throw new LocalizedError('error.readmeFetch', { status: readmeRes.status })
     const entries = parseReadme(await readmeRes.text())
     const seen = new Set(entries.map((e) => e.name))
 

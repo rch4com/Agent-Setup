@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { makeFetch } from './helpers.mjs'
-import { parseReadme, parseTreeNames, awesomeDesignMd } from '../lib/design-md/providers/awesome-design-md.mjs'
+import { parseReadme, parseTreeNames, awesomeDesignMd, UNCATEGORIZED } from '../lib/design-md/providers/awesome-design-md.mjs'
 
 const README = `# Title
 ## What is DESIGN.md?
@@ -45,7 +45,7 @@ test('fetchCatalog는 README + tree orphan을 병합하고 이름순 정렬한�
   ])
   const entries = await awesomeDesignMd.fetchCatalog(fetchImpl)
   assert.deepEqual(entries.map((e) => e.name), ['claude', 'mistral.ai', 'orphan', 'stripe'])
-  assert.equal(entries.find((e) => e.name === 'orphan').category, '기타')
+  assert.equal(entries.find((e) => e.name === 'orphan').category, UNCATEGORIZED)
 })
 
 test('fetchCatalog는 tree 실패 시 README만으로 동작한다', async () => {

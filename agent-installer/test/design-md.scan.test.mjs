@@ -7,9 +7,12 @@ import { fileURLToPath } from 'node:url'
 import { makeTempRepo, makeCapture, makeFetch } from './helpers.mjs'
 import {
   parseDesignMeta, parseDirSpec, sanitizeId, scanDesignDir, discoverSources, extraDirsFromEnv,
+  BUNDLE_CATEGORY, LOCAL_CATEGORY,
 } from '../lib/design-md/scan.mjs'
 import { buildItems } from '../lib/design-md/catalog.mjs'
 import { runDesign } from '../lib/design-md/flow.mjs'
+import { UNCATEGORIZED } from '../lib/design-md/providers/awesome-design-md.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 
 function tempDir() {
   return mkdtempSync(join(tmpdir(), 'design-md-scan-'))
@@ -26,6 +29,14 @@ function putDesign(dir, segs, body) {
 const noNetwork = async () => {
   throw new Error('테스트에서 네트워크를 호출하면 안 됩니다.')
 }
+
+test('분류 못 한 항목의 카테고리는 표시 문자열이 아니라 id다', () => {
+  // 카테고리는 정렬 키이자 그룹 헤더다. 표시 문자열을 그대로 쓰면 번역하는
+  // 순간 정렬과 그룹 묶기가 어긋난다.
+  assert.equal(BUNDLE_CATEGORY, '__other')
+  assert.equal(UNCATEGORIZED, '__other')
+  assert.equal(LOCAL_CATEGORY, '__local')
+})
 
 // ── 메타데이터 파싱 ────────────────────────────────────────────────
 
@@ -85,7 +96,7 @@ test('scanDesignDir: <이름>/DESIGN.md 를 항목으로 만든다', () => {
   assert.equal(entries[0].name, 'checkout')
   assert.equal(entries[0].label, '결제')
   assert.equal(entries[0].description, '결제 화면.')
-  assert.equal(entries[0].category, '사내') // 중간 경로가 없으면 기본값
+  assert.equal(entries[0].category, LOCAL_CATEGORY) // 중간 경로가 없으면 기본값
 })
 
 test('scanDesignDir: 중간 디렉터리가 카테고리가 된다', () => {
@@ -142,7 +153,7 @@ test('scanDesignDir: 카테고리가 다른 동명 항목을 잃지 않는다', 
   putDesign(dir, ['웹', '버튼'], '# 웹 버튼\n')
   putDesign(dir, ['모바일', '버튼'], '# 모바일 버튼\n')
   const cap = makeCapture()
-  const entries = scanDesignDir(dir, { log: cap.log })
+  const entries = scanDesignDir(dir, { log: cap.log, t: createT('ko') })
 
   assert.equal(entries.length, 2)
   assert.deepEqual(entries.map((e) => e.label).sort(), ['모바일 버튼', '웹 버튼'])
@@ -202,14 +213,14 @@ test('discoverSources: 번들 캐시의 하위 디렉터리 하나가 소스 하
   assert.deepEqual(sources.map((s) => s.id), ['acme-internal', 'other-src'])
   assert.deepEqual(sources[0].entries.map((e) => e.name), ['checkout'])
   assert.equal(sources[0].bundled, true)
-  assert.equal(sources[0].entries[0].category, '사내') // 등록 프로바이더가 없는 사내 소스
+  assert.equal(sources[0].entries[0].category, LOCAL_CATEGORY) // 등록 프로바이더가 없는 사내 소스
 })
 
 test('discoverSources: 등록 프로바이더의 번들은 기본 카테고리가 기타', () => {
   const bundleDir = tempDir()
   putDesign(bundleDir, ['awesome-design-md', 'stripe'], '# S\n')
   const sources = discoverSources({ bundleDir, reservedIds: ['awesome-design-md'] })
-  assert.equal(sources[0].entries[0].category, '기타')
+  assert.equal(sources[0].entries[0].category, BUNDLE_CATEGORY)
 })
 
 test('discoverSources: 외부 경로를 추가로 붙인다', () => {
@@ -219,7 +230,7 @@ test('discoverSources: 외부 경로를 추가로 붙인다', () => {
   const sources = discoverSources({ bundleDir, extraDirs: [`acme=${extra}`] })
   assert.deepEqual(sources.map((s) => s.id), ['acme'])
   assert.equal(sources[0].bundled, false)
-  assert.equal(sources[0].entries[0].category, '사내')
+  assert.equal(sources[0].entries[0].category, LOCAL_CATEGORY)
 })
 
 test('discoverSources: id가 겹치면 접미사로 구분한다', () => {
@@ -237,6 +248,7 @@ test('discoverSources: 없는 경로·빈 경로는 안내하고 건너뛴다', 
     bundleDir: tempDir(),
     extraDirs: [join(tempDir(), 'nope'), tempDir()],
     log: cap.log,
+    t: createT('ko'),
   })
   assert.deepEqual(sources, [])
   assert.match(cap.text(), /찾을 수 없습니다/)
@@ -332,7 +344,7 @@ test('--list는 로컬 소스를 표시하고, --set이 설치한다', async () 
   putDesign(dir, ['sanae-console'], '# 사내 콘솔\n')
   const root = makeTempRepo()
   const cap = makeCapture()
-  const opts = { bundleDir: tempDir(), designDirs: [`acme=${dir}`], env: {}, fetchImpl: noNetwork }
+  const opts = { bundleDir: tempDir(), designDirs: [`acme=${dir}`], env: {}, fetchImpl: noNetwork, t: createT('ko') }
 
   await runDesign(root, { ...opts, list: true, log: cap.log })
   assert.match(cap.text(), /\[acme · 로컬\]/)

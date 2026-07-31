@@ -134,7 +134,9 @@ export async function runTui(root, opts = {}) {
     const row = currentRow(state)
     if (row?.kind !== 'item' || !row.previewTarget) return '이 항목은 미리보기를 제공하지 않습니다.'
     const notes = []
-    openPreview(opener, row.item, (m) => notes.push(String(m).trim()))
+    // TUI는 아직 로케일을 고르지 않는다(Task 10) — 지금까지와 같은 한국어
+    // 출력을 유지하기 위해 못박아 둔다.
+    openPreview(opener, row.item, (m) => notes.push(String(m).trim()), createT('ko'))
     return notes.length > 0 ? notes.join(' ') : `열었습니다: ${row.previewTarget}`
   }
 

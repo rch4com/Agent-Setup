@@ -52,16 +52,13 @@ test('영어 status와 --list 출력에 한글이 없다', () => {
   }
 })
 
-test('영어 design --list는 죽지 않고 종료 코드 0을 낸다', () => {
-  // lib/design-md/flow.mjs가 아직 한국어로 고정되어 있어(파일 상단 주석:
-  // "Task 8이 design-md를 지역화하면서 이 고정을 걷어낸다") 이번 Task 7의
-  // 파일 목록 밖이다. 그래서 여기서는 assertNoHangul을 걸지 않고 EN 경로가
-  // 죽지 않는지만 본다 — Task 8이 design-md를 지역화하면서 assertNoHangul을
-  // 되살려야 한다.
+test('영어 design --list 출력에 한글이 없다', () => {
   const root = makeTempRepo()
   runInstaller(root, ['bootstrap'], { env: EN })
   const r = runInstaller(root, ['design', '--list'], { env: EN })
   assert.equal(r.status, 0, r.stderr)
+  assertNoHangul(r.stdout, 'design --list stdout')
+  assertNoHangul(r.stderr, 'design --list stderr')
 })
 
 test('영어 update dry-run 출력에 한글이 없다', () => {

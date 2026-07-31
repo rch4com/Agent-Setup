@@ -331,7 +331,7 @@
         {
           "name": "slack",
           "label": "slack",
-          "category": "기타",
+          "category": "__other",
           "description": ""
         },
         {

@@ -48,13 +48,14 @@ test('install dry-run은 fetch도 쓰기도 하지 않는다', async () => {
 })
 
 test('install은 원본 파일이 없으면 예외', async () => {
+  // LocalizedError의 .message는 언제나 영어다 — 키로 단언한다.
   const item = defineDesignMd(entry('ghost'), provider, { fetchImpl: makeFetch([]) })
-  await assert.rejects(item.install({ root: makeTempRepo(), dryRun: false }), /다운로드 실패/)
+  await assert.rejects(item.install({ root: makeTempRepo(), dryRun: false }), (err) => err.key === 'error.designDownload')
 })
 
 test('경로 구분자가 든 이름은 거부한다', async () => {
   const item = defineDesignMd(entry('a/b'), provider, { fetchImpl: async () => ({}) })
-  await assert.rejects(item.detect({ root: makeTempRepo() }), /잘못된 design.md 식별자/)
+  await assert.rejects(item.detect({ root: makeTempRepo() }), (err) => err.key === 'error.badDesignId')
 })
 
 // 부트스트랩은 쓰기 경로마다 링크 이탈을 검사한다. 설치기의 design.md 경로도
@@ -173,10 +174,10 @@ test('resolveTokens: name / provider/name 해석, 미지원·중복 처리', () 
   assert.deepEqual(resolveTokens(items, 'src-b/stripe').map((i) => i.id), ['design.src-b.stripe'])
   // 빈 문자열 → 빈 목표(전체 제거)
   assert.deepEqual(resolveTokens(items, ''), [])
-  // 미지원
-  assert.throws(() => resolveTokens(items, 'nope'), /알 수 없는 항목/)
+  // 미지원 — LocalizedError의 .message는 언제나 영어다, 키로 단언한다.
+  assert.throws(() => resolveTokens(items, 'nope'), (err) => err.key === 'error.unknownItem')
   // 중복된 이름은 제공자 지정 요구
-  assert.throws(() => resolveTokens(items, 'stripe'), /중복된 이름/)
+  assert.throws(() => resolveTokens(items, 'stripe'), (err) => err.key === 'design.ambiguous')
 })
 
 test('saveCatalog/loadCatalog 왕복', () => {
@@ -191,12 +192,13 @@ test('loadCatalog: 없는 파일은 빈 카탈로그', () => {
 })
 
 // 원시 SyntaxError는 어느 파일이 문제인지도, 어떻게 고치는지도 알려 주지 않는다.
+// LocalizedError의 .message는 언제나 영어다 — 키와 params로 단언한다.
 test('loadCatalog: 손상된 파일은 경로와 복구 방법을 담아 던진다', () => {
   const file = join(makeTempRepo(), 'broken.json')
   writeFileSync(file, '{ "providers": ')
   assert.throws(() => loadCatalog(file), (err) => {
-    assert.match(err.message, /카탈로그를 읽을 수 없습니다/)
-    assert.ok(err.message.includes(file), `문제 파일이 메시지에 없다: ${err.message}`)
+    assert.equal(err.key, 'error.catalogUnreadable')
+    assert.equal(err.params.path, file)
     assert.match(err.message, /--sync=catalog/)
     return true
   })
@@ -232,7 +234,8 @@ test('netFetch는 본문 크기 상한을 넘으면 읽기를 끊는다', async 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${server.address().port}/big`
   try {
-    await assert.rejects(async () => (await netFetch(url, { maxBytes: 64 })).text(), /상한/)
+    // LocalizedError의 .message는 언제나 영어다 — 키로 단언한다.
+    await assert.rejects(async () => (await netFetch(url, { maxBytes: 64 })).text(), (err) => err.key === 'error.responseTooLarge')
     // 상한 안이면 그대로 읽는다.
     const res = await netFetch(url, { maxBytes: 1024 * 1024 })
     assert.equal(res.ok, true)

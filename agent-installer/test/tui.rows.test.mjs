@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRows, agentHint, designHint, installedIds, SECTION_ORDER } from '../lib/tui/rows.mjs'
+import { buildRows, agentHint, designHint, installedIds, SECTION_ORDER, CATCH_ALL_CATEGORY } from '../lib/tui/rows.mjs'
 import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
@@ -73,7 +73,7 @@ test('design 행은 카테고리 → 라벨 순으로 정렬된다 — 그룹 �
 
 test('design 카테고리가 비면 기타로 묶인다 — group이 없으면 헤더가 사라진다', () => {
   const states = [{ item: { id: 'd.x', name: 'x', providerId: 'a', label: 'X', designCategory: '' }, status: 'absent' }]
-  assert.equal(buildRows({ designStates: states })[0].group, '기타')
+  assert.equal(buildRows({ designStates: states })[0].group, CATCH_ALL_CATEGORY)
 })
 
 test('installedIds: 설치·일부 설치만 초기 체크 대상이다', () => {

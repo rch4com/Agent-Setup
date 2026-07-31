@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { PROVIDERS, getProvider } from './providers/index.mjs'
+import { createT, LocalizedError } from '../i18n/index.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const CATALOG_PATH = join(HERE, 'catalog.json')
@@ -17,10 +18,7 @@ export function loadCatalog(file = CATALOG_PATH) {
   } catch (err) {
     // 원시 SyntaxError는 어느 파일이 문제인지도, 어떻게 고치는지도 알려 주지
     // 않는다. deps.mjs가 모듈 부재를 안내로 바꾸는 것과 같은 이유다.
-    throw new Error(
-      `design.md 카탈로그를 읽을 수 없습니다: ${file}\n${err.message}\n` +
-      '`design --sync=catalog`로 다시 만들 수 있습니다.',
-    )
+    throw new LocalizedError('error.catalogUnreadable', { path: file, message: err.message })
   }
 }
 
@@ -59,7 +57,7 @@ async function readCapped(res, limit) {
     total += value.byteLength
     if (total > limit) {
       await reader.cancel()
-      throw new Error(`응답이 상한(${limit} 바이트)을 넘었습니다: ${res.url}`)
+      throw new LocalizedError('error.responseTooLarge', { limit, url: res.url })
     }
     text += decoder.decode(value, { stream: true })
   }
@@ -119,7 +117,7 @@ export function stripControl(text) {
 // 그 너머까지 닿는 것을 막는다.
 function designPaths(root, providerId, name, { strict = false } = {}) {
   if (!isSafeSegment(providerId) || !isSafeSegment(name)) {
-    throw new Error(`잘못된 design.md 식별자: ${providerId}/${name}`)
+    throw new LocalizedError('error.badDesignId', { provider: providerId, name })
   }
   const rel = `design-md/${providerId}/${name}`
   const dir = strict ? repoPathStrict(root, rel) : repoPath(root, rel)
@@ -152,23 +150,23 @@ export function defineDesignMd(entry, provider, { fetchImpl }) {
 
     // fresh=false: 동봉 번들 우선(오프라인) → 없으면 네트워크.
     // fresh=true: 번들 우회, 항상 네트워크 최신(업데이트/동기화용).
-    async install({ root, dryRun, fresh = false, log = () => {} }) {
+    async install({ root, dryRun, fresh = false, log = () => {}, t = createT('en') }) {
       // dry-run은 네트워크도 쓰기도 하지 않고 예정 동작만 알린다.
       if (dryRun) {
-        log(`  [dry-run] design-md/${providerId}/${name}/DESIGN.md 작성`)
+        log(t('design.write', { provider: providerId, name }))
         return
       }
       let text = fresh ? null : provider.bundledText?.(name, 'DESIGN.md')
       if (text == null) text = await provider.fetchFile(fetchImpl, name, 'DESIGN.md')
-      if (text == null) throw new Error(`${providerId}/${name}: DESIGN.md 다운로드 실패`)
+      if (text == null) throw new LocalizedError('error.designDownload', { provider: providerId, name })
       const { dir, file } = designPaths(root, providerId, name, { strict: true })
       mkdirSync(dir, { recursive: true })
       writeFileSync(file, text)
     },
 
-    async uninstall({ root, dryRun, log = () => {} }) {
+    async uninstall({ root, dryRun, log = () => {}, t = createT('en') }) {
       if (dryRun) {
-        log(`  [dry-run] design-md/${providerId}/${name} 제거`)
+        log(t('design.remove', { provider: providerId, name }))
         return
       }
       const { dir } = designPaths(root, providerId, name, { strict: true })
@@ -258,9 +256,9 @@ export function resolveTokens(items, tokensStr) {
     const matches = slash >= 0
       ? items.filter((i) => i.providerId === tok.slice(0, slash) && i.name === tok.slice(slash + 1))
       : items.filter((i) => i.name === tok)
-    if (matches.length === 0) throw new Error(`알 수 없는 항목: ${tok}`)
+    if (matches.length === 0) throw new LocalizedError('error.unknownItem', { id: tok })
     if (matches.length > 1) {
-      throw new Error(`중복된 이름 '${tok}' — 제공자를 지정하세요: ${matches.map((m) => `${m.providerId}/${m.name}`).join(', ')}`)
+      throw new LocalizedError('design.ambiguous', { token: tok, options: matches.map((m) => `${m.providerId}/${m.name}`).join(', ') })
     }
     out.push(matches[0])
   }

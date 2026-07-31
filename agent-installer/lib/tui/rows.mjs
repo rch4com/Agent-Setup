@@ -16,8 +16,10 @@ const STATUS_LABEL = { installed: '설치됨', partial: '일부 설치됨', abse
 const DESIGN_STATUS = { installed: '설치됨', partial: '일부', absent: '미설치' }
 
 export const ACTION_SECTION = '작업'
-// scan.mjs의 BUNDLE_CATEGORY와 같은 값이다 — 카테고리를 못 얻은 항목이 모이는 자리.
-export const CATCH_ALL_CATEGORY = '기타'
+// scan.mjs의 BUNDLE_CATEGORY와 같은 값이어야 한다 — 카테고리를 못 얻은 항목이
+// 모이는 자리다. 갈리면 같은 그룹이 헤더 두 개로 쪼개진다. 표시 문구로
+// 옮기는 일은 Task 9가 한다(이 파일 전체의 id화).
+export const CATCH_ALL_CATEGORY = '__other'
 export const SECTION_ORDER = [ACTION_SECTION, 'PLUGIN', 'MCP', 'SKILL', 'DESIGN.MD']
 
 function short(text, n = 60) {
@@ -107,20 +109,20 @@ export function buildActions(root, { designItems = [] } = {}) {
       id: 'action.sync.installed',
       label: '설치본 업데이트',
       hint: 'design.md 설치본을 원본 최신으로 다시 받는다',
-      run: ({ dryRun, log }) => updateInstalled(root, designItems, { dryRun, log }),
+      run: ({ dryRun, log }) => updateInstalled(root, designItems, { dryRun, log, t: T_KO }),
     }),
     actionRow({
       id: 'action.sync.catalog',
       label: '카탈로그 새로고침',
       hint: 'design.md 목록·카테고리를 소스에서 다시 만든다',
-      run: ({ dryRun, fetchImpl, log, catalogFile }) => refreshCatalog({ dryRun, fetchImpl, log, catalogFile }),
+      run: ({ dryRun, fetchImpl, log, catalogFile }) => refreshCatalog({ dryRun, fetchImpl, log, catalogFile, t: T_KO }),
     }),
     actionRow({
       id: 'action.sync.stale',
       label: '오래된 항목 확인',
       hint: '설치본을 원본과 해시 비교한다',
       run: async ({ dryRun, log, confirm }) => {
-        const stale = await findStale(root, designItems, { log })
+        const stale = await findStale(root, designItems, { log, t: T_KO })
         if (stale.length === 0) { log('모든 설치본이 최신입니다.'); return }
         log(`오래된 항목 ${stale.length}개: ${stale.map((i) => i.name).join(', ')}`)
         if (dryRun) return

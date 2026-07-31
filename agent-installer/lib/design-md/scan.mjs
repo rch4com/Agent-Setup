@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { StringDecoder } from 'node:string_decoder'
 import { isSafeSegment } from './catalog.mjs'
 import { PROVIDERS } from './providers/index.mjs'
+import { createT } from '../i18n/index.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const BUNDLE_DIR = join(HERE, 'cache')
@@ -25,8 +26,11 @@ const SKIP_DIRS = new Set(['node_modules', '.git', '.svn'])
 const FM_OPEN = /^---[ \t]*\r?\n/
 const FM_CLOSE = /\r?\n---[ \t]*(\r?\n|$)/
 
-export const BUNDLE_CATEGORY = '기타' // 번들 캐시에서 카테고리를 못 얻었을 때
-export const LOCAL_CATEGORY = '사내' // 외부(사내) 경로에서 카테고리를 못 얻었을 때
+// 카테고리는 정렬 키이자 그룹 헤더다. 표시 문자열을 그대로 쓰면 번역하는
+// 순간 정렬과 그룹 묶기가 어긋나므로 id를 두고 표시할 때만 번역한다.
+// tui/rows.mjs의 CATCH_ALL_CATEGORY와 같은 값이어야 한다.
+export const BUNDLE_CATEGORY = '__other'
+export const LOCAL_CATEGORY = '__local'
 
 // 설치 경로 `design-md/<소스>/<이름>/`에 쓰이므로 경로에 위험한 문자만 걷어낸다.
 // 한글 등 유니코드 이름은 그대로 살린다 — 사내 디렉터리명이 대개 그렇다.
@@ -165,7 +169,7 @@ function subdirs(dir) {
 // 디렉터리 트리에서 DESIGN.md를 찾아 엔트리로 만든다.
 // `<루트>/<카테고리…>/<이름>/DESIGN.md` — DESIGN.md가 있는 폴더가 곧 항목(리프)이다.
 // 루트 바로 아래 DESIGN.md가 있으면 루트 폴더명이 항목 이름이 된다.
-export function scanDesignDir(dir, { defaultCategory = LOCAL_CATEGORY, maxDepth = MAX_DEPTH, log } = {}) {
+export function scanDesignDir(dir, { defaultCategory = LOCAL_CATEGORY, maxDepth = MAX_DEPTH, log, t = createT('en') } = {}) {
   const root = resolve(dir)
   const entries = []
   const seen = new Set()
@@ -177,7 +181,7 @@ export function scanDesignDir(dir, { defaultCategory = LOCAL_CATEGORY, maxDepth 
     const prefixed = sanitizeId([...segs.slice(0, -1), name].join('-'))
     let candidate = prefixed
     for (let n = 2; seen.has(candidate); n++) candidate = `${prefixed}-${n}`
-    if (log) log(`  design.md 이름이 겹쳐 '${candidate}'로 구분합니다: ${segs.join('/')}`)
+    if (log) log(t('design.nameClash', { picked: candidate, path: segs.join('/') }))
     return candidate
   }
 
@@ -251,7 +255,7 @@ export function makeDirProvider({ id, label, dir, entries }) {
 
 // 번들 캐시 하위 디렉터리 + 지정한 외부 경로를 소스 목록으로 만든다.
 // 반환: [{ id, dir, label, bundled, entries, provider }]
-export function discoverSources({ bundleDir = BUNDLE_DIR, extraDirs = [], reservedIds, log } = {}) {
+export function discoverSources({ bundleDir = BUNDLE_DIR, extraDirs = [], reservedIds, log, t = createT('en') } = {}) {
   const sources = []
   const usedIds = new Set()
   // 등록된 프로바이더 id는 번들 캐시 전용이다. 외부 경로가 그 id를 차지하면
@@ -259,18 +263,18 @@ export function discoverSources({ bundleDir = BUNDLE_DIR, extraDirs = [], reserv
   const reserved = new Set(reservedIds ?? PROVIDERS.map((p) => p.id))
 
   const add = ({ id, dir, bundled, defaultCategory }) => {
-    const entries = scanDesignDir(dir, { defaultCategory, log })
+    const entries = scanDesignDir(dir, { defaultCategory, log, t })
     if (entries.length === 0) {
-      if (!bundled && log) log(`  design.md 소스에 DESIGN.md가 없습니다: ${dir}`)
+      if (!bundled && log) log(t('design.noDesignFile', { path: dir }))
       return
     }
     const base = sanitizeId(id)
     const taken = (candidate) => usedIds.has(candidate) || (!bundled && reserved.has(candidate))
     let uid = base
     for (let n = 2; taken(uid); n++) uid = `${base}-${n}`
-    if (uid !== base && log) log(`  design.md 소스 id가 겹쳐 '${uid}'로 사용합니다: ${dir}`)
+    if (uid !== base && log) log(t('design.sourceIdClash', { picked: uid, path: dir }))
     usedIds.add(uid)
-    const label = bundled ? uid : `${uid} (로컬)`
+    const label = bundled ? uid : t('design.localSuffix', { id: uid })
     sources.push({ id: uid, dir, label, bundled, entries, provider: makeDirProvider({ id: uid, label, dir, entries }) })
   }
 
@@ -282,7 +286,7 @@ export function discoverSources({ bundleDir = BUNDLE_DIR, extraDirs = [], reserv
   for (const spec of extraDirs) {
     const { id, dir } = parseDirSpec(spec)
     if (!existsSync(dir)) {
-      if (log) log(`  design.md 경로를 찾을 수 없습니다: ${dir}`)
+      if (log) log(t('design.pathMissing', { path: dir }))
       continue
     }
     add({ id, dir, bundled: false, defaultCategory: LOCAL_CATEGORY })
