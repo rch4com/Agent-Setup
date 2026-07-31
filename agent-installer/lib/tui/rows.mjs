@@ -6,7 +6,7 @@ import { scan } from '../engine.mjs'
 import { loadItems } from '../catalog.mjs'
 import { runBootstrap } from '../bootstrap/flow.mjs'
 import { MANIFEST } from '../bootstrap/manifest.mjs'
-import { createT } from '../i18n/index.mjs'
+import { createT, toText } from '../i18n/index.mjs'
 import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale } from '../design-md/flow.mjs'
@@ -25,18 +25,24 @@ function short(text, n = 60) {
   return t.length > n ? `${t.slice(0, n - 1)}…` : t
 }
 
+// note·unsupported 사유·detail은 이제 구조화 메시지(또는 note는 카탈로그 키)다.
+// TUI는 아직 로케일을 고르지 않는다(Task 10이 이 함수를 지역화한다) — 지금까지와
+// 같은 한국어 출력을 유지하려고 여기서도 한국어로 고정해 둔다.
+const T_KO = createT('ko')
+
 // 에이전트 항목 힌트 — 상태·설치 위치·미지원 CLI 사유까지 한 줄에 담는다.
 export function agentHint(item, state) {
   const parts = []
   if (state.status !== 'absent') parts.push(STATUS_LABEL[state.status])
-  if (state.detail) parts.push(state.detail)
+  const detail = toText(T_KO, state.detail)
+  if (detail) parts.push(detail)
   if (item.scope === 'user') parts.push('설치 위치: 사용자 글로벌')
   const un = Object.entries(item.unsupported ?? {})
   if (item.category === 'mcp' && un.length > 0) {
-    parts.push(`미지원: ${un.map(([cli, why]) => `${cli}(${why})`).join(', ')}`)
+    parts.push(`미지원: ${un.map(([cli, why]) => `${cli}(${toText(T_KO, why)})`).join(', ')}`)
   }
   if (item.supports?.length === 1 && item.supports[0] === 'claude') parts.push('Claude Code 전용')
-  if (item.note) parts.push(item.note)
+  if (item.note) parts.push(T_KO(item.note))
   return parts.join(' · ')
 }
 

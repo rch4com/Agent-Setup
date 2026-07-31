@@ -197,4 +197,31 @@ export default {
   'bootstrap.record': 'install record: {path}',
 
   'error.badSkillModeRuntime': '--skill-mode must be one of {list}: {value}',
+
+  // 항목 카탈로그 — note·unsupported 사유·detect()의 detail은 만들어지는 시점에
+  // 로케일을 모른다. catalog.mjs·lib/items/*가 여기 키를 담아 두고, 표시하는
+  // 쪽이 렌더 시점에 t나 toText로 푼다.
+  'item.unsupported.claudePlugin': 'Claude Code plugin only',
+  'item.unsupported.claudeSkill': 'Claude Code skill install',
+  'item.mcp.partial': 'registered: {present} / missing: {missing}',
+  'item.plugin.deferred': 'recorded in config — it downloads on the next Claude Code run',
+  'item.scanFailed': 'detection failed: {message}',
+  'log.mcp.add': '  [dry-run] register {name} in the {cli} config',
+  'log.mcp.remove': '  [dry-run] remove {name} from the {cli} config',
+
+  'item.mcp.notion.note': 'auth: OAuth on first use in each CLI',
+  'item.mcp.vercel.note': 'auth: OAuth on first use (only approved clients can connect)',
+  'item.mcp.supabase.note': 'auth: OAuth dynamic registration. Add ?project_ref=<id> to the URL to pin a project',
+  'item.mcp.codebase-memory.note': 'needs the codebase-memory-mcp binary on PATH. Install: https://github.com/DeusData/codebase-memory-mcp (install.sh / install.ps1)',
+  'item.plugin.superpowers.note': 'official marketplace plugin',
+  'item.plugin.mattpocock-skills.note': '22 engineering and productivity skills (tdd, code-review, research, …)',
+  'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally.',
+  'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project',
+  'error.gstackClone': 'gstack clone failed: {output}',
+  'error.gstackSetup': 'gstack setup failed: {output}',
+  'error.gsdInstall': 'GSD install failed: {output}',
+  'error.gsdUninstall': 'GSD uninstall failed: {output}',
+  'error.itemFieldMissing': '{file}: {field} missing',
+  'error.itemReasonMissing': '{id}: needs a reason for unsupported CLI \'{cli}\' (unsupported.{cli})',
+  'error.shellQuote': 'The argument contains a double quote that cannot be passed to the shell: {value}',
 }

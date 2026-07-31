@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { CLIS, CLI_IDS } from './clis.mjs'
 import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
+import { LocalizedError, msg } from './i18n/index.mjs'
 
 const ITEMS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'items')
 
@@ -19,7 +20,7 @@ export async function loadItems() {
 
 function validate(item, file) {
   for (const field of ['id', 'category', 'label', 'detect', 'install', 'uninstall']) {
-    if (!item?.[field]) throw new Error(`${file}: ${field} 누락`)
+    if (!item?.[field]) throw new LocalizedError('error.itemFieldMissing', { file, field })
   }
   return item
 }
@@ -27,7 +28,7 @@ function validate(item, file) {
 function assertReasons(id, supports, unsupported) {
   for (const cli of CLI_IDS) {
     if (!supports.includes(cli) && !unsupported[cli]) {
-      throw new Error(`${id}: 미지원 CLI '${cli}'의 사유(unsupported.${cli})가 필요합니다`)
+      throw new LocalizedError('error.itemReasonMissing', { id, cli })
     }
   }
 }
@@ -49,7 +50,7 @@ export function shellQuote(text, platform = process.platform) {
   const s = String(text)
   if (platform === 'win32') {
     if (s.includes('"')) {
-      throw new Error(`셸에 넘길 수 없는 큰따옴표가 인자에 있습니다: ${s}`)
+      throw new LocalizedError('error.shellQuote', { value: s })
     }
     return `"${s.replace(/(\\*)$/, '$1$1')}"`
   }
@@ -90,20 +91,26 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
       const present = supports.filter((cli) => CLIS[cli].has(root, name))
       if (present.length === 0) return { status: 'absent' }
       if (present.length === supports.length) return { status: 'installed' }
-      return { status: 'partial', detail: `등록됨: ${present.join(', ')} / 누락: ${supports.filter((c) => !present.includes(c)).join(', ')}` }
+      return {
+        status: 'partial',
+        detail: msg('item.mcp.partial', {
+          present: present.join(', '),
+          missing: supports.filter((c) => !present.includes(c)).join(', '),
+        }),
+      }
     },
-    async install({ root, dryRun, log = () => {} }) {
+    async install({ root, dryRun, log = () => {}, t }) {
       for (const cli of supports) {
         if (!CLIS[cli].has(root, name)) {
-          if (dryRun) log(`  [dry-run] ${CLIS[cli].label} 설정에 ${name} 등록`)
+          if (dryRun) log(t('log.mcp.add', { cli: CLIS[cli].label, name }))
           else CLIS[cli].add(root, name, server)
         }
       }
     },
-    async uninstall({ root, dryRun, log = () => {} }) {
+    async uninstall({ root, dryRun, log = () => {}, t }) {
       for (const cli of supports) {
         if (CLIS[cli].has(root, name)) {
-          if (dryRun) log(`  [dry-run] ${CLIS[cli].label} 설정에서 ${name} 제거`)
+          if (dryRun) log(t('log.mcp.remove', { cli: CLIS[cli].label, name }))
           else CLIS[cli].remove(root, name)
         }
       }
@@ -113,7 +120,7 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
 
 export function definePlugin({ id, label, installId, detectIds, marketplace, note }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, 'Claude Code 전용 플러그인']),
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.claudePlugin')]),
   )
   return {
     id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note,
@@ -126,7 +133,7 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
       const r = exec('claude', ['plugin', 'install', installId, '--scope', 'project'], { cwd: root })
       if (!r.ok) {
         if (!dryRun) enablePlugin(root, installId, marketplace)
-        return { fallback: true, message: '설정 기록됨 — 다음 Claude Code 실행 시 다운로드됩니다' }
+        return { fallback: true, message: msg('item.plugin.deferred') }
       }
     },
     async uninstall(ctx) {
@@ -139,7 +146,7 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
 
 export function defineSkill({ id, label, scope, detect, install, uninstall, note }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, 'Claude Code 스킬 설치본']),
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.claudeSkill')]),
   )
   return { id, category: 'skill', label, scope, supports: ['claude'], unsupported, note, detect, install, uninstall }
 }

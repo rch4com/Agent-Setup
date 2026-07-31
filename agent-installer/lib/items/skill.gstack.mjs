@@ -3,12 +3,13 @@ import { join } from 'node:path'
 import { defineSkill } from '../catalog.mjs'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
+import { LocalizedError } from '../i18n/index.mjs'
 
 const REL_DIR = '.claude/skills/gstack'
 
 export default defineSkill({
   id: 'skill.gstack', label: 'gstack', scope: 'project',
-  note: '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
+  note: 'item.skill.gstack.note',
   async detect({ root }) {
     return { status: existsSync(repoPath(root, REL_DIR)) ? 'installed' : 'absent' }
   },
@@ -19,12 +20,12 @@ export default defineSkill({
     const dir = repoPathStrict(root, REL_DIR)
     if (!existsSync(dir)) {
       const clone = exec('git', ['clone', '--single-branch', '--depth', '1', 'https://github.com/garrytan/gstack.git', dir])
-      if (!clone.ok) throw new Error(`gstack clone 실패: ${clone.output}`)
+      if (!clone.ok) throw new LocalizedError('error.gstackClone', { output: clone.output })
       const setup = exec('bash', ['./setup'], { cwd: dir })
       if (!setup.ok) {
         // setup 실패 잔존물이 detect를 installed로 오판시키지 않도록 정리한다.
         rmSync(dir, { recursive: true, force: true })
-        throw new Error(`gstack setup 실패: ${setup.output}`)
+        throw new LocalizedError('error.gstackSetup', { output: setup.output })
       }
     }
     // 부트스트랩 저장소에서는 .claude/skills가 .agents/skills Junction이므로 두 경로 모두 무시 처리

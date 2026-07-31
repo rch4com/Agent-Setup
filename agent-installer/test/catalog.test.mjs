@@ -10,9 +10,11 @@ import { makeTempRepo } from './helpers.mjs'
 const CATALOG_URL = pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'catalog.mjs')).href
 
 test('defineMcp: supports에서 빠진 CLI에 사유가 없으면 throw한다', () => {
+  // 오류가 LocalizedError로 바뀌면서 .message는 항상 영어다 — 텍스트가 아니라
+  // 키로 단언해야 로케일이 바뀌어도 이 테스트가 계속 뜻을 유지한다.
   assert.throws(
     () => defineMcp({ id: 'mcp.x', label: 'X', server: { kind: 'http', url: 'https://x' }, supports: ['claude'] }),
-    /사유/,
+    (err) => err.key === 'error.itemReasonMissing',
   )
 })
 
@@ -61,7 +63,8 @@ test('shellQuote: cmd 메타문자를 항상 감싼다 (win32)', () => {
   // 닫는 따옴표 앞 백슬래시는 자식 argv 파서가 이스케이프로 읽으므로 두 배로 늘린다.
   assert.equal(shellQuote('D:\\repo\\', 'win32'), '"D:\\repo\\\\"')
   // cmd는 \" 도 "" 도 이 위치에서 일관되게 해석하지 못한다 — 깨진 명령보다 거부가 낫다.
-  assert.throws(() => shellQuote('C:\\a"b&calc', 'win32'), /큰따옴표/)
+  // 오류가 LocalizedError로 바뀌면서 .message는 항상 영어다 — 키로 단언한다.
+  assert.throws(() => shellQuote('C:\\a"b&calc', 'win32'), (err) => err.key === 'error.shellQuote')
 })
 
 test('shellQuote: POSIX는 작은따옴표로 $()·백틱까지 막는다', () => {

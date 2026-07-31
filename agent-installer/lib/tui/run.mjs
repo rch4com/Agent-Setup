@@ -4,6 +4,7 @@ import { emitKeypressEvents } from 'node:readline'
 import { planChanges, apply } from '../engine.mjs'
 import { makeOpener, openPreview } from '../design-md/open.mjs'
 import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
+import { createT, toText } from '../i18n/index.mjs'
 import { collectRows, installedIds } from './rows.mjs'
 import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
@@ -234,8 +235,15 @@ export async function runTui(root, opts = {}) {
         await suspend(async () => {
           log(`\n적용할 변경 ${changes.length}건${dryRun ? ' (dry-run)' : ''}:`)
           for (const c of changes) log(`  ${ACTION_LABEL[c.action]} ${c.item.label}`)
-          const results = await apply(root, changes, { dryRun, log })
-          for (const r of results) log(`  ${r.ok ? '✔' : '✖'} ${ACTION_LABEL[r.action]} ${r.item.label}${r.message ? ` — ${r.message}` : ''}`)
+          // apply()의 message는 이제 구조체 또는 문자열이다. 파일 전체가 아직
+          // 한국어 리터럴이라 여기서도 한국어로 고정한다 — Task 10이 TUI를
+          // 지역화하면서 이 고정을 걷어낸다.
+          const t = createT('ko')
+          const results = await apply(root, changes, { dryRun, log, t })
+          for (const r of results) {
+            const message = toText(t, r.message)
+            log(`  ${r.ok ? '✔' : '✖'} ${ACTION_LABEL[r.action]} ${r.item.label}${message ? ` — ${message}` : ''}`)
+          }
           if (results.some((r) => !r.ok)) process.exitCode = 1
           log('\n설정 파일 변경 내용은 git diff로 확인할 수 있습니다.')
           await pause()

@@ -4,5 +4,5 @@ export default definePlugin({
   installId: 'mattpocock-skills@mattpocock',
   detectIds: ['mattpocock-skills@mattpocock'],
   marketplace: { name: 'mattpocock', repo: 'mattpocock/skills' },
-  note: '엔지니어링·생산성 스킬 22종 (tdd, code-review, research 등)',
+  note: 'item.plugin.mattpocock-skills.note',
 })

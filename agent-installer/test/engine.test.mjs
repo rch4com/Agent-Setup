@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { planChanges, apply } from '../lib/engine.mjs'
 import { defineMcp } from '../lib/catalog.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 
 function fake(id, status) {
@@ -43,7 +44,9 @@ test('apply dry-run: 파일을 쓰는 항목도 예정 동작을 보고하고 �
     server: { kind: 'http', url: 'https://example.com/mcp' },
   })
 
-  const results = await apply(root, [{ item, action: 'install' }], { dryRun: true, log: cap.log })
+  // apply()의 t 기본값은 영어다 — 이 단언은 기존 한국어 문구를 그대로
+  // 검사하므로 한국어를 명시로 고정한다.
+  const results = await apply(root, [{ item, action: 'install' }], { dryRun: true, log: cap.log, t: createT('ko') })
 
   assert.equal(results[0].ok, true)
   assert.match(cap.text(), /\[dry-run\] Claude Code 설정에 demo 등록/)

@@ -3,13 +3,20 @@ import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens
 import { PROVIDERS } from './providers/index.mjs'
 import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
+import { createT, toText } from '../i18n/index.mjs'
 
 const STATUS_LABEL = { installed: '설치됨', partial: '일부', absent: '미설치' }
+
+// apply()의 message는 이제 구조체 또는 문자열이다(예: context.mjs의 경로 이탈
+// LocalizedError). 이 파일 전체가 아직 한국어 리터럴이라 여기서도 한국어로
+// 고정한다 — Task 8이 design-md를 지역화하면서 이 고정을 걷어낸다.
+const T_KO = createT('ko')
 
 function report(results, log) {
   const ACTION = { install: '설치', complete: '보완', uninstall: '제거' }
   for (const r of results) {
-    log(`  ${r.ok ? '✔' : '✖'} ${ACTION[r.action]} ${r.item.label}${r.message ? ` — ${r.message}` : ''}`)
+    const message = toText(T_KO, r.message)
+    log(`  ${r.ok ? '✔' : '✖'} ${ACTION[r.action]} ${r.item.label}${message ? ` — ${message}` : ''}`)
   }
 }
 
@@ -49,7 +56,7 @@ function openPreviews(items, tokensStr, opener, log) {
 async function applyVisible(root, visibleStates, selectedIds, { dryRun, log }) {
   const changes = planChanges(visibleStates, selectedIds)
   if (changes.length === 0) { log('변경할 항목이 없습니다.'); return [] }
-  const results = await apply(root, changes, { dryRun, log })
+  const results = await apply(root, changes, { dryRun, log, t: T_KO })
   report(results, log)
   return results
 }

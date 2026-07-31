@@ -3,5 +3,5 @@ export default definePlugin({
   id: 'plugin.superpowers', label: 'superpowers',
   installId: 'superpowers@claude-plugins-official',
   detectIds: ['superpowers@claude-plugins-official', 'superpowers@superpowers-marketplace'],
-  note: '공식 마켓플레이스 플러그인',
+  note: 'item.plugin.superpowers.note',
 })

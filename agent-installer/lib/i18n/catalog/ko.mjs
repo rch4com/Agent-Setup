@@ -191,4 +191,29 @@ export default {
   'bootstrap.record': '설치 기록: {path}',
 
   'error.badSkillModeRuntime': '--skill-mode는 {list} 중 하나여야 합니다: {value}',
+
+  // 항목 카탈로그 — 기존 원문을 그대로 옮긴다. en.mjs 쪽 주석 참고.
+  'item.unsupported.claudePlugin': 'Claude Code 전용 플러그인',
+  'item.unsupported.claudeSkill': 'Claude Code 스킬 설치본',
+  'item.mcp.partial': '등록됨: {present} / 누락: {missing}',
+  'item.plugin.deferred': '설정 기록됨 — 다음 Claude Code 실행 시 다운로드됩니다',
+  'item.scanFailed': '감지 실패: {message}',
+  'log.mcp.add': '  [dry-run] {cli} 설정에 {name} 등록',
+  'log.mcp.remove': '  [dry-run] {cli} 설정에서 {name} 제거',
+
+  'item.mcp.notion.note': '인증: 각 CLI 첫 사용 시 OAuth',
+  'item.mcp.vercel.note': '인증: 첫 사용 시 OAuth (승인된 클라이언트만 연결 가능)',
+  'item.mcp.supabase.note': '인증: OAuth 동적 등록. 프로젝트 고정이 필요하면 URL에 ?project_ref=<id> 추가',
+  'item.mcp.codebase-memory.note': 'PATH에 codebase-memory-mcp 바이너리 필요. 설치: https://github.com/DeusData/codebase-memory-mcp (install.sh / install.ps1)',
+  'item.plugin.superpowers.note': '공식 마켓플레이스 플러그인',
+  'item.plugin.mattpocock-skills.note': '엔지니어링·생산성 스킬 22종 (tdd, code-review, research 등)',
+  'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
+  'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치',
+  'error.gstackClone': 'gstack clone 실패: {output}',
+  'error.gstackSetup': 'gstack setup 실패: {output}',
+  'error.gsdInstall': 'GSD 설치 실패: {output}',
+  'error.gsdUninstall': 'GSD 제거 실패: {output}',
+  'error.itemFieldMissing': '{file}: {field} 누락',
+  'error.itemReasonMissing': '{id}: 미지원 CLI \'{cli}\'의 사유(unsupported.{cli})가 필요합니다',
+  'error.shellQuote': '셸에 넘길 수 없는 큰따옴표가 인자에 있습니다: {value}',
 }
