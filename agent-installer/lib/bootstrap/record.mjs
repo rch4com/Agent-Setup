@@ -11,6 +11,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
+import { LOCALES, LocalizedError } from '../i18n/index.mjs'
 import { hashBody, normalizeBody } from './text.mjs'
 
 export const RECORD_REL = '.agent-kit/agent-setup.json'
@@ -27,11 +28,12 @@ export function toolVersion() {
   return cachedVersion
 }
 
-export function emptyRecord({ skillMode = 'auto' } = {}) {
+export function emptyRecord({ skillMode = 'auto', lang = null } = {}) {
   return {
     formatVersion: FORMAT_VERSION,
     pinnedVersion: toolVersion(),
     skillMode,
+    lang,
     items: [],
     design: [],
     managed: {},
@@ -47,27 +49,26 @@ export function readRecord(root) {
     text = readFileSync(target, 'utf8')
   } catch (err) {
     if (err.code === 'ENOENT') return null
-    throw new Error(`${RECORD_REL}을 읽을 수 없습니다 (${err.code ?? err.message})`)
+    throw new LocalizedError('error.recordUnreadable', { path: RECORD_REL, code: err.code ?? err.message })
   }
 
   let parsed
   try {
     parsed = JSON.parse(text)
   } catch (err) {
-    throw new Error(`${RECORD_REL}을 읽을 수 없습니다 — JSON이 아닙니다 (${err.message})`)
+    throw new LocalizedError('error.recordNotJson', { path: RECORD_REL, message: err.message })
   }
 
   if (parsed.formatVersion !== FORMAT_VERSION) {
-    throw new Error(
-      `${RECORD_REL}의 형식 버전이 ${parsed.formatVersion}입니다. ` +
-      `이 도구는 ${FORMAT_VERSION}을 씁니다 — 도구를 올리거나 기록을 다시 만드세요.`,
-    )
+    throw new LocalizedError('error.recordVersion', { path: RECORD_REL, found: parsed.formatVersion, expected: FORMAT_VERSION })
   }
 
   return {
     formatVersion: parsed.formatVersion,
     pinnedVersion: parsed.pinnedVersion ?? null,
     skillMode: parsed.skillMode ?? 'auto',
+    // 손으로 편집된 값 때문에 도구가 죽으면 안 된다. 모르는 값은 없는 것으로 본다.
+    lang: LOCALES.includes(parsed.lang) ? parsed.lang : null,
     items: Array.isArray(parsed.items) ? parsed.items : [],
     design: Array.isArray(parsed.design) ? parsed.design : [],
     managed: parsed.managed && typeof parsed.managed === 'object' ? parsed.managed : {},
@@ -76,15 +77,22 @@ export function readRecord(root) {
 
 // pinnedVersion은 여기서 실행 중 버전으로 맞춘다 — 기록을 쓰는 명령만
 // 버전을 옮길 수 있어야 고정이 거짓말하지 않는다.
-export function writeRecord(root, record, { dryRun = false, log } = {}) {
+export function writeRecord(root, record, { dryRun = false, log, t } = {}) {
   const target = repoPathStrict(root, RECORD_REL)
   const body = `${JSON.stringify({ ...record, pinnedVersion: toolVersion() }, null, 2)}\n`
-  log?.(`설치 기록 기록: ${RECORD_REL}`)
+  log?.(t ? t('log.record.write', { path: RECORD_REL }) : `record: ${RECORD_REL}`)
   if (!dryRun) {
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, body, { encoding: 'utf8' })
   }
   return { ok: true, action: dryRun ? 'skip' : 'write', path: RECORD_REL }
+}
+
+// 언어만 바꾼다. 기록이 없으면 만든다 — 부트스트랩 전에 언어를 골라도
+// 유지되어야 하기 때문이다. 나머지 필드는 있는 그대로 옮긴다.
+export function writeLang(root, lang, { dryRun = false, log, t } = {}) {
+  const previous = readRecord(root)
+  return writeRecord(root, { ...(previous ?? emptyRecord()), lang }, { dryRun, log, t })
 }
 
 // 마커는 apply.mjs의 ensureBlocks(생성)와 updateBlocks(갱신), 그리고 여기의

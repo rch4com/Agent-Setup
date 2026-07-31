@@ -146,4 +146,9 @@ export default {
     '  ./setup-agents.sh --tui',
     '  npm install --prefix agent-installer',
   ],
+
+  'log.record.write': 'install record written: {path}',
+  'error.recordUnreadable': 'Cannot read {path} ({code})',
+  'error.recordNotJson': 'Cannot read {path} — not JSON ({message})',
+  'error.recordVersion': '{path} has format version {found}. This tool uses {expected} — upgrade the tool or recreate the record.',
 }

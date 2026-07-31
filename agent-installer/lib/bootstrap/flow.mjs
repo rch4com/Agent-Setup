@@ -46,6 +46,8 @@ export function runBootstrap(root, opts = {}) {
   const previous = dryRun ? null : readRecord(root)
   const record = {
     ...emptyRecord({ skillMode }),
+    // 부트스트랩은 배선만 다룬다. 사용자가 고른 언어·항목을 지울 권한이 없다.
+    lang: previous?.lang ?? null,
     items: previous?.items ?? [],
     design: previous?.design ?? [],
     managed: collectManaged(root, manifest),

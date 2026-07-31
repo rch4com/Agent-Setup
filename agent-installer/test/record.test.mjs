@@ -4,8 +4,9 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import {
   FORMAT_VERSION, RECORD_REL, collectManaged, emptyRecord, extractBlock,
-  managedKey, readRecord, toolVersion, writeRecord,
+  managedKey, readRecord, toolVersion, writeLang, writeRecord,
 } from '../lib/bootstrap/record.mjs'
+import { runBootstrap } from '../lib/bootstrap/flow.mjs'
 import { hashBody } from '../lib/bootstrap/text.mjs'
 import { makeCapture, makeTempRepo } from './helpers.mjs'
 
@@ -48,17 +49,19 @@ test('dryRun이면 파일을 만들지 않는다', () => {
   assert.match(cap.text(), /agent-setup\.json/)
 })
 
+// LocalizedError의 .message는 언제나 영어다 — 여기서는 함수를 직접 불러
+// raw 오류를 잡으므로 지역화된 재렌더가 일어나지 않는다.
 test('formatVersion이 다르면 진단 가능한 오류를 던진다', () => {
   const root = makeTempRepo()
   putRecord(root, { formatVersion: 99, pinnedVersion: '1.1.0', managed: {} })
-  assert.throws(() => readRecord(root), /형식 버전/)
+  assert.throws(() => readRecord(root), /format version/)
 })
 
 test('깨진 JSON은 진단 가능한 오류를 던진다', () => {
   const root = makeTempRepo()
   mkdirSync(join(root, '.agent-kit'), { recursive: true })
   writeFileSync(join(root, RECORD_REL), '{ not json')
-  assert.throws(() => readRecord(root), /읽을 수 없습니다/)
+  assert.throws(() => readRecord(root), /Cannot read/)
 })
 
 test('필드가 없어도 기본값으로 읽힌다', () => {
@@ -140,4 +143,53 @@ test('collectManaged: 블록 안쪽을 고치면 채택하지 않는다', () => 
     '<!-- agent-kit:begin -->\n@AGENTS.md\n내가 넣은 줄\n<!-- agent-kit:end -->\n')
 
   assert.equal(collectManaged(root, manifest)['CLAUDE.md#agent-kit'], null)
+})
+
+test('emptyRecord의 lang 기본값은 null이다', () => {
+  assert.equal(emptyRecord().lang, null)
+  assert.equal(emptyRecord({ lang: 'ko' }).lang, 'ko')
+})
+
+test('readRecord는 지원하지 않는 lang을 null로 떨어뜨린다', () => {
+  const root = makeTempRepo()
+  writeRecord(root, { ...emptyRecord(), lang: 'zz' })
+  assert.equal(readRecord(root).lang, null)
+})
+
+test('readRecord는 lang이 없는 옛 기록을 그대로 읽는다', () => {
+  const root = makeTempRepo()
+  const old = emptyRecord()
+  delete old.lang
+  writeRecord(root, old)
+  // formatVersion을 올리지 않았으므로 옛 기록이 막히면 안 된다.
+  assert.equal(readRecord(root).lang, null)
+})
+
+test('writeLang은 기록이 없으면 새로 만든다', () => {
+  const root = makeTempRepo()
+  writeLang(root, 'ko')
+  assert.equal(readRecord(root).lang, 'ko')
+})
+
+test('writeLang은 기존 기록의 나머지를 보존한다', () => {
+  const root = makeTempRepo()
+  writeRecord(root, { ...emptyRecord({ skillMode: 'copy' }), items: ['mcp.notion'] })
+  writeLang(root, 'ko')
+  const after = readRecord(root)
+  assert.equal(after.lang, 'ko')
+  assert.equal(after.skillMode, 'copy')
+  assert.deepEqual(after.items, ['mcp.notion'])
+})
+
+test('writeLang은 dry-run에서 아무것도 쓰지 않는다', () => {
+  const root = makeTempRepo()
+  writeLang(root, 'ko', { dryRun: true })
+  assert.equal(readRecord(root), null)
+})
+
+test('부트스트랩은 기록의 lang을 지우지 않는다', () => {
+  const root = makeTempRepo()
+  writeLang(root, 'ko')
+  runBootstrap(root, { log: () => {} })
+  assert.equal(readRecord(root).lang, 'ko')
 })
