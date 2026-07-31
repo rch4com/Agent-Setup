@@ -4,7 +4,8 @@ import { emitKeypressEvents } from 'node:readline'
 import { planChanges, apply } from '../engine.mjs'
 import { makeOpener, openPreview } from '../design-md/open.mjs'
 import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
-import { createT, toText } from '../i18n/index.mjs'
+import { createT, toText, LOCALES } from '../i18n/index.mjs'
+import { RECORD_REL, writeLang } from '../bootstrap/record.mjs'
 import { collectRows, installedIds } from './rows.mjs'
 import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
@@ -73,8 +74,8 @@ export async function runTui(root, opts = {}) {
     stdout = process.stdout,
   } = opts
   const opener = opts.opener ?? makeOpener(dryRun, log)
-  // let으로 둔다 — Task 11의 언어 전환 행이 실행 중에 갈아끼운다.
-  let t = opts.t ?? createT('en')
+  // let으로 둔다 — 언어 전환 행(cycleLanguage)이 실행 중에 갈아끼운다.
+  let { t = createT('en'), localeForced = false } = opts
 
   let collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {}, t })
 
@@ -120,9 +121,30 @@ export async function runTui(root, opts = {}) {
     await keys.next()
   }
 
-  const recollect = async () => {
-    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {}, t })
-    state = replaceRows(state, collected.rows, installedIds(collected.rows))
+  // 언어 전환은 선택을 보존해야 한다. 적용·액션 실행 뒤 재스캔은 그 반대로
+  // 실제 설치 상태로 되돌려야 한다 — 둘을 한 함수로 묶으면 언어를 바꿀 때
+  // 사용자가 고르던 항목이 조용히 날아간다.
+  const rebuild = async (keepSelection) => {
+    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, t, log: () => {} })
+    const ids = keepSelection ? [...state.selected] : installedIds(collected.rows)
+    state = replaceRows(state, collected.rows, ids)
+  }
+  const recollect = () => rebuild(false)
+
+  const cycleLanguage = async () => {
+    const next = LOCALES[(LOCALES.indexOf(t.locale) + 1) % LOCALES.length]
+    t = createT(next)
+    let note
+    try {
+      writeLang(root, next, { dryRun, log: () => {}, t })
+      note = dryRun ? t('tui.lang.dryRun') : t('tui.lang.saved', { path: RECORD_REL })
+    } catch (err) {
+      // 언어는 부수적 설정이다. 저장에 실패했다고 화면이 죽으면 설치기를 못 쓴다.
+      note = t('tui.lang.saveFailed', { message: err.message })
+    }
+    if (localeForced) note = `${note} ${t('tui.lang.overridden')}`
+    await rebuild(true)
+    return note
   }
 
   const select = () => {
@@ -220,9 +242,11 @@ export async function runTui(root, opts = {}) {
       if (key.name === 'return' || key.name === 'enter') {
         // 액션 행은 그 자리에서 실행한다. 나머지는 제출(검토 → 일괄 적용)이다.
         const row = currentRow(state)
+        // 언어 행은 화면을 벗어나지 않는다 — 그 자리에서 t를 갈아끼우고 다시 그린다.
+        if (row?.id === 'action.language') { status = await cycleLanguage(); continue }
         if (row?.kind === 'action') {
           await suspend(async () => {
-            await row.run({ root, dryRun, skillMode, fetchImpl, catalogFile, log, confirm })
+            await row.run({ root, dryRun, skillMode, fetchImpl, catalogFile, log, confirm, t })
             await pause()
           })
           await recollect()
@@ -259,7 +283,7 @@ export async function runTui(root, opts = {}) {
     stdin.pause()
   }
 
-  return { interactive: true }
+  return { interactive: true, state }
 }
 
 export { printPlain, itemStates }

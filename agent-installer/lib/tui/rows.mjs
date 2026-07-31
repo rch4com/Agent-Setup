@@ -25,11 +25,6 @@ function short(text, n = 60) {
   return t.length > n ? `${t.slice(0, n - 1)}…` : t
 }
 
-// buildActions의 run 콜백(부트스트랩·design-md 동기화 실행부)은 아직 이 값에
-// 고정한다 — 화면 라벨·힌트는 Task 10에서 t로 옮겼지만, 실행 로그까지 활성
-// 로케일을 따라가게 하는 일은 이 태스크의 범위 밖이다(Task 11 이후 과제).
-const T_KO = createT('ko')
-
 // 검색어에 섹션의 두 로케일 라벨을 모두 넣는다 — 한국어 화면에서도 영어 탭
 // 이름(plugin 등)으로 찾을 수 있어야 한다. 두 라벨이 같으면(PLUGIN·MCP처럼
 // 번역하지 않는 값) 중복으로 넣지 않는다.
@@ -88,7 +83,7 @@ function itemRow({ id, section, label, hint, status, previewTarget = null, item,
   }
 }
 
-function actionRow({ id, label, hint, run, t = createT('en') }) {
+function actionRow({ id, label, hint, run = null, t = createT('en') }) {
   return {
     kind: 'action',
     id,
@@ -111,46 +106,53 @@ function bootstrapHint(root, t) {
 
 export function buildActions(root, { designItems = [], t = createT('en') } = {}) {
   return [
+    // 맨 위 상주 행. 실행은 run.mjs가 특수 처리한다 — 화면을 벗어나지 않고
+    // 그 자리에서 t를 갈아끼워야 하므로 다른 액션과 흐름이 다르다(run은 null).
+    actionRow({
+      id: 'action.language',
+      label: t('action.language.label'),
+      hint: t('action.language.hint', { current: t(`locale.${t.locale}`) }),
+      t,
+    }),
     actionRow({
       id: 'action.bootstrap',
       label: t('action.bootstrap.label'),
       hint: bootstrapHint(root, t),
-      // 실행 로그는 아직 한국어로 고정한다 — T_KO 주석 참고.
-      run: ({ dryRun, skillMode, log }) => runBootstrap(root, { dryRun, skillMode, log, t: createT('ko') }),
+      run: ({ dryRun, skillMode, log, t: rt }) => runBootstrap(root, { dryRun, skillMode, log, t: rt }),
       t,
     }),
     actionRow({
       id: 'action.sync.installed',
       label: t('action.sync.installed.label'),
       hint: t('action.sync.installed.hint'),
-      run: ({ dryRun, log }) => updateInstalled(root, designItems, { dryRun, log, t: T_KO }),
+      run: ({ dryRun, log, t: rt }) => updateInstalled(root, designItems, { dryRun, log, t: rt }),
       t,
     }),
     actionRow({
       id: 'action.sync.catalog',
       label: t('action.sync.catalog.label'),
       hint: t('action.sync.catalog.hint'),
-      run: ({ dryRun, fetchImpl, log, catalogFile }) => refreshCatalog({ dryRun, fetchImpl, log, catalogFile, t: T_KO }),
+      run: ({ dryRun, fetchImpl, log, catalogFile, t: rt }) => refreshCatalog({ dryRun, fetchImpl, log, catalogFile, t: rt }),
       t,
     }),
     actionRow({
       id: 'action.sync.stale',
       label: t('action.sync.stale.label'),
       hint: t('action.sync.stale.hint'),
-      run: async ({ dryRun, log, confirm }) => {
-        const stale = await findStale(root, designItems, { log, t: T_KO })
+      run: async ({ dryRun, log, confirm, t: rt }) => {
+        const stale = await findStale(root, designItems, { log, t: rt })
         // 이 네 줄은 flow.mjs의 runSync(design --sync=stale)가 쓰는 문구와 같다 —
         // 새 키를 만들지 않고 그 키(design.allCurrent 등)를 그대로 재사용한다.
-        if (stale.length === 0) { log(T_KO('design.allCurrent')); return }
-        log(T_KO('design.staleList', { count: stale.length, names: stale.map((i) => i.name).join(', ') }))
+        if (stale.length === 0) { log(rt('design.allCurrent')); return }
+        log(rt('design.staleList', { count: stale.length, names: stale.map((i) => i.name).join(', ') }))
         if (dryRun) return
-        if (!(await confirm(T_KO('design.staleConfirm', { count: stale.length })))) return
+        if (!(await confirm(rt('design.staleConfirm', { count: stale.length })))) return
         for (const item of stale) {
           try {
             await item.install({ root, dryRun, fresh: true })
-            log(T_KO('design.updated', { label: item.label }))
+            log(rt('design.updated', { label: item.label }))
           } catch (err) {
-            log(T_KO('design.updateFailed', { label: item.label, message: err.message }))
+            log(rt('design.updateFailed', { label: item.label, message: err.message }))
           }
         }
       },

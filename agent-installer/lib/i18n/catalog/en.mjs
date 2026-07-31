@@ -281,10 +281,19 @@ export default {
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
 
+  // 언어 행(action.language) 전용. 저장 성공·dry-run·실패·강제 로케일 네 갈래를 덮는다.
+  'tui.lang.saved': 'Saved to {path}',
+  'tui.lang.dryRun': 'dry-run — applied to this session only',
+  'tui.lang.saveFailed': 'Could not save the language: {message}',
+  'tui.lang.overridden': '--lang / AGENT_SETUP_LANG wins for this run.',
+
   'item.location.user': 'installs to: user global',
   'item.unsupportedList': 'unsupported: {list}',
   'item.claudeOnly': 'Claude Code only',
 
+  // 상주 언어 행 — 작업 탭 맨 위. hint는 현재 로케일의 자기 이름을 담는다.
+  'action.language.label': 'Language',
+  'action.language.hint': '{current} · Enter to change',
   'action.bootstrap.label': 'Run bootstrap',
   'action.bootstrap.hint': 'guides · skills · per-tool config · {present} of {total} files exist',
   'action.sync.installed.label': 'Update installed',

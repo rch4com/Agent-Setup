@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { runTui } from '../lib/tui/run.mjs'
 import { createT } from '../lib/i18n/index.mjs'
+import { readRecord } from '../lib/bootstrap/record.mjs'
 import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
 
 // 가짜 TTY로 키 루프를 돌린다. keyReader가 이벤트를 큐에 쌓으므로
@@ -49,6 +50,7 @@ const UP = { name: 'up' }
 const SPACE = { str: ' ', name: 'space' }
 const ENTER = { name: 'return' }
 const ESC = { name: 'escape' }
+const LEFT = { name: 'left' }
 const CC = { name: 'c', ctrl: true }
 const ANY = { str: 'x', name: 'x' } // "계속하려면 아무 키나"
 // 검색칸+검색어 상태에서도 확실히 빠져나오도록 세 번: 검색어 지우기 → 목록으로 → 종료.
@@ -121,8 +123,8 @@ test('변경이 없으면 Enter가 검토 화면으로 들어가지 않는다', 
 })
 
 test('액션 행에서 Enter는 그 작업을 실행한다', async () => {
-  // 커서는 처음에 작업 탭의 부트스트랩 행에 있다(목록 포커스).
-  const { log } = await drive([ENTER, ANY, ...QUIT])
+  // 커서는 처음에 작업 탭의 언어 행에 있다(목록 포커스) — 한 칸 내려가야 부트스트랩 행이다.
+  const { log } = await drive([DOWN, ENTER, ANY, ...QUIT])
   assert.equal(log.includes('공통 지침'), true, `부트스트랩이 실행되지 않았다: ${log}`)
 })
 
@@ -130,6 +132,39 @@ test('액션 행에서 Space는 체크되지 않는다 — 제거 개념이 없�
   const { screen } = await drive([SPACE, ...QUIT])
   assert.equal(screen.includes('[×] 부트스트랩'), false)
   assert.equal(screen.includes('Enter로 실행합니다'), true)
+})
+
+// ── 언어 행 ───────────────────────────────────────────────────────
+
+test('언어 행에서 Enter를 누르면 화면 언어가 바뀐다', async () => {
+  // 커서는 첫 행(언어)에 있다. Enter로 en → ko, 그 뒤 Esc로 종료.
+  const { screen } = await drive([ENTER, ESC], { t: createT('en') })
+  assert.match(screen, /한국어/, '두 번째 로케일로 넘어가지 않았다')
+})
+
+test('언어 전환이 설치 기록에 남는다', async () => {
+  const root = makeTempRepo()
+  await drive([ENTER, ESC], { root, t: createT('en'), dryRun: false })
+  assert.equal(readRecord(root).lang, 'ko')
+})
+
+test('dry-run에서는 언어를 기록하지 않는다', async () => {
+  const root = makeTempRepo()
+  await drive([ENTER, ESC], { root, t: createT('en') })
+  assert.equal(readRecord(root), null)
+})
+
+test('언어 전환은 순환한다', async () => {
+  // en → ko → en. 읽을 수 없는 언어에 갇혀도 Enter만 반복해 빠져나온다.
+  const root = makeTempRepo()
+  await drive([ENTER, ENTER, ESC], { root, t: createT('en'), dryRun: false })
+  assert.equal(readRecord(root).lang, 'en')
+})
+
+test('언어 전환이 선택 집합을 보존한다', async () => {
+  // Tab으로 다음 탭에 가서 Space로 하나 고르고, 다시 작업 탭으로 돌아와 Enter.
+  const { result } = await drive([TAB, SPACE, LEFT, ENTER, ESC], { t: createT('en') })
+  assert.equal(result.state.selected.size, 1, '언어를 바꾸자 선택이 날아갔다')
 })
 
 test('Ctrl+A는 지금 탭에서 보이는 항목을 한 번에 켜고 끈다', async () => {

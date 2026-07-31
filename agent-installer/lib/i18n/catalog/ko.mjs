@@ -272,10 +272,19 @@ export default {
   'tui.pressAnyKey': '계속하려면 아무 키나 누르세요…',
   'tui.confirmSuffix': ' [y/N] ',
 
+  // 언어 행(action.language) 전용. en.mjs 쪽 주석 참고.
+  'tui.lang.saved': '{path}에 저장했습니다',
+  'tui.lang.dryRun': 'dry-run — 이번 세션에만 적용했습니다',
+  'tui.lang.saveFailed': '언어를 저장하지 못했습니다: {message}',
+  'tui.lang.overridden': '이번 실행은 --lang / AGENT_SETUP_LANG이 이깁니다.',
+
   'item.location.user': '설치 위치: 사용자 글로벌',
   'item.unsupportedList': '미지원: {list}',
   'item.claudeOnly': 'Claude Code 전용',
 
+  // 상주 언어 행 — en.mjs 쪽 주석 참고.
+  'action.language.label': '언어',
+  'action.language.hint': '{current} · Enter로 변경',
   'action.bootstrap.label': '부트스트랩 실행',
   'action.bootstrap.hint': '지침 · 스킬 · 도구별 설정 · 파일 {total}개 중 {present}개 존재',
   'action.sync.installed.label': '설치본 업데이트',

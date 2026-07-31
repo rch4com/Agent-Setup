@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  buildRows, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
+  buildRows, buildActions, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
 } from '../lib/tui/rows.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
@@ -58,6 +58,22 @@ test('액션 행은 항상 맨 위이고 체크 대상이 아니다', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
   assert.equal(rows[0].kind, 'action')
   assert.equal(rows.filter((r) => r.kind === 'action').length, 1)
+})
+
+test('언어 행이 작업 탭 맨 위에 있다', () => {
+  const root = makeTempRepo()
+  const rows = buildRows({ actions: buildActions(root, { t: createT('en') }), t: createT('en') })
+  assert.equal(rows[0].id, 'action.language')
+  assert.equal(rows[0].kind, 'action')
+  assert.equal(rows[0].section, 'action')
+  assert.match(rows[0].hint, /English/)
+})
+
+test('언어 행 힌트는 현재 로케일의 자기 이름이다', () => {
+  const root = makeTempRepo()
+  const ko = buildActions(root, { t: createT('ko') })[0]
+  // 어떤 화면에서 보든 언어 이름은 자기 언어로 쓴다.
+  assert.match(ko.hint, /한국어/)
 })
 
 test('design 제공자가 하나뿐이면 힌트에 제공자명을 붙이지 않는다', () => {
