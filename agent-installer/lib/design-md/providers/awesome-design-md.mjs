@@ -14,6 +14,9 @@ const REPO = 'VoltAgent/awesome-design-md'
 const BRANCH = 'main'
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/design-md`
 const README_URL = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/README.md`
+// 번들에 함께 담는 상류 고지의 출처. MIT는 사본에 저작권 고지와 허가 문구를
+// 담을 것을 요구하므로, 파일을 내려받아 재배포하는 이상 이 URL이 필요하다.
+const LICENSE_URL = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/LICENSE`
 const TREE_URL = `https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`
 // scan.mjs의 BUNDLE_CATEGORY와 같은 값이어야 한다 — 둘 다 카테고리 못 얻은
 // 항목이 모이는 자리라, 갈라지면 같은 그룹이 헤더 두 개로 쪼개진다.
@@ -61,6 +64,10 @@ export const awesomeDesignMd = {
   id: 'awesome-design-md',
   label: 'awesome-design-md (VoltAgent)',
   files: ['DESIGN.md'],
+  licenseUrl: LICENSE_URL,
+  // 번들과 함께 발행되는 고지 파일. 이름이 LICENSE가 아닌 이유는 발행물 검사가
+  // 최상위 LICENSE 하나만 확장자 없는 파일로 허용하기 때문이다.
+  noticeFile: 'LICENSE.md',
 
   fileUrl(name, file = 'DESIGN.md') {
     return `${RAW_BASE}/${encodeURIComponent(name)}/${file}`

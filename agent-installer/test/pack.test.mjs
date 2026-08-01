@@ -72,6 +72,25 @@ test('DESIGN.md 오프라인 번들이 함께 발행된다', () => {
   assert.ok(bundled.length >= 70, `번들 DESIGN.md가 ${bundled.length}개뿐이다`)
 })
 
+// MIT는 재배포를 허용하되 **사본에** 저작권 고지와 허가 문구를 함께 담을 것을
+// 요구한다. 번들 74개는 substantial portion이 명백하므로, 고지가 tarball에서
+// 빠지는 순간 발행 자체가 조건을 어긴다. 파일이 실리는지와 내용이 요건을
+// 채우는지를 함께 본다 — 빈 파일이나 링크 한 줄로는 조건이 채워지지 않는다.
+test('번들의 상류 고지가 함께 발행되고 요건을 담는다', () => {
+  const NOTICE = 'lib/design-md/cache/awesome-design-md/LICENSE.md'
+  const paths = packInfo().files.map((f) => f.path)
+  assert.ok(paths.includes(NOTICE), `${NOTICE}가 발행되지 않는다`)
+
+  const text = readFileSync(join(PKG_ROOT, ...NOTICE.split('/')), 'utf8')
+  assert.match(text, /Copyright \(c\) \d{4} VoltAgent/, '저작권 고지가 없다')
+  assert.match(
+    text,
+    /The above copyright notice and this permission notice shall be included/,
+    '허가 문구가 없다',
+  )
+  assert.match(text, /github\.com\/VoltAgent\/awesome-design-md/, '출처 링크가 없다')
+})
+
 test('tarball이 2MiB 미만이다', () => {
   const { size } = packInfo()
   // 실측 0.58MB. 번들이 커져 npx 첫 실행이 느려지면 조용히 통과하지 않게 한다.
