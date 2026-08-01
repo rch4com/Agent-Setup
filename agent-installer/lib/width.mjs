@@ -49,6 +49,45 @@ export function pad(text, limit) {
   return s + ' '.repeat(Math.max(0, limit - width(s)))
 }
 
+// 접기. cut은 넘치는 글을 버리고 pad는 모자란 폭을 채우지만, 상세 패널과
+// 진행 화면은 넘치는 글을 다음 줄로 이어 가야 한다.
+//
+// 공백이 있으면 마지막 공백에서 끊고(영문), 한 낱말이 limit보다 길거나
+// 공백이 없으면(한글) 표시 폭에서 끊는다. limit이 0 이하면 빈 배열을
+// 돌려준다 — 호출부가 폭을 잘못 계산했을 때 무한 루프에 빠지지 않게 한다.
+export function wrap(text, limit) {
+  const s = String(text ?? '')
+  if (limit <= 0 || s === '') return []
+  const out = []
+  for (const para of s.split('\n')) {
+    let line = ''
+    let w = 0
+    let breakAt = -1 // line 안에서 마지막으로 본 공백의 위치
+    for (const ch of para) {
+      const cw = charWidth(ch.codePointAt(0))
+      if (ch === ' ') breakAt = line.length
+      if (w + cw > limit) {
+        // 공백을 봤으면 거기서 끊는다. 뒤에 남는 것은 그 공백 이후이므로
+        // 공백이 없다 — breakAt을 -1로 되돌려도 정보가 사라지지 않는다.
+        if (breakAt > 0) {
+          out.push(line.slice(0, breakAt))
+          line = line.slice(breakAt + 1)
+        } else {
+          out.push(line)
+          line = ''
+        }
+        w = width(line)
+        breakAt = -1
+        if (ch === ' ') continue
+      }
+      line += ch
+      w += cw
+    }
+    out.push(line)
+  }
+  return out
+}
+
 // 상태 라벨은 로케일마다 길이가 다르다(영어 'Not installed' 13, 한국어
 // '미설치' 6). 한 번 재어 상수로 박으면 다른 로케일에서 열이 깨지므로,
 // 화면을 그릴 때 그 로케일의 실제 라벨에서 폭을 뽑는다.
