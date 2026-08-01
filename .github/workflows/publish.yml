@@ -18,9 +18,9 @@ jobs:
       run:
         working-directory: agent-installer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
 
@@ -40,13 +40,18 @@ jobs:
       run:
         working-directory: agent-installer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Trusted Publishing(토큰 없는 OIDC 발행)은 Node 22.14+ 와 npm 11.5.1+ 를
       # 요구한다. Node 22에 묶여 오는 npm은 10.x라 별도로 올려야 한다.
-      # 첫 발행은 패키지가 아직 없어 Trusted Publishing을 구성할 수 없으므로
-      # NPM_TOKEN으로 하고, 이후 릴리스에서 토큰을 걷어낼 수 있게 바닥을 맞춰 둔다.
-      - uses: actions/setup-node@v4
+      #
+      # 1.3.0 발행에서 NPM_TOKEN 경로가 EOTP(일회용 비밀번호 요구)로 막혔다.
+      # 계정에 2FA가 걸려 있고 토큰이 그것을 우회하지 못하는 종류이기 때문이다.
+      # 패키지는 이제 레지스트리에 있으므로(1.0.0·1.1.0) Trusted Publishing을
+      # 구성할 수 있다 — npmjs.com의 패키지 설정에서 이 저장소와 publish.yml을
+      # 등록한 뒤, 아래 발행 단계의 NODE_AUTH_TOKEN 줄을 지우면 된다.
+      # 그때는 provenance도 OIDC로 자동이라 --provenance를 남겨 둬도 무해하다.
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
