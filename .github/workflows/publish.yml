@@ -45,12 +45,14 @@ jobs:
       # Trusted Publishing(토큰 없는 OIDC 발행)은 Node 22.14+ 와 npm 11.5.1+ 를
       # 요구한다. Node 22에 묶여 오는 npm은 10.x라 별도로 올려야 한다.
       #
-      # 1.3.0 발행에서 NPM_TOKEN 경로가 EOTP(일회용 비밀번호 요구)로 막혔다.
-      # 계정에 2FA가 걸려 있고 토큰이 그것을 우회하지 못하는 종류이기 때문이다.
-      # 패키지는 이제 레지스트리에 있으므로(1.0.0·1.1.0) Trusted Publishing을
-      # 구성할 수 있다 — npmjs.com의 패키지 설정에서 이 저장소와 publish.yml을
-      # 등록한 뒤, 아래 발행 단계의 NODE_AUTH_TOKEN 줄을 지우면 된다.
-      # 그때는 provenance도 OIDC로 자동이라 --provenance를 남겨 둬도 무해하다.
+      # 토큰은 쓰지 않는다. NPM_TOKEN 경로는 1.3.0 발행에서 EOTP(일회용 비밀번호
+      # 요구)로 막혔다 — 계정 2FA를 우회하지 못하는 종류의 토큰이라 CI가 입력할
+      # 수 없는 것을 요구받는다. 발행 권한은 npmjs.com의 패키지 설정에 등록한
+      # 이 저장소·이 워크플로 파일이 OIDC로 증명한다.
+      #
+      # registry-url은 그대로 둔다. setup-node는 이것으로 .npmrc의 레지스트리를
+      # 정하는데, v7부터 더미 NODE_AUTH_TOKEN을 내보내지 않아 OIDC와 부딪히지
+      # 않는다(v4는 내보냈다 — 액션 버전을 올려야 이 경로가 성립한다).
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -74,7 +76,7 @@ jobs:
       # 이름은 @rch4com/agent-setup 하나다. 정식 이름 agent-setup은 npm의
       # 유사 이름 제한(기존 agentsetup)에 걸려 403으로 거부된다.
       # access는 package.json의 publishConfig에 있다.
+      # provenance는 OIDC 발행에서 자동이지만, 플래그를 남겨 두면 어떤 경로로
+      # 발행하든 출처 증명이 붙는다는 의도가 파일에 남는다.
       - name: 발행
         run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
