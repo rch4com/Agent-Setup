@@ -190,7 +190,12 @@ test('parseDirSpec: 한글 소스 id를 경로로 오인하지 않는다', () =>
 })
 
 test('parseDirSpec: 경로에 =가 있어도 id로 오인하지 않는다', () => {
-  assert.equal(parseDirSpec('D:\\a=b\\c').id, 'c')
+  // 슬래시는 어느 판에서도 경로 구분자다.
+  assert.equal(parseDirSpec('/a=b/c').id, 'c')
+  // 역슬래시는 Windows에서만 구분자다. POSIX에서 `D:\a=b\c`는 구분자가 하나도
+  // 없는 **파일 이름**이라 basename이 통째로 돌아오는 것이 정상이고, 그것을
+  // 실패로 읽으면 코드가 아니라 테스트가 판을 가리는 셈이 된다.
+  if (process.platform === 'win32') assert.equal(parseDirSpec('D:\\a=b\\c').id, 'c')
 })
 
 test('sanitizeId: 경로에 위험한 문자만 제거하고 유니코드는 보존한다', () => {
