@@ -36,3 +36,16 @@ test('limit이 0 이하이거나 빈 글이면 빈 배열이다', () => {
   assert.deepEqual(wrap('', 10), [])
   assert.deepEqual(wrap(null, 10), [])
 })
+
+// limit이 문자 하나보다 좁을 수 있다. 이 함수의 존재 이유가 호출부의 폭
+// 계산 실수를 막는 것이라, 그 구멍이 여기 있으면 안 된다.
+test('limit이 한 글자보다 좁아도 폭을 넘지 않는다', () => {
+  for (const line of wrap('가나', 1)) assert.ok(width(line) <= 1, `넘침: ${line}`)
+  for (const line of wrap('가나', 1)) assert.notEqual(line, '')
+})
+
+// 배열 한 항목이 화면 한 줄이다. 접히는 자리의 공백 때문에 빈 항목이 끼면
+// 호출부에 영문 모를 빈 줄이 남는다.
+test('접히는 자리의 공백이 빈 줄을 만들지 않는다', () => {
+  assert.deepEqual(wrap('abc ', 3), ['abc'])
+})

@@ -65,25 +65,40 @@ export function wrap(text, limit) {
     let breakAt = -1 // line 안에서 마지막으로 본 공백의 위치
     for (const ch of para) {
       const cw = charWidth(ch.codePointAt(0))
+      // 공백을 먼저 기록한다. 이렇게 해야 가장 최근의 공백을 추적할 수 있다.
+      // 뒤에 아직 추가될 문자들이 있어도, 그 공백이 overflow가 되지 않으면
+      // breakAt으로 유지되고, 되면 그 공백에서 끊을 준비가 된다.
       if (ch === ' ') breakAt = line.length
       if (w + cw > limit) {
-        // 공백을 봤으면 거기서 끊는다. 뒤에 남는 것은 그 공백 이후이므로
-        // 공백이 없다 — breakAt을 -1로 되돌려도 정보가 사라지지 않는다.
+        // Overflow: line이 limit을 초과할 것이다.
         if (breakAt > 0) {
+          // 이전에 공백을 본 적이 있다. 그 공백에서 끊는다.
           out.push(line.slice(0, breakAt))
           line = line.slice(breakAt + 1)
         } else {
-          out.push(line)
+          // 공백이 없다. 현재 line을 그대로 끊는다.
+          // 단, 현재 line이 비어있으면 빈 항목을 만들지 않는다.
+          if (line) out.push(line)
           line = ''
         }
         w = width(line)
         breakAt = -1
+        // Overflow를 유발한 공백은 버린다. 그 공백은 이미 line을 초과시켰으므로
+        // 다음 줄에 포함하면 불필요한 공백이 앞에 붙는다.
         if (ch === ' ') continue
+      }
+      // Overflow가 아니라면, 또는 처리 후라면, 문자를 추가한다.
+      // 단, 현재 line이 비어있는데 그 문자 자체가 limit보다 넓으면 건너뛴다.
+      // 호출부가 폭을 잘못 계산해도 이 함수가 limit을 지키기 위함이다.
+      if (w === 0 && cw > limit) {
+        continue
       }
       line += ch
       w += cw
     }
-    out.push(line)
+    // 이번 문단을 끝낸다. 문단이 비어있거나 line이 비어있지 않으면 추가한다.
+    // 이렇게 해서 "접힘 자리의 공백 때문에 빈 줄이 생기는" 문제를 피한다.
+    if (line || para === '') out.push(line)
   }
   return out
 }
