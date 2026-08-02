@@ -6,11 +6,26 @@ import {
 } from './apply.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
 import { createT, LocalizedError, toText } from '../i18n/index.mjs'
+import { width } from '../width.mjs'
 
 const SKILL_MODES = ['auto', 'link', 'copy']
 
+// 오른쪽 정렬. width.mjs의 pad()는 오른쪽에 공백을 채워 왼쪽 정렬만 하므로
+// 숫자에는 못 쓴다 — 자릿수가 9에서 10으로 늘 때 열이 흔들리지 않으려면
+// 왼쪽에 채워야 한다. 숫자만 다루니 실제로는 문자 수와 같지만, 이 저장소의
+// 다른 폭 계산과 방식을 맞추려고 width()로 잰다.
+function alignRight(text, w) {
+  return ' '.repeat(Math.max(0, w - width(text))) + text
+}
+
+// "[ 3/39]" 꼴의 단계 번호. total의 자릿수에 맞춰 n을 오른쪽 정렬한다.
+function counterTag(n, total) {
+  const totalText = String(total)
+  return `[${alignRight(String(n), width(totalText))}/${totalText}]`
+}
+
 export function runBootstrap(root, opts = {}) {
-  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST, t = createT('en') } = opts
+  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST, onProgress = null, t = createT('en') } = opts
 
   if (!SKILL_MODES.includes(skillMode)) {
     throw new LocalizedError('error.badSkillModeRuntime', { list: SKILL_MODES.join(', '), value: skillMode })
@@ -22,23 +37,71 @@ export function runBootstrap(root, opts = {}) {
   say(t('log.repoRoot', { path: root }))
   say(t('log.noGlobalWrites'))
 
+  // 총 단계 수. 동기 파일 작업이라 단계 바만 돌지만, 무엇이 남았는지는
+  // 알려 줄 수 있다. adopt는 파일을 만들지 않으므로 기록 쓰기 한 단계뿐이다.
+  // 예측일 뿐이다 — ensureIgnore는 부정 항목이 기존 .gitignore에 가려지면
+  // manifest.ignore.length보다 많은 결과(경고 포함)를 돌려줄 수 있다.
+  let total = adopt
+    ? 1
+    : manifest.dirs.length + manifest.files.length + (manifest.settings ?? []).length
+      + manifest.blocks.length + manifest.adapters.length + manifest.ignore.length + 1
+  let done = 0
+  const step = (results) => {
+    const list = Array.isArray(results) ? results : [results]
+    for (const r of list) {
+      done++
+      // 실제 진행이 예측을 앞지르면 천장을 함께 올린다. total을 고정해 두면
+      // done > total인 알림이 나가 진행률이 100%를 넘고 바가 자기 너비를
+      // 넘겨 그려진다 — done을 total에 맞춰 죽이면 화면은 멈춘 것처럼 보이는데
+      // 남은 단계가 조용히 계속 도는, 더 나쁜 오류가 된다.
+      if (done > total) total = done
+      if (onProgress) onProgress({ done, total, path: r?.path ?? null })
+    }
+    return list
+  }
+
+  // 단계 안에서 나온 로그는 모아 뒀다가 step()이 done/total을 확정한 뒤에
+  // 번호를 붙여 낸다. ensureDirs는 이미 있는 항목을 건너뛸 때 아예 로그를
+  // 내지 않고, ensureIgnore는 여러 항목을 한 줄로 묶어 보고한다 — "몇 번째
+  // 줄이 찍혔는가"와 "몇 번째 항목을 처리했는가"가 그래서 어긋난다. 번호는
+  // 항목 순서가 아니라 처리 위치(done)를 보여 주는 것이 목적이므로, 이
+  // 구간이 시작한 위치(before)부터 실제로 찍힌 줄 수만큼만 순서대로 매긴다.
+  // 못 채운 자리는 건너뛰지만, 다음 구간은 항상 정확한 위치에서 이어져
+  // 마지막 줄은 반드시 total 가까이에서 끝난다.
+  //
+  // onProgress는 그대로 step()이 몬다 — 기계가 읽는 진행 이벤트와 사람이
+  // 읽는 로그 줄은 타이밍이 다르다(ensureX 호출이 끝나야 결과 배열이
+  // 나오고, 그제서야 done/total이 확정된다). 두 소비자를 하나의 흐름으로
+  // 우겨넣는 대신, 같은 done/total 계산을 공유하는 별도 경로로 뒀다.
+  const runStep = (run) => {
+    const buffer = []
+    const before = done
+    const list = step(run({ ...ctx, log: (message) => buffer.push(message) }))
+    let n = before
+    for (const message of buffer) {
+      n++
+      say(`${counterTag(n, total)} ${message}`)
+    }
+    return list
+  }
+
   // --adopt는 이미 있는 저장소를 기록 체계로 끌어오는 용도라 파일을 만들지
   // 않는다. 설치기를 복사해 쓰던 저장소가 여기로 들어온다.
   const results = adopt ? [] : [
-    ...ensureDirs(root, manifest.dirs, ctx),
-    ...ensureFiles(root, manifest.files, ctx),
-    ...ensureJsonKeys(root, manifest.settings ?? [], ctx),
-    ...ensureBlocks(root, manifest.blocks, ctx),
+    ...runStep((c) => ensureDirs(root, manifest.dirs, c)),
+    ...runStep((c) => ensureFiles(root, manifest.files, c)),
+    ...runStep((c) => ensureJsonKeys(root, manifest.settings ?? [], c)),
+    ...runStep((c) => ensureBlocks(root, manifest.blocks, c)),
   ]
 
   if (!adopt) {
     // 어댑터는 항목별로 실패를 격리한다 — 하나가 실패해도 나머지를 계속한다.
     // update.mjs도 같은 격리를 써야 하므로 apply.mjs가 단일 출처다.
     for (const entry of manifest.adapters) {
-      results.push(configureAdapterSafe(root, entry, { ...ctx, skillMode }))
+      results.push(...runStep((c) => configureAdapterSafe(root, entry, { ...c, skillMode })))
     }
 
-    results.push(...ensureIgnore(root, manifest.ignore, ctx))
+    results.push(...runStep((c) => ensureIgnore(root, manifest.ignore, c)))
   }
 
   // 기존 기록의 items·design은 보존한다 — 부트스트랩은 배선만 다루므로
@@ -53,7 +116,11 @@ export function runBootstrap(root, opts = {}) {
     design: previous?.design ?? [],
     managed: collectManaged(root, manifest),
   }
-  results.push(writeRecord(root, record, ctx))
+  results.push(...runStep((c) => writeRecord(root, record, c)))
+
+  // 실제 결과 수가 예측과 다르면 마지막 알림으로 100%를 맞춘다.
+  // 진행 바가 87%에서 끝나면 사용자는 무엇이 실패했다고 읽는다.
+  if (onProgress && done !== total) onProgress({ done: total, total, path: null })
 
   const failed = results.filter((r) => !r.ok)
   log('')

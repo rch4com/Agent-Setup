@@ -5,6 +5,7 @@ import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
 import { createT, toText } from '../i18n/index.mjs'
 import { labelWidth, pad } from '../width.mjs'
+import { plainLine } from '../tui/progress.mjs'
 
 // design 항목의 detect는 installed/absent만 돌려준다(catalog.mjs) — partial은
 // 열을 넓히기만 하고 실제로 나오지 않는다.
@@ -62,7 +63,17 @@ function openPreviews(items, tokensStr, opener, log, t) {
 async function applyVisible(root, visibleStates, selectedIds, { dryRun, log, t }) {
   const changes = planChanges(visibleStates, selectedIds)
   if (changes.length === 0) { log(t('apply.noChanges')); return [] }
-  const results = await apply(root, changes, { dryRun, log, t })
+  // design --set도 비대화형 경로다 — runClassic의 --set과 대칭으로, 바를
+  // 그리지 않고 평문 한 줄씩 흘린다. ANSI 제어문자로 로그를 더럽히지 않는다.
+  const results = await apply(root, changes, {
+    dryRun,
+    log,
+    t,
+    onProgress: (event) => {
+      const line = plainLine(event, t)
+      if (line) log(line)
+    },
+  })
   report(results, log, t)
   return results
 }

@@ -159,3 +159,40 @@ test('dry-run은 기록도 쓰지 않는다', () => {
   runBootstrap(root, { t, dryRun: true, log() {} })
   assert.equal(readRecord(root), null)
 })
+
+test('부트스트랩이 단계 진행을 알린다', () => {
+  const root = makeTempRepo()
+  const events = []
+  runBootstrap(root, { log: () => {}, onProgress: (e) => events.push(e) })
+  assert.ok(events.length > 0)
+  assert.equal(events.at(-1).done, events.at(-1).total)
+  assert.ok(events.every((e) => e.done <= e.total))
+})
+
+// .gitignore에 '.vscode/'가 이미 있으면 ensureIgnore의 warnBlockedNegations가
+// 부정 항목(!.vscode/mcp.json, !.vscode/settings.json)마다 경고 결과를 더 얹어
+// manifest.ignore.length보다 많은 결과를 돌려준다 — 예측한 total을 고정해 두면
+// done이 total을 넘어서면서 진행률이 100%를 넘는다.
+test('.gitignore가 부정 항목을 가리면 진행률이 100%를 넘지 않는다', () => {
+  const cleanEvents = []
+  runBootstrap(makeTempRepo(), { log: () => {}, onProgress: (e) => cleanEvents.push(e) })
+
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.vscode/\n')
+  const events = []
+  runBootstrap(root, { log: () => {}, onProgress: (e) => events.push(e) })
+  assert.ok(events.length > 0)
+  assert.ok(events.every((e) => e.done <= e.total), 'done이 total을 넘어섰다')
+  const doneSeq = events.map((e) => e.done)
+  for (let i = 1; i < doneSeq.length; i++) {
+    assert.ok(doneSeq[i] >= doneSeq[i - 1], 'done이 역행했다')
+  }
+  assert.equal(events.at(-1).done, events.at(-1).total)
+  // 위 단언들은 total이 그냥 39에 멈춰 있어도 전부 통과한다 — ensureIgnore의
+  // 경고 결과가 실제로 total에 반영되는지는 따로 확인해야 한다. 이 값을 세지
+  // 않게 되돌리는 미래의 변경이 있어도 위 세 단언은 조용히 계속 통과한다.
+  assert.ok(
+    events.at(-1).total > cleanEvents.at(-1).total,
+    `가려진 부정 항목의 경고가 total에 반영되지 않았다: ${events.at(-1).total} vs ${cleanEvents.at(-1).total}`,
+  )
+})

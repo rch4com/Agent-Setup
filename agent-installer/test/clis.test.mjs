@@ -117,3 +117,21 @@ test('vscode는 .vscode/mcp.json에 servers 키 + type:stdio를 쓴다', () => {
   assert.equal(data.servers.c.type, 'stdio')
   assert.deepEqual(data.servers.c.args, [])
 })
+
+// 상세 패널이 "이 항목이 어디에 쓰이나"를 보여 주는 근거다. 경로를 어댑터와
+// 따로 적으면 갈릴 수 있으므로, 실제로 쓴 파일이 그 자리에 생기는지 본다.
+test('모든 CLI가 자기 설정 파일 경로를 밝힌다', () => {
+  for (const cli of CLI_IDS) {
+    assert.equal(typeof CLIS[cli].file, 'string', `${cli}: file이 없다`)
+    assert.ok(CLIS[cli].file.length > 0, `${cli}: file이 비었다`)
+  }
+})
+
+test('밝힌 경로가 실제로 쓰이는 파일이다', () => {
+  const root = makeTempRepo()
+  const server = { kind: 'http', url: 'https://example.test/mcp' }
+  for (const cli of CLI_IDS) {
+    CLIS[cli].add(root, 'probe', server)
+    assert.ok(existsSync(join(root, CLIS[cli].file)), `${cli}: ${CLIS[cli].file}가 없다`)
+  }
+})

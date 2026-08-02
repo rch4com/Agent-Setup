@@ -11,6 +11,7 @@ import { createT, toText } from '../i18n/index.mjs'
 import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale, categoryLabel } from '../design-md/flow.mjs'
+import { unsupportedGroups } from './detail.mjs'
 
 // 섹션은 탭 이름이자 정렬 키이자 state.tabs의 원소다. 표시 문자열을 그대로
 // 쓰면 번역하는 순간 정렬이 깨진다 — id를 두고 render.mjs가 표시할 때만
@@ -53,17 +54,15 @@ function sectionTerms(t, section) {
 // 미지원 CLI를 **같은 사유끼리 묶어** 한 줄로 만든다. 사유 하나가 CLI 아홉 개에
 // 그대로 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"는 오히려 묻힌다.
 // 사유가 둘 이상이면(ponytail처럼) 갈래가 그대로 보인다.
+// 그룹핑은 detail.mjs가 한다 — 상세 패널과 규칙을 한 곳에 둔다.
 export function unsupportedText(item, t) {
-  const entries = Object.entries(item.unsupported ?? {})
-  if (entries.length === 0) return null
-  const byReason = new Map()
-  for (const [cli, why] of entries) {
-    const text = toText(t, why)
-    if (!byReason.has(text)) byReason.set(text, [])
-    byReason.get(text).push(cli)
-  }
-  const groups = [...byReason].map(([why, clis]) => t('item.unsupportedGroup', { clis: clis.join('·'), why }))
-  return t('item.unsupportedList', { count: entries.length, groups: groups.join(' / ') })
+  const groups = unsupportedGroups(item, t)
+  if (groups.length === 0) return null
+  const count = groups.reduce((n, g) => n + g.clis.length, 0)
+  const text = groups
+    .map((g) => t('item.unsupportedGroup', { clis: g.clis.join('·'), why: g.why }))
+    .join(' / ')
+  return t('item.unsupportedList', { count, groups: text })
 }
 
 // 에이전트 항목 힌트 — 상태·CLI 커버리지·설치 위치·미지원 사유까지 한 줄에 담는다.
@@ -97,9 +96,28 @@ export function designHint(state, multiProvider = false, t) {
   return parts.filter(Boolean).join(' · ')
 }
 
+// 목록 행에 실제로 찍히는 힌트. 80칸 터미널이면 힌트 자리는 49칸(한글 24자)뿐이라,
+// 예전처럼 사유까지 이어 붙이면 뒤쪽이 통째로 잘렸다. 사유·note·detail은
+// 상세 패널이 여러 줄로 편다 — 여기 남는 것은 잘릴 일이 없는 두 가지뿐이다.
+export function agentShortHint(item, state, t = createT('en')) {
+  const parts = []
+  if (state.status !== 'absent') parts.push(t(`status.${state.status}`))
+  if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
+  return parts.join(' · ')
+}
+
+// design.md도 같은 이유로 줄인다. 설명 전문은 상세 패널이 맡는다.
+export function designShortHint(state, multiProvider = false, t = createT('en')) {
+  const parts = []
+  if (multiProvider) parts.push(state.item.providerId)
+  parts.push(categoryLabel(t, state.item.designCategory))
+  if (state.status !== 'absent') parts.push(t(`status.${state.status}`))
+  return parts.filter(Boolean).join(' · ')
+}
+
 // group = 탭 **안쪽**의 소분류 헤더. design.md만 76개라 카테고리로 갈라야 읽힌다.
 // 나머지 탭은 항목이 적어 그룹 없이 평평하게 둔다.
-function itemRow({ id, section, label, hint, status, previewTarget = null, item, extra = '', group = null, t = createT('en') }) {
+function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = null, status, previewTarget = null, item, extra = '', group = null, t = createT('en') }) {
   return {
     kind: 'item',
     id,
@@ -107,10 +125,14 @@ function itemRow({ id, section, label, hint, status, previewTarget = null, item,
     group,
     label,
     hint,
+    // 화면에 안 찍히는 긴 힌트. 비대화형 목록(printPlain)과 검색이 쓴다 —
+    // 짧은 힌트로 검색하면 'AGENTS.md'로 ponytail을 찾을 수 없게 된다.
+    fullHint,
+    statusDetail,
     status,
     previewTarget,
     item,
-    searchText: `${label} ${hint} ${sectionTerms(t, section)} ${extra}`.toLowerCase(),
+    searchText: `${label} ${fullHint} ${sectionTerms(t, section)} ${extra}`.toLowerCase(),
   }
 }
 
@@ -122,6 +144,8 @@ function actionRow({ id, label, hint, run = null, t = createT('en') }) {
     group: null,
     label,
     hint,
+    fullHint: hint,
+    statusDetail: null,
     status: 'absent',
     previewTarget: null,
     run,
@@ -201,7 +225,9 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
         section: s.item.category,
         group: s.item.group ?? null,
         label: s.item.label,
-        hint: agentHint(s.item, s, t),
+        hint: agentShortHint(s.item, s, t),
+        fullHint: agentHint(s.item, s, t),
+        statusDetail: toText(t, s.detail) ?? null,
         status: s.status,
         item: s.item,
         extra: s.item.id,
@@ -221,7 +247,8 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
         section: 'design',
         group: s.item.designCategory || CATCH_ALL_CATEGORY,
         label: s.item.label,
-        hint: designHint(s, multiProvider, t),
+        hint: designShortHint(s, multiProvider, t),
+        fullHint: designHint(s, multiProvider, t),
         status: s.status,
         previewTarget: s.item.webUrl ?? s.item.previewPath ?? null,
         item: s.item,

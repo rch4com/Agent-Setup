@@ -52,6 +52,7 @@ async function openTui(root, { dryRun, skillMode, designDirs, t, localeForced })
 async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const { loadItems } = await withDeps(() => import('./lib/catalog.mjs'), t)
   const { scan, planChanges, apply } = await withDeps(() => import('./lib/engine.mjs'), t)
+  const { plainLine } = await withDeps(() => import('./lib/tui/progress.mjs'), t)
   const items = await loadItems()
   const states = await scan(root, items)
   const statusWidth = labelWidth(t, STATUS_KEYS)
@@ -71,7 +72,16 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const changes = planChanges(states, selectedIds)
   if (changes.length === 0) { console.log(t('apply.noChanges')); return }
 
-  const results = await apply(root, changes, { dryRun, t })
+  // 비대화형 경로다 — 바를 그리지 않고 평문 한 줄씩 흘린다.
+  // ANSI 제어문자로 CI 로그를 더럽히지 않기 위해서다.
+  const results = await apply(root, changes, {
+    dryRun,
+    t,
+    onProgress: (event) => {
+      const line = plainLine(event, t)
+      if (line) console.log(line)
+    },
+  })
   for (const r of results) {
     console.log(`${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${r.message ? ` — ${toText(t, r.message)}` : ''}`)
   }

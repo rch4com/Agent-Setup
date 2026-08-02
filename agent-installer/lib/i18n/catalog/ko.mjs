@@ -271,8 +271,8 @@ export default {
   'tui.search.placeholder': '타이핑하면 검색 · ↓ 로 목록',
   'tui.empty.filtered': '  이 탭에는 일치하는 항목이 없습니다. Tab으로 다른 탭을 보세요.',
   'tui.empty.none': '  항목이 없습니다.',
-  'tui.hint.search': '입력=검색어(스페이스 포함)   ↓ 목록으로   Tab 탭이동   Esc 검색해제',
-  'tui.hint.list': 'Space 선택   ↑↓ 이동(맨 위 ↑=검색칸)   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기',
+  'tui.hint.search': '입력=검색어   ↓ 목록으로   Tab 탭이동   Esc 검색해제   Ctrl+F CLI   Ctrl+D 상세',
+  'tui.hint.list': 'Space 선택   ↑↓ 이동   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기   Ctrl+F CLI   Ctrl+D 상세',
   'tui.review.title': '제출 검토 — 변경 {count}건',
   'tui.review.more': '  …외 {count}건',
   'tui.review.hint': 'Enter 적용   Esc 취소',
@@ -284,9 +284,22 @@ export default {
   'tui.toggledAll': '{tab} 탭의 보이는 항목을 모두 선택했습니다.',
   'tui.toggledNone': '{tab} 탭의 보이는 항목을 모두 해제했습니다.',
   'tui.nonInteractive': '대화형 화면은 터미널에서만 열립니다. --list · --set 으로도 다룰 수 있습니다.',
-  'tui.applyHeader': '적용할 변경 {count}건{suffix}:',
   'tui.pressAnyKey': '계속하려면 아무 키나 누르세요…',
   'tui.confirmSuffix': ' [y/N] ',
+
+  // 진행 화면(tui/progress.mjs) 문구. en.mjs 쪽 주석 참고.
+  'progress.title': '적용 중 — 변경 {count}건{suffix}',
+  'progress.counter': '{done}/{total}  {percent}%',
+  'progress.elapsed': '{seconds}초',
+  'progress.elapsedMin': '{minutes}분{seconds}초',
+  'progress.running': '{seconds}초 경과',
+  'progress.more': '  …외 {count}건',
+  'progress.abortHint': 'Ctrl+C 중단 (현재 항목까지 마칩니다)',
+  'progress.aborted': '중단했습니다 — {count}건 건너뜀',
+  'progress.skipped': '건너뜀',
+  'progress.done': '끝났습니다 — 성공 {ok}건, 실패 {failed}건{skippedSuffix}',
+  'progress.plain': '[{index}/{total}] {action} {label}',
+  'progress.plainDone': '      {mark} {seconds}초',
 
   // 언어 행(action.language) 전용. en.mjs 쪽 주석 참고.
   'tui.lang.saved': '{path}에 저장했습니다',
@@ -294,11 +307,24 @@ export default {
   'tui.lang.saveFailed': '언어를 저장하지 못했습니다: {message}',
   'tui.lang.overridden': '다음 실행에서는 --lang / AGENT_SETUP_LANG이 여전히 이깁니다.',
 
+  // CLI 필터 표시. en.mjs 쪽 주석 참고.
+  'tui.filter.prefix': 'CLI › ',
+  'tui.filter.position': '{current}/{total}',
+  'tui.filter.empty': '  이 탭에는 {cli}에 배선되는 항목이 없습니다.',
+
   'item.location.user': '설치 위치: 사용자 글로벌',
   // en.mjs 쪽 주석 참고.
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': '미배선 {count}곳: {groups}',
   'item.unsupportedGroup': '{clis} — {why}',
+  'detail.wired': '배선',
+  'detail.unwired': '미배선',
+  'detail.provider': '공급자',
+  'detail.preview': '미리보기',
+  'detail.scope.project': '저장소 스코프',
+  'detail.scope.user': '사용자 전역',
+  'detail.more': '  …외 {count}줄 — Ctrl+D로 펼치기',
+  'detail.empty': '  커서를 항목 위에 올리면 상세가 보입니다.',
 
   // 상주 언어 행 — en.mjs 쪽 주석 참고.
   'action.language.label': '언어',

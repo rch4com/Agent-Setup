@@ -280,8 +280,8 @@ export default {
   'tui.search.placeholder': 'type to search · ↓ for the list',
   'tui.empty.filtered': '  Nothing matches in this tab. Press Tab to try another.',
   'tui.empty.none': '  Nothing here.',
-  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab switch tab   Esc clear',
-  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab switch tab   Enter run/submit   Ctrl+A all   Ctrl+O preview',
+  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab tab   Esc clear   Ctrl+F CLI   Ctrl+D detail',
+  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview   Ctrl+F CLI   Ctrl+D detail',
   'tui.review.title': 'Review — {count} change(s)',
   'tui.review.more': '  …and {count} more',
   'tui.review.hint': 'Enter apply   Esc cancel',
@@ -293,9 +293,23 @@ export default {
   'tui.toggledAll': 'Selected every visible item in the {tab} tab.',
   'tui.toggledNone': 'Cleared every visible item in the {tab} tab.',
   'tui.nonInteractive': 'The interactive screen only opens in a terminal. --list and --set work too.',
-  'tui.applyHeader': '{count} change(s) to apply{suffix}:',
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
+
+  // 진행 화면(tui/progress.mjs) 문구. Task 9의 이벤트(start·command·done)를
+  // 사람이 읽는 줄로 바꾼다. plain*은 비TTY(CI·파이프)용 한 줄 출력이다.
+  'progress.title': 'Applying — {count} change(s){suffix}',
+  'progress.counter': '{done}/{total}  {percent}%',
+  'progress.elapsed': '{seconds}s',
+  'progress.elapsedMin': '{minutes}m{seconds}s',
+  'progress.running': '{seconds}s elapsed',
+  'progress.more': '  …and {count} more',
+  'progress.abortHint': 'Ctrl+C stops after the current item',
+  'progress.aborted': 'Stopped — {count} item(s) skipped',
+  'progress.skipped': 'skipped',
+  'progress.done': 'Done — {ok} succeeded, {failed} failed{skippedSuffix}',
+  'progress.plain': '[{index}/{total}] {action} {label}',
+  'progress.plainDone': '      {mark} {seconds}s',
 
   // 언어 행(action.language) 전용. 저장 성공·dry-run·실패·강제 로케일 네 갈래를 덮는다.
   'tui.lang.saved': 'Saved to {path}',
@@ -303,11 +317,26 @@ export default {
   'tui.lang.saveFailed': 'Could not save the language: {message}',
   'tui.lang.overridden': '--lang / AGENT_SETUP_LANG still wins on the next run.',
 
+  // CLI 필터 표시. 검색줄 오른쪽 끝에 붙는다(Task 7) — filterSegment가 쓴다.
+  // 필터가 없을 때는 아무것도 내지 않는다(잡음 방지) — "전체" 라벨을 위한
+  // 키를 따로 두지 않는다.
+  'tui.filter.prefix': 'CLI › ',
+  'tui.filter.position': '{current}/{total}',
+  'tui.filter.empty': '  Nothing in this tab is wired for {cli}.',
+
   'item.location.user': 'installs to: user global',
   // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': 'not wired for {count}: {groups}',
   'item.unsupportedGroup': '{clis} — {why}',
+  'detail.wired': 'wired',
+  'detail.unwired': 'unwired',
+  'detail.provider': 'source',
+  'detail.preview': 'preview',
+  'detail.scope.project': 'repo scope',
+  'detail.scope.user': 'user global',
+  'detail.more': '  …and {count} more line(s) — Ctrl+D to expand',
+  'detail.empty': '  Move the cursor onto an item to see its details.',
 
   // 상주 언어 행 — 작업 탭 맨 위. hint는 현재 로케일의 자기 이름을 담는다.
   'action.language.label': 'Language',

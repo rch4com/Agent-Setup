@@ -1,12 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  buildRows, buildActions, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
+  buildRows, buildActions, agentHint, designHint, agentShortHint, designShortHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
 } from '../lib/tui/rows.mjs'
+import { unsupportedGroups } from '../lib/tui/detail.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
 import { CLI_IDS } from '../lib/clis.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
-import { render, renderReview, cut, width, bodyHeight } from '../lib/tui/render.mjs'
+import { render, renderReview, cut, width, bodyHeight, panelHeight, reviewBodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
@@ -238,7 +239,8 @@ test('cut: 폭을 넘으면 말줄임표로 잘린다', () => {
 test('render: 프레임 높이가 터미널 높이와 맞는다', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
   const lines = render(createState(rows), { width: 80, height: 24 })
-  assert.equal(lines.length, bodyHeight(24) + 6)
+  // 목록 아래 상세 패널이 자기 자리를 차지하므로, 6줄 크롬 + 목록 + 패널이다.
+  assert.equal(lines.length, bodyHeight(24) + panelHeight(24) + 6)
 })
 
 test('render: 탭 줄이 모든 섹션을 싣고 활성 탭을 표시한다', () => {
@@ -269,7 +271,9 @@ test('render: 탭 줄은 raw 섹션 id가 아니라 t로 번역된 이름을 보
 // design 그룹 헤더(render.mjs:143)도 같은 회귀에 노출된다 — categoryLabel을
 // 거쳐야 catch-all id가 로케일 라벨로 나온다.
 test('render: design 그룹 헤더는 catch-all id를 로케일 라벨로 보여준다 — raw id가 새지 않는다', () => {
-  const states = [{ item: { id: 'd.x', name: 'x', providerId: 'a', label: 'X', designCategory: '' }, status: 'absent' }]
+  // category: 'design'을 빠뜨리면 상세 패널이 agentLines로 잘못 빠져 detail.scope.undefined로 죽는다 —
+  // 실제 defineDesignMd(catalog.mjs)는 이 값을 항상 채우므로 픽스처도 맞춰 둔다.
+  const states = [{ item: { id: 'd.x', name: 'x', providerId: 'a', label: 'X', category: 'design', designCategory: '' }, status: 'absent' }]
   const rows = buildRows({ designStates: states })
   const ko = render(createState(rows), { width: 80, height: 24, t: createT('ko') }).join('\n')
   const en = render(createState(rows), { width: 80, height: 24, t: createT('en') }).join('\n')
@@ -316,7 +320,7 @@ test('render: 커서 행에만 표식이 붙는다', () => {
 test('render: color 갈래도 폭을 지키며 렌더된다', () => {
   const rows = buildRows({ actions: ACTIONS, agentStates: AGENT_STATES, designStates: DESIGN_STATES })
   const lines = render(createState(rows), { width: 40, height: 24, color: true, repo: '/tmp/x' })
-  assert.equal(lines.length, bodyHeight(24) + 6)
+  assert.equal(lines.length, bodyHeight(24) + panelHeight(24) + 6)
   const ESC = String.fromCharCode(27)
   const strip = (l) => l.split(`${ESC}[`).map((p, i) => (i === 0 ? p : p.slice(p.indexOf('m') + 1))).join('')
   for (const line of lines) assert.ok(width(strip(line)) <= 39, `너무 김: ${JSON.stringify(line)}`)
@@ -341,7 +345,8 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
   assert.ok(text.includes('설치') && text.includes('Supabase'))
   assert.ok(text.includes('제거') && text.includes('Stripe'))
   assert.ok(text.includes('Enter 적용') && text.includes('Esc 취소'))
-  assert.equal(lines.length, bodyHeight(24) + 4)
+  // renderReview는 패널을 그리지 않으므로 bodyHeight가 아니라 reviewBodyHeight로 예산을 잰다.
+  assert.equal(lines.length, reviewBodyHeight(24) + 4)
 })
 
 // 적용 직전 마지막 화면이다. 목록에서 커버리지를 지나쳤더라도 여기서 한 번 더
@@ -361,7 +366,7 @@ test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 
   const many = Array.from({ length: 50 }, (_, i) => ({ action: 'install', item: { label: `항목${i}` } }))
   const lines = renderReview(many, { width: 80, height: 12, t: createT('ko') })
   assert.ok(lines.join('\n').includes('…외'), '남은 건수 안내 없음')
-  assert.equal(lines.length, bodyHeight(12) + 4)
+  assert.equal(lines.length, reviewBodyHeight(12) + 4)
   for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
 })
 
@@ -379,4 +384,55 @@ test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async
   assert.equal(cap.text().includes('[작업]'), true)
   assert.equal(cap.text().includes('부트스트랩 실행'), true)
   assert.equal(cap.text().includes('--list'), true)
+})
+
+// ── 사유 그룹 분리와 짧은 힌트 ────────────────────────────────────
+
+const PONYTAIL = {
+  id: 'plugin.ponytail', category: 'plugin', label: 'Ponytail', scope: 'project',
+  supports: ['claude', 'opencode'],
+  unsupported: {
+    codex: msg('item.unsupported.ponytailUser'),
+    gemini: msg('item.unsupported.ponytailUser'),
+    kilo: msg('item.unsupported.ponytailRules'),
+  },
+}
+
+// 사유 하나가 CLI 여럿에 그대로 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"가
+// 묻힌다. 같은 사유끼리 묶어 갈래가 보이게 한다.
+test('미배선 사유를 같은 사유끼리 묶어 구조체로 돌려준다', () => {
+  const t = createT('en')
+  const groups = unsupportedGroups(PONYTAIL, t)
+  assert.equal(groups.length, 2)
+  assert.deepEqual(groups[0].clis, ['codex', 'gemini'])
+  assert.deepEqual(groups[1].clis, ['kilo'])
+  assert.equal(typeof groups[0].why, 'string')
+})
+
+test('미배선이 없으면 빈 배열이다', () => {
+  assert.deepEqual(unsupportedGroups({ unsupported: {} }, createT('en')), [])
+  assert.deepEqual(unsupportedGroups({}, createT('en')), [])
+})
+
+// 목록 행에서 잘릴 것을 없애는 것이 이번 변경의 핵심이다. 사유·note·detail은
+// 상세 패널로 옮기고 행에는 상태와 커버리지만 남긴다.
+test('짧은 힌트는 상태와 CLI 커버리지만 담는다', () => {
+  const t = createT('en')
+  const hint = agentShortHint(PONYTAIL, { item: PONYTAIL, status: 'installed' }, t)
+  assert.match(hint, /Installed/)
+  assert.match(hint, /CLI 2\/10/)
+  assert.doesNotMatch(hint, /upstream/)
+})
+
+test('긴 힌트는 그대로 남아 검색과 비대화형 목록이 쓴다', () => {
+  const t = createT('en')
+  const full = agentHint(PONYTAIL, { item: PONYTAIL, status: 'installed' }, t)
+  assert.match(full, /upstream/)
+})
+
+test('항목 행은 짧은 힌트와 긴 힌트를 함께 들고 긴 쪽으로 검색된다', () => {
+  const rows = buildRows({ agentStates: [{ item: PONYTAIL, status: 'installed' }] })
+  const row = rows.find((r) => r.id === 'plugin.ponytail')
+  assert.notEqual(row.hint, row.fullHint)
+  assert.ok(row.searchText.includes('agents.md'))
 })

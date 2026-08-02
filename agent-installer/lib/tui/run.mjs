@@ -7,10 +7,13 @@ import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { createT, toText, LOCALES } from '../i18n/index.mjs'
 import { RECORD_REL, writeLang } from '../bootstrap/record.mjs'
 import { collectRows, installedIds } from './rows.mjs'
+import { CLI_IDS } from '../clis.mjs'
 import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
+  cycleCliFilter,
 } from './state.mjs'
 import { render, renderReview, bodyHeight } from './render.mjs'
+import { createProgress, applyEvent, progressLines } from './progress.mjs'
 
 const ESC = String.fromCharCode(27)
 const HIDE_CURSOR = `${ESC}[?25l`
@@ -34,6 +37,16 @@ function keyReader(stdin) {
   stdin.on('keypress', onKey)
   return {
     next: () => (queue.length > 0 ? Promise.resolve(queue.shift()) : new Promise((r) => { waiting = r })),
+    // 적용 중 중단 감시용. 큐를 **소비하지 않고** Ctrl+C만 들여다본다.
+    // next()로 기다리는 두 번째 소비자를 두면 적용이 끝난 뒤 눌린 키가
+    // 그 대기로 흘러 사라지고, 본 루프의 "아무 키나" 대기가 멈춘다.
+    // Ctrl+C가 있을 때만 거기까지를 버린다.
+    hasAbort: () => {
+      const at = queue.findIndex((k) => k.ctrl && k.name === 'c')
+      if (at === -1) return false
+      queue.splice(0, at + 1)
+      return true
+    },
     stop: () => stdin.off('keypress', onKey),
   }
 }
@@ -50,7 +63,9 @@ function printPlain(rows, log, t = createT('en')) {
   for (const row of rows) {
     if (row.section !== section) { section = row.section; log(`[${t(`section.${section}`)}]`) }
     const mark = row.kind === 'action' ? '▶' : row.status === 'absent' ? ' ' : '×'
-    log(`  [${mark}] ${row.label}${row.hint ? ` — ${row.hint}` : ''}`)
+    // 화면 폭 제약이 없는 자리다 — 여기서는 긴 힌트가 낫다.
+    const hint = row.fullHint ?? row.hint
+    log(`  [${mark}] ${row.label}${hint ? ` — ${hint}` : ''}`)
   }
 }
 
@@ -90,6 +105,10 @@ export async function runTui(root, opts = {}) {
   // 타이핑하면 검색칸으로 올라간다.
   let state = createState(collected.rows, { selectedIds: installedIds(collected.rows), focus: 'list' })
   let status = ''
+  // 순환 대상: 전체(null) + CLI 10개. state.mjs는 아무것도 import 하지 않으므로
+  // 목록을 여기서 만들어 넘긴다.
+  const CLI_OPTIONS = [null, ...CLI_IDS]
+  let detailExpanded = false
 
   emitKeypressEvents(stdin)
   stdin.setRawMode(true)
@@ -101,8 +120,11 @@ export async function runTui(root, opts = {}) {
   const draw = (lines) => stdout.write(HOME + lines.map((l) => l + CLEAR_LINE).join('\n') + '\n' + CLEAR_DOWN)
   const paint = () => {
     const height = stdout.rows ?? 24
-    state = scroll(state, bodyHeight(height))
-    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t }))
+    state = scroll(state, bodyHeight(height, detailExpanded))
+    draw(render(state, {
+      width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t,
+      detailExpanded, cliOptions: CLI_OPTIONS,
+    }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
@@ -178,6 +200,54 @@ export async function runTui(root, opts = {}) {
     }
   }
 
+  // 적용 중에는 alt 화면을 떠나지 않는다. exec가 비동기가 된 덕에 이벤트
+  // 루프가 살아 있어, 100ms 타이머가 경과 시간을 실제로 흘려 준다.
+  const runApply = async (changes) => {
+    let progress = { ...createProgress(changes), startedAt: Date.now() }
+    let stopRequested = false
+
+    // 중단 요청은 큐를 엿봐서 안다. 한 번 서면 되돌리지 않는다.
+    const checkAbort = () => {
+      if (!stopRequested && keys.hasAbort()) stopRequested = true
+      return stopRequested
+    }
+    const drawProgress = () => draw(progressLines(progress, {
+      width: stdout.columns ?? 80, height: stdout.rows ?? 24, color, dryRun, now: Date.now(), t,
+    }))
+
+    drawProgress()
+    const timer = setInterval(() => { checkAbort(); drawProgress() }, 100)
+    // 타이머가 프로세스를 붙잡지 않게 한다 — 화면 갱신은 종료를 미룰 이유가 없다.
+    timer.unref?.()
+
+    try {
+      const results = await apply(root, changes, {
+        dryRun,
+        log: () => {}, // 로그는 진행 화면이 대신한다
+        t,
+        shouldStop: checkAbort,
+        onProgress: (event) => {
+          progress = applyEvent(progress, event, Date.now())
+          drawProgress()
+        },
+      })
+      // aborted는 apply()가 끝난 뒤에만 세운다 — 도중에 세우면 실행 중 항목이
+      // aborted:true와 공존해, progressLines의 pending→skipped 겹쳐 보기가
+      // 아직 끝나지 않은 항목까지 건너뛴 것으로 잘못 그린다. entries 자체는
+      // 건드리지 않는다 — 시도조차 하지 않은 항목은 그대로 pending으로
+      // 남아 있어야 progressLines(viewEntry)가 그 상태를 skipped로 겹쳐
+      // 보며 표시와 집계("N건 건너뜀")를 함께 맞출 수 있다. 여기서 먼저
+      // state를 skipped로 바꿔 버리면 그 겹쳐 보기가 더는 pending을 찾지
+      // 못해 집계가 항상 0이 된다.
+      progress = { ...progress, aborted: stopRequested }
+      drawProgress()
+      if (results.some((r) => !r.ok && !r.skipped)) process.exitCode = 1
+      return results
+    } finally {
+      clearInterval(timer)
+    }
+  }
+
   try {
     for (;;) {
       paint()
@@ -185,6 +255,16 @@ export async function runTui(root, opts = {}) {
       status = ''
 
       if (key.ctrl && key.name === 'c') break
+
+      // Ctrl 조합은 두 포커스에서 모두 통한다 — 검색으로 좁힌 직후가 CLI
+      // 필터를 겹쳐 걸고 싶은 순간이다. 글자 키(c·d)를 쓰지 않는 이유는
+      // 목록 포커스에서 아무 글자나 누르면 검색칸으로 올라가기 때문이다:
+      // c를 필터에 배정하면 codex·claude를 검색어로 칠 수 없다.
+      if (key.ctrl && (key.name === 'f' || key.name === 'b')) {
+        state = cycleCliFilter(state, key.name === 'f' ? 1 : -1, CLI_OPTIONS)
+        continue
+      }
+      if (key.ctrl && key.name === 'd') { detailExpanded = !detailExpanded; continue }
 
       // ── 검색칸에 포커스: 타이핑이 곧 검색어다(스페이스 포함, 두 단어 검색 가능).
       if (state.focus === 'search') {
@@ -221,8 +301,8 @@ export async function runTui(root, opts = {}) {
         continue
       }
       if (key.name === 'down' || (key.ctrl && key.name === 'n')) { state = move(state, 1); continue }
-      if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24)); continue }
-      if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24)); continue }
+      if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
+      if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
 
       // 탭 이동 — Tab/Shift+Tab, 좌우 화살표.
       if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }
@@ -264,15 +344,24 @@ export async function runTui(root, opts = {}) {
         if (verdict === 'quit') break
         if (verdict === 'cancel') { status = t('tui.submitCancelled'); continue }
 
+        const results = await runApply(changes)
+
+        // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
+        // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 성공해도 message가
+        // 붙은 결과(definePlugin·ponytail이 claude CLI 부재로 config 직접
+        // 기록으로 대체할 때 등)는 똑같이 사연이 있다 — ok만 보고 걸러내면
+        // 그 사연이 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
+        // 이미 나타났고, 다시 여기 나열하면 사용자가 스스로 취소한 일을
+        // 실패처럼 읽게 된다.
+        const notable = results.filter((r) => !r.skipped && (!r.ok || r.message))
         await suspend(async () => {
-          log(`\n${t('tui.applyHeader', { count: changes.length, suffix: dryRun ? ' (dry-run)' : '' })}`)
-          for (const c of changes) log(`  ${t(`change.${c.action}`)} ${c.item.label}`)
-          const results = await apply(root, changes, { dryRun, log, t })
-          for (const r of results) {
-            const message = toText(t, r.message)
-            log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+          if (notable.length > 0) {
+            log('')
+            for (const r of notable) {
+              const message = toText(t, r.message)
+              log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+            }
           }
-          if (results.some((r) => !r.ok)) process.exitCode = 1
           log(`\n${t('apply.seeGitDiff')}`)
           await pause()
         })

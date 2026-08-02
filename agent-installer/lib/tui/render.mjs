@@ -1,10 +1,11 @@
 // 순수 렌더 — 상태와 크기를 받아 화면 줄 배열을 돌려준다.
 // 커서 이동·지우기 같은 제어 시퀀스는 run.mjs가 맡는다.
-import { displayList, tabCounts, activeTab } from './state.mjs'
+import { displayList, tabCounts, activeTab, currentRow } from './state.mjs'
 import { CLI_IDS } from '../clis.mjs'
 import { createT } from '../i18n/index.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
 import { cut, pad, width } from '../width.mjs'
+import { detailLines } from './detail.mjs'
 
 // 폭 계산은 화면 전용이 아니다 — 비대화형 목록도 같은 열 맞춤이 필요해
 // lib/width.mjs에 있다. 여기서 다시 내보내는 것은 호출부(테스트 포함)가
@@ -21,7 +22,34 @@ const RESET = `${ESC}[0m`
 const CHROME = 6
 export const LABEL_WIDTH = 24
 
-export function bodyHeight(height) {
+// 상세 패널은 목록과 화면을 나눠 갖는다. 높이를 커서가 아니라 **터미널
+// 크기로만** 정하는 것이 핵심이다 — 커서를 옮길 때마다 높이가 변하면
+// 목록이 출렁이고, 그것이 아코디언(행 펼침)을 기각한 이유였다.
+const PANEL_SHARE = 0.4
+const PANEL_MIN = 4
+const PANEL_MAX = 12
+// 목록이 3줄 밑으로 내려가는 쪽이 패널이 사라지는 것보다 나쁘다.
+const PANEL_FLOOR = PANEL_MIN + 3
+
+export function panelHeight(height, expanded = false) {
+  const room = Math.max(0, height - CHROME)
+  if (expanded) return room
+  if (room < PANEL_FLOOR) return 0
+  return Math.min(PANEL_MAX, Math.max(PANEL_MIN, Math.round(room * PANEL_SHARE)))
+}
+
+export function bodyHeight(height, expanded = false) {
+  const room = Math.max(0, height - CHROME)
+  const panel = panelHeight(height, expanded)
+  // 패널이 없을 때는 예전과 같이 최소 3줄을 보장한다.
+  return panel === 0 ? Math.max(3, room) : room - panel
+}
+
+// 제출 검토 화면(renderReview) 전용 — 거긴 패널을 그리지 않는다. bodyHeight를
+// 그대로 재사용하면 그리지도 않는 패널 몫을 미리 떼어 두게 되고, 적용 직전
+// 마지막 확인 화면이 화면에 여유가 남았는데도 변경 목록을 이유 없이 잘라
+// "…외 N건"으로 감춘다. 그래서 패널을 도입하기 전의 옛 산식을 그대로 쓴다.
+export function reviewBodyHeight(height) {
   return Math.max(3, height - CHROME)
 }
 
@@ -32,20 +60,22 @@ function checkbox(row, selected) {
   return `[${selected.has(row.id) ? MARK.on : MARK.off}]`
 }
 
-// 탭 줄. 검색 중이면 탭마다 적중 수를 보여 준다 —
-// 검색은 활성 탭 안으로만 걸리므로, 다른 탭에 결과가 있다는 사실을 여기서 알린다.
+// 탭 줄. 목록이 좁혀졌으면(검색어·CLI 필터 어느 쪽이든) 탭마다 적중 수를
+// 보여 준다 — 검색·필터는 활성 탭 안으로만 걸리므로, 다른 탭에 결과가
+// 있다는 사실을 여기서 알린다. 그래야 필터가 사용자를 빈 탭에 가둬 두고
+// 아무 설명도 없이 방치하는 일이 없다.
 // 폭이 모자라면 활성 탭 하나 + 위치 표시로 줄인다(줄바꿈은 화면을 무너뜨린다).
 // tab 자체는 rows.mjs가 만든 소문자 id다 — 화면에는 t로 번역한 이름만 낸다.
-export function tabBar(state, { width: limit, color = false, searching = false, t = createT('en') } = {}) {
+export function tabBar(state, { width: limit, color = false, narrowed = false, t = createT('en') } = {}) {
   const counts = tabCounts(state)
   if (counts.length === 0) return ''
   const active = activeTab(state)
 
   const segs = counts.map(({ tab, shown, total }) => ({
     tab,
-    text: searching ? `${t(`section.${tab}`)} ${shown}/${total}` : `${t(`section.${tab}`)} ${total}`,
+    text: narrowed ? `${t(`section.${tab}`)} ${shown}/${total}` : `${t(`section.${tab}`)} ${total}`,
     active: tab === active,
-    empty: searching && shown === 0,
+    empty: narrowed && shown === 0,
   }))
 
   const SEP = '  '
@@ -65,23 +95,52 @@ export function tabBar(state, { width: limit, color = false, searching = false, 
     .join('')
 }
 
+// 필터 표시. 검색줄 오른쪽 끝에 붙는다 — 새 줄을 만들면 CHROME이 늘어
+// 목록이 그만큼 준다. 필터가 없으면 아무것도 내지 않는다(잡음 방지).
+//
+// 색은 여기서 입히지 않는다 — 이 반환값이 searchLine의 tailWidth 계산에도
+// 그대로 쓰이는데, 색 코드를 섞으면 ESC 시퀀스가 표시 폭에 끼어든다(폭은
+// 항상 색을 입히기 전에 재야 한다). 칠하는 일은 호출부가 폭 계산을 끝낸
+// 뒤 마지막에 한다.
+export function filterSegment(state, { t = createT('en'), options = [] } = {}) {
+  if (!state.cliFilter) return ''
+  const at = options.indexOf(state.cliFilter)
+  const pos = at === -1 ? '' : ` (${t('tui.filter.position', { current: at + 1, total: options.length })})`
+  return `${t('tui.filter.prefix')}${state.cliFilter}${pos}`
+}
+
 // 검색줄 = 하나의 입력칸이다. 포커스가 여기 있으면 입력 커서(▌)로 드러내고,
-// 컬러에서는 줄 전체를 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
+// 컬러에서는 입력 영역을 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
 // 이 상태에서만 스페이스가 선택이 아니라 검색어로 들어가기 때문이다.
-function searchLine(state, { limit, color, paint, t }) {
+//
+// 반전은 **입력 영역까지만** 칠한다. 줄 끝까지 채워 반전시키면 오른쪽 필터
+// 표시가 반전에 먹혀 읽히지 않는다.
+function searchLine(state, { limit, color, paint, t, filter = '' }) {
   const prefix = t('tui.search.prefix')
-  const room = Math.max(0, limit - width(prefix))
+  // filter는 항상 순수 텍스트다(filterSegment 참고) — 폭은 색을 입히기 전에
+  // 재고, tail을 화면에 낼 때만 paint로 칠한다.
+  const tailWidth = filter ? width(filter) + 2 : 0
+  const tail = filter ? `  ${paint(BOLD, filter)}` : ''
+  const room = Math.max(0, limit - width(prefix) - tailWidth)
+
+  // 필터를 넣을 자리가 없으면 필터를 버린다 — 타이핑 중인 글자가 사라지는
+  // 쪽이 더 나쁘다. 탭 줄의 shown/total 표기가 필터가 걸려 있음을 이미 알린다.
+  if (room < 8) return searchLine(state, { limit, color, paint, t, filter: '' })
+
   if (state.focus === 'search') {
-    const text = `${prefix}${cut(`${state.query}▌`, room)}`
-    return color ? `${REVERSE}${pad(text, limit)}${RESET}` : text
+    const field = `${prefix}${cut(`${state.query}▌`, room)}`
+    const body = color ? `${REVERSE}${pad(field, limit - tailWidth)}${RESET}` : field
+    return `${body}${tail}`
   }
-  if (state.query) return `${prefix}${cut(state.query, room)}`
-  return `${prefix}${paint(DIM, cut(t('tui.search.placeholder'), room))}`
+  const body = state.query
+    ? `${prefix}${cut(state.query, room)}`
+    : `${prefix}${paint(DIM, cut(t('tui.search.placeholder'), room))}`
+  return `${body}${tail}`
 }
 
 export function render(state, opts = {}) {
   // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
-  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', t = createT('en') } = opts
+  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', detailExpanded = false, cliOptions = [], t = createT('en') } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
   const w = Math.max(24, columns - 1)
@@ -94,19 +153,31 @@ export function render(state, opts = {}) {
   const counts = t('tui.counts', { picked, total: items.length })
   const head = cut(`${title}  ${counts}  ${repo}`, w)
   const searching = String(state.query ?? '').trim() !== ''
+  // 목록이 좁혀졌는가 — 검색어·CLI 필터 어느 쪽이든 활성 탭 안에서만 걸리는
+  // 좁힘이라, 다른 탭에 뭐가 남았는지 알리는 몫(탭 줄의 shown/total)은
+  // 둘이 똑같이 진다.
+  const narrowed = searching || Boolean(state.cliFilter)
 
+  const filter = filterSegment(state, { t, options: cliOptions })
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
-    tabBar(state, { width: w, color, searching, t }),
-    searchLine(state, { limit: w, color, paint, t }),
+    tabBar(state, { width: w, color, narrowed, t }),
+    searchLine(state, { limit: w, color, paint, t, filter }),
     '',
   ]
 
-  const body = bodyHeight(height)
+  const body = bodyHeight(height, detailExpanded)
   const all = displayList(state)
 
   if (all.length === 0) {
-    lines.push(paint(DIM, cut(searching ? t('tui.empty.filtered') : t('tui.empty.none'), w)))
+    // 빈 이유가 검색어 때문일 수도 있는데, cliFilter를 먼저 물으면 "이 CLI에는
+    // 배선된 게 없다"는 문구가 거짓으로 뜰 수 있다 — 그 CLI가 이 탭의 다른
+    // 항목들을 지원하더라도, 검색어가 전부 걸러내면 이 분기에 들어온다.
+    // 검색어가 있으면 그쪽이 항상 참이므로 우선한다.
+    const empty = searching
+      ? t('tui.empty.filtered')
+      : state.cliFilter ? t('tui.filter.empty', { cli: state.cliFilter }) : t('tui.empty.none')
+    if (body > 0) lines.push(paint(DIM, cut(empty, w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
     const window = all.slice(state.offset, state.offset + body)
@@ -128,6 +199,18 @@ export function render(state, opts = {}) {
     for (let i = window.length; i < body; i++) lines.push('')
   }
 
+  // 상세 패널 — 목록 아래 고정 자리. 높이가 커서와 무관하므로 목록이
+  // 출렁이지 않는다. 지면이 모자라면 panelHeight가 0을 돌려 통째로 빠진다.
+  const panel = panelHeight(height, detailExpanded)
+  if (panel > 0) {
+    lines.push(paint(DIM, '─'.repeat(w)))
+    const room = panel - 1
+    const detail = detailLines(currentRow(state), { width: w, height: room, t })
+    const shown = detail.length > 0 ? detail : [paint(DIM, cut(t('detail.empty'), w))]
+    for (const line of shown.slice(0, room)) lines.push(line)
+    for (let i = shown.length; i < room; i++) lines.push('')
+  }
+
   const hint = state.focus === 'search' ? t('tui.hint.search') : t('tui.hint.list')
   lines.push('')
   lines.push(paint(DIM, cut(status || hint, w)))
@@ -146,7 +229,7 @@ export function renderReview(changes, opts = {}) {
   const title = `${t('tui.review.title', { count: changes.length })}${dryRun ? ' (dry-run)' : ''}`
   const lines = [color ? `${BOLD}${cut(title, w)}${RESET}` : cut(title, w), '']
 
-  const body = bodyHeight(height)
+  const body = reviewBodyHeight(height)
   const room = Math.max(1, body - 1)
   const shown = changes.slice(0, room)
   for (const c of shown) {
