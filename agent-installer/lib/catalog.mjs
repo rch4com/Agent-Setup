@@ -137,9 +137,12 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
   }
 }
 
-export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null }) {
+// 배선은 Claude 한 곳이라도 미배선 "사유"는 CLI마다 다를 수 있다 — 상류가
+// 자체 경로로 지원하는 CLI에 일괄 "Claude 전용" 사유를 붙이면 거짓 정보가 된다.
+// 항목이 사유를 넘기면 그 CLI만 덮고, 나머지는 기본 사유로 채운다.
+export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, unsupported: reasons = {} }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.claudePlugin')]),
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudePlugin')]),
   )
   return {
     id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group,
@@ -163,9 +166,9 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
   }
 }
 
-export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null }) {
+export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, unsupported: reasons = {} }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.claudeSkill')]),
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudeSkill')]),
   )
   return { id, category: 'skill', label, scope, supports: ['claude'], unsupported, note, group, detect, install, uninstall }
 }

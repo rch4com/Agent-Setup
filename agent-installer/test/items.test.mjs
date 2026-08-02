@@ -50,6 +50,31 @@ test('항목의 note는 카탈로그에 있는 키다', async () => {
   }
 })
 
+// 상류 지원 현황을 2026-08-02에 1차 자료로 검증해 사유에 반영했다. 일괄
+// "Claude 전용" 사유로 되돌아가면 상류가 실제로 지원하는 CLI에 거짓 정보가
+// 나간다 — 검증된 판정을 여기에 고정한다.
+test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', async () => {
+  const items = await loadItems()
+  const why = (id, cli) => items.find((i) => i.id === id).unsupported[cli].key
+  // superpowers: 상류가 하니스별 설치로 지원하는 CLI / 경로 없는 CLI
+  assert.equal(why('plugin.superpowers', 'codex'), 'item.unsupported.superpowersSeparate')
+  assert.equal(why('plugin.superpowers', 'kiro'), 'item.unsupported.upstreamNone')
+  // bkit: Codex·Gemini는 별도 배포판
+  assert.equal(why('plugin.bkit', 'codex'), 'item.unsupported.bkitPort')
+  assert.equal(why('plugin.bkit', 'gemini'), 'item.unsupported.bkitPort')
+  assert.equal(why('plugin.bkit', 'opencode'), 'item.unsupported.upstreamNone')
+  // impeccable: 상류가 지원하는 CLI는 Junction 파괴가 미배선 사유
+  assert.equal(why('plugin.impeccable', 'grok'), 'item.unsupported.impeccableJunction')
+  assert.equal(why('plugin.impeccable', 'kilo'), 'item.unsupported.upstreamNone')
+  // gstack: setup --host 대상만 상류 지원
+  assert.equal(why('skill.gstack', 'codex'), 'item.unsupported.gstackHost')
+  assert.equal(why('skill.gstack', 'gemini'), 'item.unsupported.upstreamNone')
+  // GSD: 런타임 플래그 지원 + gemini는 Antigravity 승계
+  assert.equal(why('skill.gsd', 'codex'), 'item.unsupported.gsdFlag')
+  assert.equal(why('skill.gsd', 'gemini'), 'item.unsupported.gsdGemini')
+  assert.equal(why('skill.gsd', 'kiro'), 'item.unsupported.upstreamNone')
+})
+
 test('unsupported 사유는 구조화 메시지다', async () => {
   const t = createT('en')
   for (const item of await loadItems()) {

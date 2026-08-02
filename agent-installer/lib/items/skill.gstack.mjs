@@ -1,15 +1,29 @@
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineSkill } from '../catalog.mjs'
+import { CLI_IDS } from '../clis.mjs'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
-import { LocalizedError } from '../i18n/index.mjs'
+import { LocalizedError, msg } from '../i18n/index.mjs'
 
 const REL_DIR = '.claude/skills/gstack'
+
+// 상류 setup은 --host codex·kiro·opencode(와 factory)도 지원하지만 이 항목은
+// 인자 없이 실행하며 setup의 기본값이 claude 단독이다. README 표에 있는
+// --host cursor·slate는 setup의 case 문이 거부해 exit 1로 죽는다 —
+// 확장한다면 안전한 값은 claude·codex·kiro·factory·opencode·auto뿐이다
+// (2026-08-02 검증).
+const HOSTS = ['codex', 'kiro', 'opencode']
 
 export default defineSkill({
   id: 'skill.gstack', label: 'gstack', group: '__flow', scope: 'project',
   note: 'item.skill.gstack.note',
+  unsupported: Object.fromEntries(
+    CLI_IDS.filter((c) => c !== 'claude').map((c) => [
+      c,
+      HOSTS.includes(c) ? msg('item.unsupported.gstackHost') : msg('item.unsupported.upstreamNone'),
+    ]),
+  ),
   async detect({ root }) {
     return { status: existsSync(repoPath(root, REL_DIR)) ? 'installed' : 'absent' }
   },

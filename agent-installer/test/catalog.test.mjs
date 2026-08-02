@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { defineMcp, makeExec, shellQuote } from '../lib/catalog.mjs'
+import { defineMcp, definePlugin, defineSkill, makeExec, shellQuote } from '../lib/catalog.mjs'
 import { CLIS, CLI_IDS } from '../lib/clis.mjs'
-import { createT, toText } from '../lib/i18n/index.mjs'
+import { createT, msg, toText } from '../lib/i18n/index.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 const CATALOG_URL = pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'catalog.mjs')).href
@@ -17,6 +17,24 @@ test('defineMcp: supports에서 빠진 CLI에 사유가 없으면 throw한다', 
     () => defineMcp({ id: 'mcp.x', label: 'X', server: { kind: 'http', url: 'https://x' }, supports: ['claude'] }),
     (err) => err.key === 'error.itemReasonMissing',
   )
+})
+
+test('definePlugin·defineSkill: 항목별 사유가 기본 사유를 덮고 나머지는 기본으로 남는다', () => {
+  const plugin = definePlugin({
+    id: 'plugin.t', label: 'T', installId: 't@t', detectIds: ['t@t'],
+    unsupported: { codex: msg('item.unsupported.upstreamNone') },
+  })
+  assert.equal(plugin.unsupported.codex.key, 'item.unsupported.upstreamNone')
+  assert.equal(plugin.unsupported.gemini.key, 'item.unsupported.claudePlugin')
+  assert.ok(!('claude' in plugin.unsupported))
+
+  const skill = defineSkill({
+    id: 'skill.t', label: 'T', scope: 'project',
+    detect: async () => ({ status: 'absent' }), install: async () => {}, uninstall: async () => {},
+    unsupported: { kiro: msg('item.unsupported.upstreamNone') },
+  })
+  assert.equal(skill.unsupported.kiro.key, 'item.unsupported.upstreamNone')
+  assert.equal(skill.unsupported.grok.key, 'item.unsupported.claudeSkill')
 })
 
 test('defineMcp detect: 지원 CLI 전부 등록 시 installed, 일부면 partial', async () => {
