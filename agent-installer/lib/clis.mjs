@@ -8,6 +8,9 @@ import { hasSection, appendSection, removeSection } from './tomlfile.mjs'
 // Junction일 때 MCP 등록 한 번으로 글로벌 설정이 생성·수정되는 것을 막는다.
 function jsonAdapter(relFile, topKey, toEntry) {
   return {
+    // 경로를 밖으로 낸다 — 상세 패널이 "이 항목이 어디에 쓰이나"를 보여 준다.
+    // 어댑터가 실제로 쓰는 값과 같은 변수라 두 곳이 갈릴 수 없다.
+    file: relFile,
     has(root, name) {
       const data = readJson(repoPath(root, relFile))
       return getIn(data, [topKey, name]) !== undefined
@@ -29,6 +32,16 @@ function tomlLines(server) {
   ]
 }
 
+// codex·grok은 TOML을 쓴다. jsonAdapter와 같은 이유로 경로를 한 번만 적는다.
+function tomlAdapter(file) {
+  return {
+    file,
+    has: (root, name) => hasSection(repoPath(root, file), name),
+    add: (root, name, s) => appendSection(repoPathStrict(root, file), name, tomlLines(s)),
+    remove: (root, name) => removeSection(repoPathStrict(root, file), name),
+  }
+}
+
 export const CLIS = {
   claude: {
     label: 'Claude Code',
@@ -39,9 +52,7 @@ export const CLIS = {
   },
   codex: {
     label: 'Codex',
-    has: (root, name) => hasSection(repoPath(root, '.codex/config.toml'), name),
-    add: (root, name, s) => appendSection(repoPathStrict(root, '.codex/config.toml'), name, tomlLines(s)),
-    remove: (root, name) => removeSection(repoPathStrict(root, '.codex/config.toml'), name),
+    ...tomlAdapter('.codex/config.toml'),
   },
   gemini: {
     label: 'Gemini CLI',
@@ -76,9 +87,7 @@ export const CLIS = {
   },
   grok: {
     label: 'Grok Build',
-    has: (root, name) => hasSection(repoPath(root, '.grok/config.toml'), name),
-    add: (root, name, s) => appendSection(repoPathStrict(root, '.grok/config.toml'), name, tomlLines(s)),
-    remove: (root, name) => removeSection(repoPathStrict(root, '.grok/config.toml'), name),
+    ...tomlAdapter('.grok/config.toml'),
   },
   copilot: {
     label: 'GitHub Copilot CLI',
