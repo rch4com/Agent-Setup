@@ -97,3 +97,13 @@ test('액션 행도 그린다', () => {
   assert.match(text, /부트스트랩 실행/)
   assert.match(text, /지침/)
 })
+
+// 반환 줄 수가 height를 넘으면 패널 밖으로 한 줄이 새어 나간다.
+// height=1은 안내줄 하나만 들어가는 경계다.
+test('반환 줄 수는 어떤 height에서도 height를 넘지 않는다', () => {
+  for (const height of [1, 2, 3, 4, 8]) {
+    const lines = detailLines(PONYTAIL, { width: 40, height, t: T })
+    assert.ok(lines.length <= height, `height=${height}인데 ${lines.length}줄`)
+  }
+  assert.equal(detailLines(PONYTAIL, { width: 40, height: 1, t: T }).length, 1)
+})

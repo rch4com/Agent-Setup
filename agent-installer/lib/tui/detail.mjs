@@ -47,7 +47,9 @@ function wiredLines(item, w, lead, t) {
   return supports.map((cli, i) => {
     const head = i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)
     const file = showFile && CLIS[cli]?.file ? `  ${CLIS[cli].file}` : ''
-    return cut(`${head}✔ ${pad(cli, nameWidth)}${file}`, w)
+    // 이름 뒤에 열이 없으면 맞출 대상도 없다 — 경로가 붙는 mcp에서만 이름을 편다.
+    const name = showFile ? pad(cli, nameWidth) : cli
+    return cut(`${head}✔ ${name}${file}`, w)
   })
 }
 
@@ -103,6 +105,10 @@ export function detailLines(row, { width: columns = 80, height = 8, t = createT(
 
   if (lines.length <= height) return lines
   // 넘치면 조용히 자르지 않는다 — 남은 줄 수와 펼치는 길을 함께 알린다.
-  const room = Math.max(1, height - 1)
-  return [...lines.slice(0, room), cut(t('detail.more', { count: lines.length - room }), w)]
+  // 안내줄이 한 줄을 차지하므로 본문은 height - 1줄만 쓴다. height===1이면
+  // 그 한 줄조차 없어 안내줄 하나가 전부를 대신하고, 그때는 "한 줄 빼고 남은
+  // 수"가 아니라 "전부"를 세어야 거짓말이 되지 않는다.
+  const room = height - 1
+  const marker = cut(t('detail.more', { count: lines.length - Math.max(0, room) }), w)
+  return room <= 0 ? [marker] : [...lines.slice(0, room), marker]
 }
