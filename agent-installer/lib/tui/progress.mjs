@@ -3,7 +3,7 @@
 // 시각을 인자로 받는 것이 핵심이다. 모듈 안에서 Date.now()를 부르면 테스트가
 // 실제 시간에 묶여 "14초 경과"를 검증할 방법이 없다.
 import { createT } from '../i18n/index.mjs'
-import { cut, pad, width } from '../width.mjs'
+import { cut, labelWidth, pad, width } from '../width.mjs'
 
 const ESC = String.fromCharCode(27)
 const DIM = `${ESC}[2m`
@@ -98,7 +98,7 @@ export function progressLines(progress, opts = {}) {
   lines.push(cut(`${bar(done, progress.total, Math.max(0, w - width(meta)))}${meta}`, w))
   lines.push('')
 
-  const actionWidth = Math.max(...['install', 'complete', 'uninstall'].map((a) => width(t(`change.${a}`))))
+  const actionWidth = labelWidth(t, ['change.install', 'change.complete', 'change.uninstall'])
   const body = Math.max(1, height - lines.length - 2)
 
   // 지면이 모자라면 **완료된 것부터** 접는다. 지금 무엇이 도는지가 가장 알고
