@@ -23,9 +23,14 @@ const ROWS = [row('mcp.a', 'Alpha', ['claude']), row('mcp.b', 'Bravo', ['claude'
 test('패널 높이는 커서 위치와 무관하다', () => {
   const a = createState(ROWS)
   const b = move(a, 1)
+  // Alpha와 Bravo는 지원 CLI 수가 달라 상세 길이가 다르다. 그런데도 패널이
+  // 시작하는 자리는 같아야 한다. 총 줄 수만 비교하면 소용이 없다 —
+  // body + panel은 언제나 room이라, 배분이 내용에 따라 흔들려도 합은 보존된다.
+  const sep = (s) => render(s, { width: 80, height: 30, t: T }).findIndex((l) => l.startsWith('─'))
+  assert.ok(sep(a) > 0, '구분선을 찾지 못하면 이 테스트는 아무것도 지키지 못한다')
+  assert.equal(sep(a), sep(b), '커서를 옮기면 목록이 출렁인다')
   const at = (s) => render(s, { width: 80, height: 30, t: T }).length
   assert.equal(at(a), at(b))
-  assert.equal(panelHeight(30), panelHeight(30))
 })
 
 test('지면이 넉넉하면 목록과 패널이 화면을 나눠 갖는다', () => {
