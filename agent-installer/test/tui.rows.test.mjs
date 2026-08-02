@@ -1,8 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  buildRows, buildActions, agentHint, designHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
+  buildRows, buildActions, agentHint, designHint, agentShortHint, designShortHint, installedIds, SECTION_ORDER, ACTION_SECTION, CATCH_ALL_CATEGORY,
 } from '../lib/tui/rows.mjs'
+import { unsupportedGroups } from '../lib/tui/detail.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
 import { CLI_IDS } from '../lib/clis.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
@@ -379,4 +380,55 @@ test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async
   assert.equal(cap.text().includes('[작업]'), true)
   assert.equal(cap.text().includes('부트스트랩 실행'), true)
   assert.equal(cap.text().includes('--list'), true)
+})
+
+// ── 사유 그룹 분리와 짧은 힌트 ────────────────────────────────────
+
+const PONYTAIL = {
+  id: 'plugin.ponytail', category: 'plugin', label: 'Ponytail', scope: 'project',
+  supports: ['claude', 'opencode'],
+  unsupported: {
+    codex: msg('item.unsupported.ponytailUser'),
+    gemini: msg('item.unsupported.ponytailUser'),
+    kilo: msg('item.unsupported.ponytailRules'),
+  },
+}
+
+// 사유 하나가 CLI 여럿에 그대로 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"가
+// 묻힌다. 같은 사유끼리 묶어 갈래가 보이게 한다.
+test('미배선 사유를 같은 사유끼리 묶어 구조체로 돌려준다', () => {
+  const t = createT('en')
+  const groups = unsupportedGroups(PONYTAIL, t)
+  assert.equal(groups.length, 2)
+  assert.deepEqual(groups[0].clis, ['codex', 'gemini'])
+  assert.deepEqual(groups[1].clis, ['kilo'])
+  assert.equal(typeof groups[0].why, 'string')
+})
+
+test('미배선이 없으면 빈 배열이다', () => {
+  assert.deepEqual(unsupportedGroups({ unsupported: {} }, createT('en')), [])
+  assert.deepEqual(unsupportedGroups({}, createT('en')), [])
+})
+
+// 목록 행에서 잘릴 것을 없애는 것이 이번 변경의 핵심이다. 사유·note·detail은
+// 상세 패널로 옮기고 행에는 상태와 커버리지만 남긴다.
+test('짧은 힌트는 상태와 CLI 커버리지만 담는다', () => {
+  const t = createT('en')
+  const hint = agentShortHint(PONYTAIL, { item: PONYTAIL, status: 'installed' }, t)
+  assert.match(hint, /Installed/)
+  assert.match(hint, /CLI 2\/10/)
+  assert.doesNotMatch(hint, /upstream/)
+})
+
+test('긴 힌트는 그대로 남아 검색과 비대화형 목록이 쓴다', () => {
+  const t = createT('en')
+  const full = agentHint(PONYTAIL, { item: PONYTAIL, status: 'installed' }, t)
+  assert.match(full, /upstream/)
+})
+
+test('항목 행은 짧은 힌트와 긴 힌트를 함께 들고 긴 쪽으로 검색된다', () => {
+  const rows = buildRows({ agentStates: [{ item: PONYTAIL, status: 'installed' }] })
+  const row = rows.find((r) => r.id === 'plugin.ponytail')
+  assert.notEqual(row.hint, row.fullHint)
+  assert.ok(row.searchText.includes('agents.md'))
 })

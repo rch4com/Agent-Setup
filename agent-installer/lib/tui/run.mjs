@@ -50,7 +50,9 @@ function printPlain(rows, log, t = createT('en')) {
   for (const row of rows) {
     if (row.section !== section) { section = row.section; log(`[${t(`section.${section}`)}]`) }
     const mark = row.kind === 'action' ? '▶' : row.status === 'absent' ? ' ' : '×'
-    log(`  [${mark}] ${row.label}${row.hint ? ` — ${row.hint}` : ''}`)
+    // 화면 폭 제약이 없는 자리다 — 여기서는 긴 힌트가 낫다.
+    const hint = row.fullHint ?? row.hint
+    log(`  [${mark}] ${row.label}${hint ? ` — ${hint}` : ''}`)
   }
 }
 
