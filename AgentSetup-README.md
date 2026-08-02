@@ -216,6 +216,7 @@ npx @rch4com/agent-setup bootstrap --adopt
 | `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. `claude` 명령이 없으면 `.claude/settings.json`에 기록만 하고, 다음 Claude Code 실행 시 다운로드됩니다 |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
 | `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
+| `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — 저장소의 `.git/config`만 고칩니다(네트워크 없음). 전역·시스템 설정은 읽지도 쓰지도 않습니다 |
 | design.md | `raw.githubusercontent.com`에서 `DESIGN.md`를 내려받습니다(문서 파일이며 실행되지 않습니다). 동봉 번들에 있으면 네트워크를 쓰지 않습니다 |
 
 - 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.
@@ -338,12 +339,13 @@ kilo.jsonc
 
 ## 선택 항목 설치기 (agent-installer)
 
-플러그인·MCP·스킬·design.md를 체크박스로 골라 설치/제거하는 콘솔 도구입니다.
-체크하고 제출하면 설치되고, 다시 실행하면 실제 환경을 스캔해 설치된
+플러그인·MCP·스킬·저장소 설정·design.md를 체크박스로 골라 설치/제거하는 콘솔
+도구입니다. 체크하고 제출하면 설치되고, 다시 실행하면 실제 환경을 스캔해 설치된
 항목이 미리 체크되어 표시되며, 체크를 해제하면 제거됩니다.
 
 대화형 화면은 **검색칸 + 탭 목록**의 단일 리스트입니다. 작업·PLUGIN·MCP·
-SKILL·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출해 **일괄 적용**합니다.
+SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출해
+**일괄 적용**합니다.
 
 포커스는 **검색칸**과 **목록** 두 곳을 오갑니다 — 타이핑하면 자연스럽게 검색칸으로
 올라가고(입력 커서 `▌` 표시), `↓`를 누르면 목록으로 내려갑니다. 목록 맨 위에서
@@ -371,7 +373,13 @@ SKILL·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출해 **�
 
 - **항목마다 `CLI n/10`이 상태 바로 뒤에 붙습니다** — 그 항목이 지원 도구 10개
   가운데 몇 개에 실제로 배선되는지입니다. 전부 되는 항목도 `CLI 10/10`을
-  찍습니다 — 표시가 없는 것과 "전부 된다"는 뜻이 다르기 때문입니다.
+  찍습니다 — 표시가 없는 것과 "전부 된다"는 뜻이 다르기 때문입니다. CONFIG
+  탭의 항목은 CLI 배선이 아니라 저장소 규약이라 이 표시가 없고, CLI 필터에도
+  걸러지지 않습니다.
+- **한 파일을 두고 다투는 항목은 하나만 켜집니다** — 커밋 템플릿의 영어판·
+  한국어판이 그렇습니다. 하나를 켜면 형제가 자동으로 꺼지고(검색으로 가려져
+  있어도 꺼집니다), `Ctrl+A` 전체 선택도 묶음에서 하나만 켭니다. 이미 고른
+  판이 있으면 그 선택을 이깁니다.
 - **목록 아래 상세 패널이 커서 항목의 전문을 폅니다** — 어느 CLI에 실제로
   배선됐는지(MCP는 설정 파일 경로까지), 안 된 CLI는 무엇이고 왜인지(같은
   사유끼리 묶어서 `미배선 9곳: codex·gemini·… — 사유`처럼), 항목의 note·
@@ -448,6 +456,7 @@ node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 �
 | 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 10개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다 |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치. 상류는 `--codex`·`--antigravity` 등 18개 런타임을 지원하지만 이 항목은 `--claude`만 배선합니다 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리). 상류 setup은 `--host`로 Codex·Kiro·OpenCode도 지원하지만 이 항목은 기본값(Claude)으로만 실행합니다 |
+| 설정 | `config.gitmessage.en`, `config.gitmessage.ko` | 커밋 메시지 템플릿 `.gitmessage.txt`를 저장소 루트에 쓰고 `git config --local commit.template`이 그것을 가리키게 합니다. **영어판과 한국어판 중 하나만** 고를 수 있습니다 — 대상 파일이 하나라 둘을 함께 켜면 나중 것이 앞선 것을 덮어쓰기 때문입니다(TUI는 형제를 자동으로 끄고, `--set`에 둘 다 주면 오류로 거절합니다). 도구가 쓴 두 판 사이의 전환만 덮어쓰기로 보고, 손으로 쓴 템플릿이 이미 있으면 거절합니다 |
 
 ### 동작 원칙
 

@@ -1,6 +1,6 @@
 {
   "name": "@rch4com/agent-setup",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Repository-scoped bootstrap and optional-item installer for using multiple coding-agent CLIs in one repository | 여러 코딩 에이전트 CLI를 한 저장소에서 함께 쓰기 위한 저장소 범위 부트스트랩과 선택 항목 설치기",
   "keywords": [
     "agents-md",
