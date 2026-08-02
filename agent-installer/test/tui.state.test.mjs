@@ -209,3 +209,72 @@ test('replaceRows: 검색어와 활성 탭은 유지하고 선택은 새 설치 
   assert.equal(activeTab(s), 'design')
   assert.deepEqual([...s.selected], ['design.stripe'])
 })
+
+// ── CLI 필터 ──────────────────────────────────────────────────────
+
+import { setCliFilter, cycleCliFilter, matchesCli } from '../lib/tui/state.mjs'
+
+const CLI_ROWS = [
+  { kind: 'action', id: 'action.bootstrap', section: 'action', group: null, label: '부트스트랩', hint: '', status: 'absent', searchText: '부트스트랩' },
+  { kind: 'item', id: 'mcp.a', section: 'mcp', group: null, label: 'Alpha', hint: '', status: 'absent', searchText: 'alpha', item: { supports: ['claude'] } },
+  { kind: 'item', id: 'mcp.b', section: 'mcp', group: null, label: 'Bravo', hint: '', status: 'absent', searchText: 'bravo', item: { supports: ['claude', 'codex'] } },
+  { kind: 'item', id: 'design.x', section: 'design', group: 'Web', label: 'Xray', hint: '', status: 'absent', searchText: 'xray', item: { category: 'design' } },
+]
+
+const OPTIONS = [null, 'claude', 'codex']
+
+test('필터가 없으면 전부 보인다', () => {
+  const s = createState(CLI_ROWS)
+  assert.equal(s.cliFilter, null)
+  assert.equal(s.filtered.length, 1) // action 탭
+})
+
+test('필터는 그 CLI가 지원하는 항목만 남긴다', () => {
+  const s = setTab(setCliFilter(createState(CLI_ROWS), 'codex'), 1)
+  assert.deepEqual(s.filtered.map((r) => r.id), ['mcp.b'])
+})
+
+// 액션 행은 CLI 개념이 없고, design.md는 모든 CLI가 함께 읽는 문서다.
+// 둘 다 필터에서 사라지면 화면에서 길이 끊긴다.
+test('액션 행과 design 항목은 항상 통과한다', () => {
+  assert.equal(matchesCli(CLI_ROWS[0], 'codex'), true)
+  assert.equal(matchesCli(CLI_ROWS[3], 'codex'), true)
+  assert.equal(matchesCli(CLI_ROWS[1], 'codex'), false)
+})
+
+test('탭 개수도 필터를 반영한다', () => {
+  const s = setCliFilter(createState(CLI_ROWS), 'codex')
+  const mcp = tabCounts(s).find((c) => c.tab === 'mcp')
+  assert.equal(mcp.shown, 1)
+  assert.equal(mcp.total, 2)
+})
+
+test('필터는 앞뒤로 순환한다', () => {
+  let s = createState(CLI_ROWS)
+  s = cycleCliFilter(s, 1, OPTIONS)
+  assert.equal(s.cliFilter, 'claude')
+  s = cycleCliFilter(s, 1, OPTIONS)
+  assert.equal(s.cliFilter, 'codex')
+  s = cycleCliFilter(s, 1, OPTIONS)
+  assert.equal(s.cliFilter, null)
+  s = cycleCliFilter(s, -1, OPTIONS)
+  assert.equal(s.cliFilter, 'codex')
+})
+
+// setQuery와 같은 안전 규칙이다. 필터로 숨긴 설치본이 조용히 사라지면 안 된다.
+test('필터를 걸어도 선택은 그대로다', () => {
+  const s = createState(CLI_ROWS, { selectedIds: ['mcp.a', 'mcp.b'] })
+  const filtered = setCliFilter(s, 'codex')
+  assert.deepEqual([...filtered.selected].sort(), ['mcp.a', 'mcp.b'])
+})
+
+test('필터 중 전체 토글은 보이는 항목만 건드린다', () => {
+  const s = setTab(setCliFilter(createState(CLI_ROWS, { selectedIds: ['mcp.a', 'mcp.b'] }), 'codex'), 1)
+  const off = toggleVisible(s, false)
+  assert.deepEqual([...off.selected], ['mcp.a'])
+})
+
+test('행을 갈아끼워도 필터가 유지된다', () => {
+  const s = setCliFilter(createState(CLI_ROWS), 'codex')
+  assert.equal(replaceRows(s, CLI_ROWS, []).cliFilter, 'codex')
+})

@@ -17,7 +17,7 @@ export function tabsOf(rows) {
 // 어느 쪽이 포커스인지가 Space·타이핑의 뜻을 가른다 — 검색칸에서는 글자가
 // 검색어(스페이스 포함)로, 목록에서는 Space가 선택으로 동작한다.
 // 흔한 TUI의 두-존(zone) 모델이다.
-export function createState(rows, { selectedIds = [], query = '', tabIndex = 0, focus = 'list' } = {}) {
+export function createState(rows, { selectedIds = [], query = '', tabIndex = 0, focus = 'list', cliFilter = null } = {}) {
   const tabs = tabsOf(rows)
   const index = clamp(tabIndex, 0, Math.max(0, tabs.length - 1))
   return {
@@ -26,7 +26,8 @@ export function createState(rows, { selectedIds = [], query = '', tabIndex = 0, 
     tabIndex: index,
     focus,
     query,
-    filtered: visibleRows(rows, query, tabs[index]),
+    cliFilter,
+    filtered: visibleRows(rows, query, tabs[index], cliFilter),
     selected: new Set(selectedIds),
     cursor: 0,
     offset: 0,
@@ -47,20 +48,33 @@ export function filterRows(rows, query) {
   return rows.filter((row) => tokens.every((tok) => row.searchText.includes(tok)))
 }
 
-// 화면에 실제로 보이는 행 = 활성 탭 ∩ 검색 결과.
+// CLI 필터 통과 판정. 액션 행은 CLI 개념이 없고(설치가 아니라 실행이다),
+// design.md는 모든 CLI가 함께 읽는 문서라 supports를 갖지 않는다.
+// 둘을 걸러 내면 필터를 건 순간 화면에서 길이 끊긴다.
+export function matchesCli(row, cliFilter) {
+  if (!cliFilter) return true
+  if (row.kind !== 'item') return true
+  const supports = row.item?.supports
+  if (!supports) return true
+  return supports.includes(cliFilter)
+}
+
+// 화면에 실제로 보이는 행 = 활성 탭 ∩ 검색 결과 ∩ CLI 필터.
 // 검색은 탭 안으로 스코프하되, 다른 탭의 적중 수는 tabCounts로 함께 보여 준다 —
 // 그래야 "어느 탭에 있는지" 를 잃지 않으면서도 Tab 키가 늘 의미를 갖는다.
-function visibleRows(rows, query, tab) {
-  return filterRows(rows, query).filter((row) => row.section === tab)
+function visibleRows(rows, query, tab, cliFilter) {
+  return filterRows(rows, query).filter((row) => row.section === tab && matchesCli(row, cliFilter))
 }
 
 export function activeTab(state) {
   return state.tabs[state.tabIndex] ?? null
 }
 
-// 탭별 적중 수 — 검색 중에도 어느 탭에 결과가 있는지 한눈에 보이게 한다.
+// 탭별 적중 수 — 검색·필터 중에도 어느 탭에 결과가 있는지 한눈에 보이게 한다.
+// total은 필터를 타지 않는다: 분모가 함께 줄면 "이 탭에서 몇 개가 걸러졌나"를
+// 알 수 없다.
 export function tabCounts(state) {
-  const hits = filterRows(state.rows, state.query)
+  const hits = filterRows(state.rows, state.query).filter((r) => matchesCli(r, state.cliFilter))
   return state.tabs.map((tab) => ({
     tab,
     shown: hits.filter((r) => r.section === tab).length,
@@ -74,7 +88,7 @@ export function currentRow(state) {
 
 function refocus(state, patch) {
   const next = { ...state, ...patch }
-  return { ...next, filtered: visibleRows(next.rows, next.query, activeTab(next)), cursor: 0, offset: 0 }
+  return { ...next, filtered: visibleRows(next.rows, next.query, activeTab(next), next.cliFilter), cursor: 0, offset: 0 }
 }
 
 // 검색어를 바꾸면 커서는 첫 행으로 돌아간다.
@@ -96,6 +110,22 @@ export function setTab(state, index) {
   if (state.tabs.length === 0) return state
   const tabIndex = clamp(index, 0, state.tabs.length - 1)
   return tabIndex === state.tabIndex ? state : refocus(state, { tabIndex })
+}
+
+// 필터를 바꾸면 커서는 첫 행으로 돌아간다. selected는 절대 건드리지 않는다 —
+// setQuery와 같은 규칙이다. 화면 밖 설치본이 조용히 사라지지 않게 하는 핵심이다.
+export function setCliFilter(state, cliFilter) {
+  return cliFilter === state.cliFilter ? state : refocus(state, { cliFilter })
+}
+
+// 순환 대상은 [null, ...CLI_IDS]다. 이 모듈은 아무것도 import 하지 않으므로
+// 목록을 인자로 받는다 — 그 규칙이 이 파일을 순수하게 지켜 준다.
+export function cycleCliFilter(state, delta, options) {
+  if (!options || options.length === 0) return state
+  const at = options.indexOf(state.cliFilter ?? null)
+  const n = options.length
+  const next = options[((((at === -1 ? 0 : at) + delta) % n) + n) % n]
+  return setCliFilter(state, next ?? null)
 }
 
 // 양 끝에서 멈춘다(순환 없음) — 76개 목록에서 한 칸 지나쳤을 때 반대편으로 튀면 길을 잃는다.
@@ -134,7 +164,7 @@ export function toggleVisible(state, on) {
 export function replaceRows(state, rows, selectedIds) {
   const tabs = tabsOf(rows)
   const tabIndex = clamp(tabs.indexOf(activeTab(state)), 0, Math.max(0, tabs.length - 1))
-  const filtered = visibleRows(rows, state.query, tabs[tabIndex])
+  const filtered = visibleRows(rows, state.query, tabs[tabIndex], state.cliFilter)
   return {
     ...state,
     rows,
