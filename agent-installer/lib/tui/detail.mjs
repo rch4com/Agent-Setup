@@ -33,7 +33,11 @@ function leadWidth(t) {
 
 function headLine(row, w, t) {
   const item = row.item
-  const bits = [item.category, t(`detail.scope.${item.scope}`), t(`status.${row.status}`)]
+  // item.scope는 오늘 모든 항목 종류가 채운다 — 그래도 이 값 하나로 화면
+  // 전체가 죽을 수는 없다. t()는 모르는 키에 던지고(i18n/index.mjs) 이
+  // 함수는 render() 안에서 돈다 — 항목 하나의 결손이 패널 하나가 아니라
+  // TUI 전체를 끌고 내려간다.
+  const bits = [item.category, item.scope ? t(`detail.scope.${item.scope}`) : null, t(`status.${row.status}`)]
   return cut(`${item.label}   ${bits.filter(Boolean).join(' · ')}`, w)
 }
 

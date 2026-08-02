@@ -39,6 +39,17 @@ test('머리줄에 이름·종류·스코프·상태를 담는다', () => {
   assert.match(head, /설치됨/)
 })
 
+// 오늘은 모든 항목이 scope를 채우지만, 하나라도 빠지면 t()가 모르는 키에
+// 던진다(i18n/index.mjs) — headLine은 render() 안에서 돌아 그 예외가 패널
+// 하나가 아니라 TUI 전체를 끌고 내려간다. 던지지 않고 그 자리를 비우는지만 본다.
+test('scope가 없는 항목도 던지지 않고 머리줄을 그린다', () => {
+  const noScope = itemRow({ id: 'plugin.x', category: 'plugin', label: 'X', supports: [], unsupported: {} })
+  assert.doesNotThrow(() => detailLines(noScope, { width: 60, height: 20, t: T }))
+  const [head] = detailLines(noScope, { width: 60, height: 20, t: T })
+  assert.match(head, /X/)
+  assert.doesNotMatch(head, /undefined/)
+})
+
 test('배선된 CLI를 이름째 보여 준다', () => {
   const text = detailLines(PONYTAIL, { width: 60, height: 20, t: T }).join('\n')
   assert.match(text, /claude/)
