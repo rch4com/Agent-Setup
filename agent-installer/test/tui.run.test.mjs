@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { runTui } from '../lib/tui/run.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 import { readRecord } from '../lib/bootstrap/record.mjs'
@@ -92,7 +94,10 @@ test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적
     ...QUIT,
   ])
   assert.equal(screen.includes('제출 검토'), true, '검토 화면이 뜨지 않았다')
-  assert.equal(log.includes('설치 Supabase'), true)
+  // Task 11부터 성공한 항목은 로그에 나열되지 않는다 — 진행 화면이 대신
+  // 보여 준다(runApply의 onProgress). log는 실패 사연 전용으로 좁혀졌다.
+  assert.equal(screen.includes('Supabase MCP'), true, '진행 화면에 항목이 보이지 않았다')
+  assert.equal(log.includes('Supabase'), false, '성공한 항목은 log에 남지 않아야 한다')
 })
 
 // 이 UX의 핵심: 검색칸에서는 스페이스가 검색어로 들어가 두 단어 검색이 된다.
@@ -225,4 +230,68 @@ test('c와 d는 필터 키가 아니라 검색어로 들어간다', async () => 
 test('Ctrl+F가 CLI 필터를 돌린다', async () => {
   const { screen } = await drive([CTRL_F, ESC])
   assert.ok(screen.includes('CLI › claude'), '첫 순환은 claude여야 한다')
+})
+
+// ── 적용 중 진행 화면 (Task 11) ──────────────────────────────────
+
+// 적용 중에는 alt 화면을 떠나지 않는다. 예전에는 화면을 벗어나 로그를
+// 한꺼번에 찍었고, 그 사이 사용자는 아무것도 볼 수 없었다.
+// TAB으로 항목 탭에 들어가 하나 고르고, Enter(제출) → Enter(적용) →
+// 아무 키(계속) → ESC(종료).
+test('적용 중 화면이 진행 바를 그린다', async () => {
+  const { screen } = await drive([TAB, SPACE, ENTER, ENTER, ANY, ESC])
+  assert.ok(screen.includes('적용 중'), '진행 화면이 그려져야 한다')
+})
+
+// 이 테스트 하네스는 키를 전부 미리 큐에 밀어 넣는다(파일 상단 주석 참고).
+// 그래서 Ctrl+C는 apply()가 첫 항목을 시작하기도 전에 이미 큐에 앉아
+// 있고, shouldStop이 첫 항목 경계에서부터 이를 발견해 그 항목마저
+// 건너뛴다 — "이미 도는 항목은 끝까지 간다"는 engine.mjs(Task 9) 쪽
+// 계약이라 여기서는 검증하지 않는다. 이 테스트가 지키는 것은 배선이다:
+// hasAbort가 큐를 훔치지 않아 그 뒤의 "아무 키나" 대기가 여전히 키를
+// 받는다는 것, 건너뜀이 실패 사연으로도 종료 코드로도 새지 않는다는 것.
+test('적용 중 Ctrl+C는 건너뜀으로 남기고 실패로 취급하지 않는다', async () => {
+  const before = process.exitCode
+  try {
+    const { screen, log, result } = await drive([TAB, SPACE, ENTER, ENTER, CC, ANY, ...QUIT])
+
+    assert.ok(screen.includes('중단했습니다'), '중단 화면이 그려지지 않았다')
+    assert.equal(log.includes('✖'), false, '건너뜀이 실패 사연으로 나오면 안 된다')
+    assert.equal(process.exitCode, before, '사용자가 취소한 것을 실패로 세우면 안 된다')
+    // ANY가 "아무 키나" 대기에 도달했고 그 뒤 ESC로 정상 종료됐다 —
+    // hasAbort가 큐를 통째로 비우거나 다음 대기를 훔치지 않았다는 증거다.
+    assert.equal(result.interactive, true, '"아무 키나" 대기가 키를 받지 못하고 멈췄다')
+  } finally {
+    process.exitCode = before
+  }
+})
+
+// Ponytail은 opencode.jsonc의 plugin 키가 배열이 아니면 install()이
+// LocalizedError를 던진다(lib/items/plugin.ponytail.mjs) — dry-run에서도
+// 피할 수 없는 실제 실패 경로다. dry-run의 exec는 항상 성공만 돌려주므로
+// (lib/catalog.mjs makeExec) 이 항목 말고는 dry-run에서 apply()를 실패시킬
+// 방법이 없다.
+test('적용 실패는 화면 밖에서 사연을 보여 주고 종료 코드를 세운다', async () => {
+  const before = process.exitCode
+  try {
+    const root = makeTempRepo()
+    writeFileSync(join(root, 'opencode.jsonc'), JSON.stringify({ plugin: 'not-an-array' }))
+
+    const { screen, log, result } = await drive([
+      TAB, // 작업 탭 → PLUGIN 탭
+      ...type('ponytail'),
+      DOWN, SPACE,
+      ENTER, // 제출 → 검토
+      ENTER, // 적용
+      ANY, ...QUIT,
+    ], { root })
+
+    assert.ok(screen.includes('적용 중'), '진행 화면이 그려지지 않았다')
+    assert.ok(log.includes('✖'), '실패 사연이 화면 밖으로 나오지 않았다')
+    assert.ok(log.includes('plugin 키가 배열이 아닙니다'), `실패 메시지가 로그에 없다: ${log}`)
+    assert.equal(process.exitCode, 1, '실패는 종료 코드를 세워야 한다')
+    assert.equal(result.interactive, true)
+  } finally {
+    process.exitCode = before
+  }
 })

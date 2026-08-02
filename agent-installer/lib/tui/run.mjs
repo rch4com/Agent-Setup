@@ -13,6 +13,7 @@ import {
   cycleCliFilter,
 } from './state.mjs'
 import { render, renderReview, bodyHeight } from './render.mjs'
+import { createProgress, applyEvent, progressLines } from './progress.mjs'
 
 const ESC = String.fromCharCode(27)
 const HIDE_CURSOR = `${ESC}[?25l`
@@ -36,6 +37,16 @@ function keyReader(stdin) {
   stdin.on('keypress', onKey)
   return {
     next: () => (queue.length > 0 ? Promise.resolve(queue.shift()) : new Promise((r) => { waiting = r })),
+    // 적용 중 중단 감시용. 큐를 **소비하지 않고** Ctrl+C만 들여다본다.
+    // next()로 기다리는 두 번째 소비자를 두면 적용이 끝난 뒤 눌린 키가
+    // 그 대기로 흘러 사라지고, 본 루프의 "아무 키나" 대기가 멈춘다.
+    // Ctrl+C가 있을 때만 거기까지를 버린다.
+    hasAbort: () => {
+      const at = queue.findIndex((k) => k.ctrl && k.name === 'c')
+      if (at === -1) return false
+      queue.splice(0, at + 1)
+      return true
+    },
     stop: () => stdin.off('keypress', onKey),
   }
 }
@@ -189,6 +200,51 @@ export async function runTui(root, opts = {}) {
     }
   }
 
+  // 적용 중에는 alt 화면을 떠나지 않는다. exec가 비동기가 된 덕에 이벤트
+  // 루프가 살아 있어, 100ms 타이머가 경과 시간을 실제로 흘려 준다.
+  const runApply = async (changes) => {
+    let progress = { ...createProgress(changes), startedAt: Date.now() }
+    let stopRequested = false
+
+    // 중단 요청은 큐를 엿봐서 안다. 한 번 서면 되돌리지 않는다.
+    const checkAbort = () => {
+      if (!stopRequested && keys.hasAbort()) stopRequested = true
+      return stopRequested
+    }
+    const drawProgress = () => draw(progressLines(progress, {
+      width: stdout.columns ?? 80, height: stdout.rows ?? 24, color, dryRun, now: Date.now(), t,
+    }))
+
+    drawProgress()
+    const timer = setInterval(() => { checkAbort(); drawProgress() }, 100)
+    // 타이머가 프로세스를 붙잡지 않게 한다 — 화면 갱신은 종료를 미룰 이유가 없다.
+    timer.unref?.()
+
+    try {
+      const results = await apply(root, changes, {
+        dryRun,
+        log: () => {}, // 로그는 진행 화면이 대신한다
+        t,
+        shouldStop: checkAbort,
+        onProgress: (event) => {
+          progress = applyEvent(progress, event, Date.now())
+          drawProgress()
+        },
+      })
+      // 건너뛴 항목을 화면에도 반영하고 마지막 상태를 한 번 더 그린다.
+      // aborted는 apply()가 끝난 뒤에만 세운다 — 도중에 세우면 실행 중 항목이
+      // aborted:true와 공존해, progressLines의 pending→skipped 겹쳐 보기가
+      // 아직 끝나지 않은 항목까지 건너뛴 것으로 잘못 그린다.
+      const entries = progress.entries.map((e, i) => (results[i]?.skipped ? { ...e, state: 'skipped' } : e))
+      progress = { ...progress, entries, aborted: stopRequested }
+      drawProgress()
+      if (results.some((r) => !r.ok && !r.skipped)) process.exitCode = 1
+      return results
+    } finally {
+      clearInterval(timer)
+    }
+  }
+
   try {
     for (;;) {
       paint()
@@ -285,15 +341,21 @@ export async function runTui(root, opts = {}) {
         if (verdict === 'quit') break
         if (verdict === 'cancel') { status = t('tui.submitCancelled'); continue }
 
+        const results = await runApply(changes)
+
+        // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
+        // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 건너뜀은 실패가
+        // 아니다 — 진행 화면에 이미 나타났고, 다시 여기 나열하면 사용자가
+        // 스스로 취소한 일을 실패처럼 읽게 된다.
+        const notable = results.filter((r) => !r.ok && !r.skipped)
         await suspend(async () => {
-          log(`\n${t('tui.applyHeader', { count: changes.length, suffix: dryRun ? ' (dry-run)' : '' })}`)
-          for (const c of changes) log(`  ${t(`change.${c.action}`)} ${c.item.label}`)
-          const results = await apply(root, changes, { dryRun, log, t })
-          for (const r of results) {
-            const message = toText(t, r.message)
-            log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+          if (notable.length > 0) {
+            log('')
+            for (const r of notable) {
+              const message = toText(t, r.message)
+              log(`  ✖ ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+            }
           }
-          if (results.some((r) => !r.ok)) process.exitCode = 1
           log(`\n${t('apply.seeGitDiff')}`)
           await pause()
         })
