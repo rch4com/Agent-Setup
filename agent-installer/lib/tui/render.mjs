@@ -45,6 +45,14 @@ export function bodyHeight(height, expanded = false) {
   return panel === 0 ? Math.max(3, room) : room - panel
 }
 
+// 제출 검토 화면(renderReview) 전용 — 거긴 패널을 그리지 않는다. bodyHeight를
+// 그대로 재사용하면 그리지도 않는 패널 몫을 미리 떼어 두게 되고, 적용 직전
+// 마지막 확인 화면이 화면에 여유가 남았는데도 변경 목록을 이유 없이 잘라
+// "…외 N건"으로 감춘다. 그래서 패널을 도입하기 전의 옛 산식을 그대로 쓴다.
+export function reviewBodyHeight(height) {
+  return Math.max(3, height - CHROME)
+}
+
 const MARK = { action: '▶', on: '×', off: ' ' }
 
 function checkbox(row, selected) {
@@ -178,7 +186,7 @@ export function renderReview(changes, opts = {}) {
   const title = `${t('tui.review.title', { count: changes.length })}${dryRun ? ' (dry-run)' : ''}`
   const lines = [color ? `${BOLD}${cut(title, w)}${RESET}` : cut(title, w), '']
 
-  const body = bodyHeight(height)
+  const body = reviewBodyHeight(height)
   const room = Math.max(1, body - 1)
   const shown = changes.slice(0, room)
   for (const c of shown) {

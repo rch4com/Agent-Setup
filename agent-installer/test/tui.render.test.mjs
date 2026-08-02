@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { render, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
+import { render, renderReview, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
 import { createState, move } from '../lib/tui/state.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 import { width } from '../lib/width.mjs'
@@ -60,4 +60,15 @@ test('커서 항목의 상세가 화면에 담긴다', () => {
 test('고를 항목이 없으면 안내를 낸다', () => {
   const text = render(createState([]), { width: 60, height: 30, t: T }).join('\n')
   assert.match(text, /커서를 항목 위에/)
+})
+
+// 제출 검토 화면에는 패널이 없다. 목록 화면의 패널 자리를 여기서도 떼면
+// 적용 직전 마지막 확인 화면이 이유 없이 변경을 감춘다.
+test('제출 검토는 패널 자리를 빼앗기지 않는다', () => {
+  const changes = Array.from({ length: 12 }, (_, n) => ({
+    action: 'install', item: { label: `Item${n}`, supports: ['claude'] },
+  }))
+  const text = renderReview(changes, { width: 60, height: 24, t: T }).join('\n')
+  assert.ok(text.includes('Item11'), '24줄 터미널이면 12건이 다 보여야 한다')
+  assert.ok(!text.includes('…외'), '자를 이유가 없다')
 })

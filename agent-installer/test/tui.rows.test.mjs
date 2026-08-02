@@ -7,7 +7,7 @@ import { unsupportedGroups } from '../lib/tui/detail.mjs'
 import { BUNDLE_CATEGORY } from '../lib/design-md/scan.mjs'
 import { CLI_IDS } from '../lib/clis.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
-import { render, renderReview, cut, width, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
+import { render, renderReview, cut, width, bodyHeight, panelHeight, reviewBodyHeight } from '../lib/tui/render.mjs'
 import { createState, setQuery, setTab, setFocus } from '../lib/tui/state.mjs'
 import { runTui } from '../lib/tui/run.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
@@ -345,7 +345,8 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
   assert.ok(text.includes('설치') && text.includes('Supabase'))
   assert.ok(text.includes('제거') && text.includes('Stripe'))
   assert.ok(text.includes('Enter 적용') && text.includes('Esc 취소'))
-  assert.equal(lines.length, bodyHeight(24) + 4)
+  // renderReview는 패널을 그리지 않으므로 bodyHeight가 아니라 reviewBodyHeight로 예산을 잰다.
+  assert.equal(lines.length, reviewBodyHeight(24) + 4)
 })
 
 // 적용 직전 마지막 화면이다. 목록에서 커버리지를 지나쳤더라도 여기서 한 번 더
@@ -365,7 +366,7 @@ test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 
   const many = Array.from({ length: 50 }, (_, i) => ({ action: 'install', item: { label: `항목${i}` } }))
   const lines = renderReview(many, { width: 80, height: 12, t: createT('ko') })
   assert.ok(lines.join('\n').includes('…외'), '남은 건수 안내 없음')
-  assert.equal(lines.length, bodyHeight(12) + 4)
+  assert.equal(lines.length, reviewBodyHeight(12) + 4)
   for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
 })
 
