@@ -37,7 +37,7 @@ test('세 갈래가 하나의 배열로 합쳐지고 섹션 순서가 고정된�
 })
 
 test('섹션은 표시 문자열이 아니라 id다', () => {
-  assert.deepEqual(SECTION_ORDER, ['action', 'plugin', 'mcp', 'skill', 'design'])
+  assert.deepEqual(SECTION_ORDER, ['action', 'plugin', 'mcp', 'skill', 'config', 'design'])
   assert.equal(ACTION_SECTION, 'action')
 })
 

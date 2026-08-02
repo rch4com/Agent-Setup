@@ -51,7 +51,7 @@ async function openTui(root, { dryRun, skillMode, designDirs, t, localeForced })
 // --list / --set 전용 비대화형 경로.
 async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const { loadItems } = await withDeps(() => import('./lib/catalog.mjs'), t)
-  const { scan, planChanges, apply } = await withDeps(() => import('./lib/engine.mjs'), t)
+  const { scan, planChanges, apply, assertExclusive } = await withDeps(() => import('./lib/engine.mjs'), t)
   const { plainLine } = await withDeps(() => import('./lib/tui/progress.mjs'), t)
   const items = await loadItems()
   const states = await scan(root, items)
@@ -68,6 +68,7 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const selectedIds = new Set(setArg.split(',').map((s) => s.trim()).filter(Boolean))
   const known = new Set(items.map((i) => i.id))
   for (const id of selectedIds) if (!known.has(id)) throw new LocalizedError('error.unknownItem', { id })
+  assertExclusive(items, selectedIds)
 
   const changes = planChanges(states, selectedIds)
   if (changes.length === 0) { console.log(t('apply.noChanges')); return }

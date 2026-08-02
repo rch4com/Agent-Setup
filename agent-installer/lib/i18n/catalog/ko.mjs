@@ -254,6 +254,15 @@ export default {
   'item.skill.karpathy.note': '과설계와 모호한 완료 기준을 줄이는 행동 지침',
   'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치. 상류는 Codex·Antigravity 등 18개 런타임을 지원합니다(이 항목은 --claude)',
+  // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — en.mjs 쪽 주석 참고.
+  'item.config.gitmessage.en.note': '.gitmessage.txt를 영어판으로 쓰고 git commit.template이 그것을 가리키게 합니다. 저장소의 모든 도구와 사람이 함께 쓰는 한 벌이라 영어·한국어 중 하나만 고릅니다',
+  'item.config.gitmessage.ko.note': '.gitmessage.txt를 한국어판으로 쓰고 git commit.template이 그것을 가리키게 합니다. 저장소의 모든 도구와 사람이 함께 쓰는 한 벌이라 영어·한국어 중 하나만 고릅니다',
+  'item.gitmessage.unregistered': '파일은 놓였지만 commit.template이 아직 가리키지 않습니다',
+  'log.gitmessage.write': '  [dry-run] {path} 생성',
+  'log.gitmessage.remove': '  [dry-run] {path} 제거',
+  'error.gitmessageForeign': '{path}가 이미 있고 이 도구가 쓴 내용이 아닙니다. 손으로 쓴 템플릿은 덮어쓰지 않습니다 — 먼저 옮기거나 지우세요.',
+  'error.gitmessageConfig': 'git config commit.template 실패: {output}',
+  'error.exclusiveItems': '같은 파일을 쓰는 항목이라 하나만 고를 수 있습니다: {ids}',
   'error.gstackClone': 'gstack clone 실패: {output}',
   'error.gstackSetup': 'gstack setup 실패: {output}',
   'error.gsdInstall': 'GSD 설치 실패: {output}',
@@ -270,6 +279,7 @@ export default {
   'section.plugin': 'PLUGIN',
   'section.mcp': 'MCP',
   'section.skill': 'SKILL',
+  'section.config': 'CONFIG',
   'section.design': 'DESIGN.MD',
 
   // TUI 목록·검토 화면 문구. en.mjs 쪽 주석 참고.

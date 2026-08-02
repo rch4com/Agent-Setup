@@ -135,13 +135,40 @@ export function move(state, delta) {
   return cursor === state.cursor ? state : { ...state, cursor }
 }
 
+// row.exclusive는 "이 항목들은 같은 파일 하나를 두고 다툰다"는 표시다
+// (.gitmessage.txt의 영어판·한국어판). 하나를 켜면 나머지는 꺼진다 — 둘을 함께
+// 고르면 나중에 적용된 쪽이 앞선 쪽을 조용히 덮어써, 화면의 체크 두 개가
+// 디스크의 한 파일을 가리키는 거짓말이 된다.
+//
+// 화면 밖(검색·CLI 필터로 가려진) 형제도 끈다. 보이는 것만 건드린다는 이
+// 모듈의 규칙에서 유일하게 벗어나는 자리인데, 여기서는 그래야 한다 —
+// 가려진 형제를 남겨 두면 사용자가 방금 명시적으로 고른 판이 적용 순서에
+// 따라 뒤집힐 수 있다.
+function dropSiblings(rows, selected, row) {
+  if (!row.exclusive) return
+  for (const other of rows) {
+    if (other.id !== row.id && other.exclusive === row.exclusive) selected.delete(other.id)
+  }
+}
+
+// 형제 중 하나라도 이미 켜져 있는가. 배타 묶음은 "전부 켜짐"이 불가능하므로
+// 전체 토글의 방향 판정도 이 기준으로 봐야 한다 — 아니면 Ctrl+A가 영원히
+// 켜기만 하고 끄지 못한다.
+function groupCovered(items, selected, row) {
+  return items.some((other) => other.exclusive === row.exclusive && selected.has(other.id))
+}
+
 // 커서가 항목 행일 때만 뒤집는다. 액션 행은 제거 개념이 없어 체크 대상이 아니다.
 export function toggle(state) {
   const row = currentRow(state)
   if (row?.kind !== 'item') return state
   const selected = new Set(state.selected)
-  if (selected.has(row.id)) selected.delete(row.id)
-  else selected.add(row.id)
+  if (selected.has(row.id)) {
+    selected.delete(row.id)
+  } else {
+    selected.add(row.id)
+    dropSiblings(state.rows, selected, row)
+  }
   return { ...state, selected }
 }
 
@@ -151,10 +178,14 @@ export function toggleVisible(state, on) {
   const items = state.filtered.filter((r) => r.kind === 'item')
   if (items.length === 0) return state
   const selected = new Set(state.selected)
-  const turnOn = on ?? !items.every((r) => selected.has(r.id))
+  const turnOn = on ?? !items.every((r) => selected.has(r.id) || (r.exclusive && groupCovered(items, selected, r)))
   for (const row of items) {
-    if (turnOn) selected.add(row.id)
-    else selected.delete(row.id)
+    if (!turnOn) { selected.delete(row.id); continue }
+    // 배타 묶음에서 이미 켜진 형제가 있으면 그 선택을 이긴다 — 전체 선택이
+    // 사용자가 고른 언어판을 목록 순서로 뒤집으면 안 된다.
+    if (row.exclusive && groupCovered(items, selected, row)) continue
+    selected.add(row.id)
+    dropSiblings(state.rows, selected, row)
   }
   return { ...state, selected }
 }

@@ -167,6 +167,51 @@ test('toggleVisible: 액션 행뿐인 탭에서는 아무 일도 하지 않는�
   assert.equal(toggleVisible(s).selected.size, 0)
 })
 
+// ── 배타 선택 ─────────────────────────────────────────────────────
+//
+// .gitmessage.txt의 두 언어판처럼 한 파일을 두고 다투는 항목들이다.
+// 둘이 함께 켜지면 화면의 체크 두 개가 디스크의 한 파일을 가리키는 거짓말이 된다.
+const exclusiveItem = (id, label) => ({ ...item(id, 'config', label), exclusive: 'gitmessage' })
+const X_ROWS = [
+  action('action.bootstrap', '부트스트랩 실행'),
+  exclusiveItem('config.gitmessage.en', 'Commit template (EN)'),
+  exclusiveItem('config.gitmessage.ko', 'Commit template (KO)'),
+  item('config.other', 'config', '다른 설정'),
+]
+const onConfig = (s) => setTab(s, 1)
+
+test('배타 항목을 켜면 형제가 꺼진다 — 한 파일에 두 판이 겹치지 않는다', () => {
+  let s = onConfig(createState(X_ROWS, { selectedIds: ['config.gitmessage.en'] }))
+  s = move(s, 1) // ko
+  s = toggle(s)
+  assert.deepEqual([...s.selected], ['config.gitmessage.ko'])
+  // 되돌려도 형제가 저절로 켜지지는 않는다 — 아무것도 안 고른 상태가 있어야 제거가 된다.
+  s = move(s, -1)
+  s = toggle(s)
+  assert.deepEqual([...s.selected], ['config.gitmessage.en'])
+})
+
+test('배타 형제는 화면 밖에 있어도 꺼진다', () => {
+  let s = onConfig(createState(X_ROWS, { selectedIds: ['config.gitmessage.en'] }))
+  s = setQuery(s, '(ko)') // en은 걸러져 화면 밖이다
+  assert.deepEqual(s.filtered.map((r) => r.id), ['config.gitmessage.ko'])
+  s = toggle(s)
+  assert.deepEqual([...s.selected], ['config.gitmessage.ko'])
+})
+
+test('전체 선택은 배타 묶음에서 하나만 켠다', () => {
+  let s = toggleVisible(onConfig(createState(X_ROWS)))
+  assert.deepEqual([...s.selected].sort(), ['config.gitmessage.en', 'config.other'])
+  // 배타 묶음은 "전부 켜짐"이 될 수 없다 — 그래도 두 번째 Ctrl+A는 꺼야 한다.
+  s = toggleVisible(s)
+  assert.deepEqual([...s.selected], [])
+})
+
+test('전체 선택은 이미 고른 언어판을 뒤집지 않는다', () => {
+  const s = toggleVisible(onConfig(createState(X_ROWS, { selectedIds: ['config.gitmessage.ko'] })))
+  assert.deepEqual([...s.selected].sort(), ['config.gitmessage.ko', 'config.other'])
+})
+
 test('검색어를 바꾸면 커서가 첫 행으로 돌아간다', () => {
   let s = move(onDesign(createState(ROWS)), 2)
   assert.equal(s.cursor, 2)

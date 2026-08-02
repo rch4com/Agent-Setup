@@ -93,10 +93,10 @@ test('영어 비대화형 목록 출력의 UI 문구가 영어로 나온다', ()
   const r = runInstaller(root, [], { env: EN })
   assert.equal(r.status, 0, r.stderr)
 
-  // 섹션 헤더 다섯 개 전부. PLUGIN·MCP·SKILL·DESIGN.MD는 두 로케일 값이 같아서
+  // 섹션 헤더 여섯 개 전부. PLUGIN·MCP·SKILL·CONFIG·DESIGN.MD는 두 로케일 값이 같아서
   // 아래 한국어 부재 검사로는 raw id(`[mcp]`) 유출조차 잡히지 않는다 — 긍정
   // 단언으로만 잡힌다.
-  for (const header of ['[ACTION]', '[PLUGIN]', '[MCP]', '[SKILL]', '[DESIGN.MD]']) {
+  for (const header of ['[ACTION]', '[PLUGIN]', '[MCP]', '[SKILL]', '[CONFIG]', '[DESIGN.MD]']) {
     assert.ok(r.stdout.includes(header), `섹션 헤더 없음: ${header}`)
   }
 

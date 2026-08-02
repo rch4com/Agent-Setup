@@ -61,9 +61,9 @@ const CC = { name: 'c', ctrl: true }
 const ANY = { str: 'x', name: 'x' } // "계속하려면 아무 키나"
 // 검색칸+검색어 상태에서도 확실히 빠져나오도록 세 번: 검색어 지우기 → 목록으로 → 종료.
 const QUIT = [ESC, ESC, ESC]
-// 작업 → PLUGIN → MCP. 탭 순서는 SECTION_ORDER가 고정한다.
+// 작업 → PLUGIN → MCP → SKILL → CONFIG → DESIGN.MD. 탭 순서는 SECTION_ORDER가 고정한다.
 const TO_MCP = [TAB, TAB]
-const TO_DESIGN = [TAB, TAB, TAB, TAB]
+const TO_DESIGN = [TAB, TAB, TAB, TAB, TAB]
 
 test('Ctrl+C는 즉시 빠져나온다', async () => {
   const { result } = await drive([CC])

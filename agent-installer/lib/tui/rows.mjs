@@ -20,7 +20,7 @@ export const ACTION_SECTION = 'action'
 // design-md/scan.mjs의 BUNDLE_CATEGORY와 같은 값이다 — 카테고리를 못 얻은
 // 항목이 모이는 자리. 두 값이 갈리면 같은 그룹이 두 개로 쪼개진다.
 export const CATCH_ALL_CATEGORY = '__other'
-export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'design']
+export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config', 'design']
 
 // 탭 안쪽 소분류는 **성격**으로 가른다 — 같은 탭에 "무엇으로 설치되는가"가 같고
 // "무엇을 해 주는가"가 다른 항목이 섞여 있어서, 기구(plugin·mcp·skill)만으로는
@@ -123,6 +123,10 @@ function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = nul
     id,
     section,
     group,
+    // 같은 파일을 두고 다투는 항목들의 묶음 이름(.gitmessage.txt의 두 언어판).
+    // 선택 배타는 state.mjs가 이 값만 보고 처리한다 — 순수 리듀서가 항목의
+    // 속내를 몰라도 되게 행에 미리 올려 둔다.
+    exclusive: item?.exclusive ?? null,
     label,
     hint,
     // 화면에 안 찍히는 긴 힌트. 비대화형 목록(printPlain)과 검색이 쓴다 —
@@ -142,6 +146,7 @@ function actionRow({ id, label, hint, run = null, t = createT('en') }) {
     id,
     section: ACTION_SECTION,
     group: null,
+    exclusive: null,
     label,
     hint,
     fullHint: hint,

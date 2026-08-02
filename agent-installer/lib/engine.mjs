@@ -1,5 +1,5 @@
 import { makeExec } from './catalog.mjs'
-import { createT, msg } from './i18n/index.mjs'
+import { createT, LocalizedError, msg } from './i18n/index.mjs'
 
 export async function scan(root, items) {
   const states = []
@@ -12,6 +12,21 @@ export async function scan(root, items) {
     }
   }
   return states
+}
+
+// item.exclusive는 "이 항목들은 같은 파일 하나를 두고 다툰다"는 표시다.
+// TUI는 고르는 순간에 배타를 지키지만(state.mjs), --set은 목록을 통째로 받는다 —
+// 둘을 함께 주면 나중 항목이 앞선 항목을 덮어써 성공한 것처럼 끝난다.
+// 조용히 하나를 고르는 대신 어느 쪽을 원했는지 되묻는다.
+export function assertExclusive(items, selectedIds) {
+  const groups = new Map()
+  for (const item of items) {
+    if (!item.exclusive || !selectedIds.has(item.id)) continue
+    groups.set(item.exclusive, [...(groups.get(item.exclusive) ?? []), item.id])
+  }
+  for (const ids of groups.values()) {
+    if (ids.length > 1) throw new LocalizedError('error.exclusiveItems', { ids: ids.join(', ') })
+  }
 }
 
 export function planChanges(states, selectedIds) {

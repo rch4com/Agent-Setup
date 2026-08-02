@@ -261,6 +261,16 @@ export default {
   'item.skill.karpathy.note': 'behavioral guidelines that curb overbuilding and vague success criteria',
   'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally.',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project. Upstream supports 18 runtimes (Codex, Antigravity, …); this item wires --claude only',
+  // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고
+  // 무엇이 설정되는가"를 대신 말한다(상세 패널에 배선표가 없다).
+  'item.config.gitmessage.en.note': 'writes .gitmessage.txt in English and points git commit.template at it. One template for every tool and person in this repository — pick English or Korean, not both',
+  'item.config.gitmessage.ko.note': 'writes .gitmessage.txt in Korean and points git commit.template at it. One template for every tool and person in this repository — pick English or Korean, not both',
+  'item.gitmessage.unregistered': 'file is in place, but commit.template does not point at it yet',
+  'log.gitmessage.write': '  [dry-run] write {path}',
+  'log.gitmessage.remove': '  [dry-run] remove {path}',
+  'error.gitmessageForeign': '{path} already exists and was not written by this tool. A hand-written template is never overwritten — move or delete it first.',
+  'error.gitmessageConfig': 'git config commit.template failed: {output}',
+  'error.exclusiveItems': 'These items write the same file, so only one can be chosen: {ids}',
   'error.gstackClone': 'gstack clone failed: {output}',
   'error.gstackSetup': 'gstack setup failed: {output}',
   'error.gsdInstall': 'GSD install failed: {output}',
@@ -277,6 +287,7 @@ export default {
   'section.plugin': 'PLUGIN',
   'section.mcp': 'MCP',
   'section.skill': 'SKILL',
+  'section.config': 'CONFIG',
   'section.design': 'DESIGN.MD',
 
   // TUI 목록·검토 화면 문구. item.*는 agentHint가, action.*.label/hint는

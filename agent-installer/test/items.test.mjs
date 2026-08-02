@@ -3,14 +3,17 @@ import assert from 'node:assert/strict'
 import { loadItems } from '../lib/catalog.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 import { GROUP_ORDER } from '../lib/tui/rows.mjs'
+import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 18개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 20개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 18)
+  assert.equal(items.length, 20)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
+  assert.ok(ids.includes('config.gitmessage.en'))
+  assert.ok(ids.includes('config.gitmessage.ko'))
   assert.ok(ids.includes('mcp.notion'))
   assert.ok(ids.includes('mcp.graphify'))
   assert.ok(ids.includes('mcp.headroom'))
@@ -35,8 +38,16 @@ test('모든 항목의 성격 그룹은 GROUP_ORDER에 있고 번역 키가 있�
 
 test('모든 항목은 카테고리와 스코프가 유효하다', async () => {
   for (const item of await loadItems()) {
-    assert.ok(['plugin', 'mcp', 'skill'].includes(item.category))
+    assert.ok(['plugin', 'mcp', 'skill', 'config'].includes(item.category))
     assert.ok(['project', 'user'].includes(item.scope))
+  }
+})
+
+// 라벨 자리는 LABEL_WIDTH칸이다 — 넘치면 목록에서 조용히 잘린다. 하필 잘리는
+// 자리가 항목을 가르는 꼬리표일 수 있어(…(Englis…) 눈으로만 보면 놓친다.
+test('모든 항목의 라벨이 LABEL_WIDTH 안에 든다', async () => {
+  for (const item of await loadItems()) {
+    assert.ok(width(item.label) <= LABEL_WIDTH, `${item.id}: 라벨 폭 ${width(item.label)} > ${LABEL_WIDTH} — "${item.label}"`)
   }
 })
 
