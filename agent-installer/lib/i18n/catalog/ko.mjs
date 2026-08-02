@@ -299,6 +299,14 @@ export default {
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': '미배선 {count}곳: {groups}',
   'item.unsupportedGroup': '{clis} — {why}',
+  'detail.wired': '배선',
+  'detail.unwired': '미배선',
+  'detail.provider': '공급자',
+  'detail.preview': '미리보기',
+  'detail.scope.project': '저장소 스코프',
+  'detail.scope.user': '사용자 전역',
+  'detail.more': '  …외 {count}줄 — Ctrl+D로 펼치기',
+  'detail.empty': '  커서를 항목 위에 올리면 상세가 보입니다.',
 
   // 상주 언어 행 — en.mjs 쪽 주석 참고.
   'action.language.label': '언어',

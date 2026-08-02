@@ -308,6 +308,14 @@ export default {
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': 'not wired for {count}: {groups}',
   'item.unsupportedGroup': '{clis} — {why}',
+  'detail.wired': 'wired',
+  'detail.unwired': 'unwired',
+  'detail.provider': 'source',
+  'detail.preview': 'preview',
+  'detail.scope.project': 'repo scope',
+  'detail.scope.user': 'user global',
+  'detail.more': '  …and {count} more line(s) — Ctrl+D to expand',
+  'detail.empty': '  Move the cursor onto an item to see its details.',
 
   // 상주 언어 행 — 작업 탭 맨 위. hint는 현재 로케일의 자기 이름을 담는다.
   'action.language.label': 'Language',
