@@ -29,14 +29,42 @@ export async function apply(root, changes, { dryRun = false, log = console.log, 
   const baseExec = makeExec(dryRun, log)
   const results = []
   const total = changes.length
-  const notify = (event) => { if (onProgress) onProgress({ total, ...event }) }
+
+  // 알림은 참고용이지 설치를 좌우하지 않는다. onProgress는 훗날 실제 렌더러가
+  // 될 자리라(Task 11) 그 안의 버그가 던지면, notify를 감싸지 않는 한 예외가
+  // apply()를 통째로 빠져나가 이미 디스크에 쓴 항목의 결과를 아무도 못 받는다.
+  // command 단계 알림은 install/uninstall의 try 안에서 불리므로, 여기서 삼키지
+  // 않으면 렌더링 버그가 그 항목의 설치 실패로 잘못 보고된다.
+  const notify = (event) => {
+    if (!onProgress) return
+    try {
+      onProgress({ total, ...event })
+    } catch {
+      // 무시한다 — 알림 실패로 설치를 멈추거나 결과를 뒤틀면 안 된다.
+    }
+  }
+
+  // shouldStop도 같은 이유로 감싼다. 여기서 다시 던지면 UI 술어의 버그 하나가
+  // 설치 전체를 중단시킨다 — 알림을 못 받는 것보다 더 나쁘다. 던지면 "멈추지
+  // 않음"으로 취급해 계속 진행한다.
+  const isStopRequested = () => {
+    if (!shouldStop) return false
+    try {
+      return Boolean(shouldStop())
+    } catch {
+      return false
+    }
+  }
 
   for (let index = 0; index < total; index++) {
     const { item, action } = changes[index]
 
     // 중단은 **항목 경계에서만** 본다. 외부 명령을 중간에 죽이면 반쯤 설치된
     // 상태가 남는다 — 그래서 AbortSignal이 아니라 술어(predicate)다.
-    if (shouldStop && shouldStop()) {
+    if (isStopRequested()) {
+      // skipped: true는 "시도조차 하지 않았다"는 뜻이다. ok는 성공하지 못했으니
+      // false지만 실패는 아니다 — 소비자는 실패로 보고하거나 exitCode를 세우기
+      // 전에 반드시 skipped를 먼저 확인해야 한다(!r.ok && !r.skipped).
       results.push({ item, action, ok: false, skipped: true })
       continue
     }
