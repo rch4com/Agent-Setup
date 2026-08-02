@@ -148,3 +148,32 @@ test('CLI 필터만 걸어도 탭 줄이 걸러진 수를 보여 준다', () => 
   assert.match(bar, /\d+\/\d+/, '필터 중에는 shown/total이 보여야 한다')
   assert.match(bar, /1\/3/, 'Bravo 하나만 codex를 지원하므로 1/3이어야 한다')
 })
+
+// 색 코드는 화면에서 0칸을 차지한다. 폭 계산에 섞이면 반전 배경이 일찍 끊기고,
+// 좁은 폭 판정도 실제보다 짜게 나온다.
+//
+// plain(비컬러) 줄과 그대로 비교하지는 않는다 — 검색칸 포커스에서 비컬러
+// 경로는 애초에 pad를 하지 않는다(반전을 칠하지 않으니 채울 이유가 없다).
+// 그래서 두 줄의 가시 폭은 이 버그와 무관한 이유로도 다르다. 대신 컬러
+// 경로가 스스로 지키기로 한 불변식 — 반전 입력칸(limit - tailWidth) + 필터
+// 꼬리(tailWidth) = limit — 을 직접 겨눈다. width:80이면 w(=limit)는 79
+// (마지막 칸은 항상 비운다).
+test('색을 입혀도 검색줄의 가시 폭은 레이아웃이 의도한 값과 같다', () => {
+  const s = setFocus(setCliFilter(createState(ROWS), 'codex'), 'search')
+  const opts = { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }
+  const ESC = String.fromCharCode(27)
+  const strip = (x) => x.split(ESC).map((p, i) => (i === 0 ? p : p.replace(/^\[[0-9;]*m/, ''))).join('')
+  const painted = render(s, { ...opts, color: true })[2]
+  assert.equal(width(strip(painted)), 79, 'width:80 → w(=limit)는 79여야 한다')
+})
+
+// 필터도 검색어도 걸려 있을 때, 정말 빈 이유가 검색어 때문이면 "이 CLI에는
+// 배선된 게 없다"는 문구를 내면 안 된다 — claude는 ROWS의 세 행 모두
+// 지원하므로 그 주장은 거짓이다. 빈 이유는 검색어(zzzz)가 아무것도
+// 걸러내지 못했기 때문이다.
+test('검색어 때문에 비었으면 CLI 전용 안내를 내지 않는다', () => {
+  const s = setQuery(setCliFilter(createState(ROWS), 'claude'), 'zzzz')
+  const text = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }).join('\n')
+  assert.ok(!text.includes('claude에 배선되는 항목이 없습니다'), 'CLI 전용 문구가 거짓으로 뜨면 안 된다')
+  assert.match(text, /일치하는 항목이 없습니다/, '검색 안내가 대신 떠야 한다')
+})

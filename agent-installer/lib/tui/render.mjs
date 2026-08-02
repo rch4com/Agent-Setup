@@ -97,12 +97,16 @@ export function tabBar(state, { width: limit, color = false, narrowed = false, t
 
 // 필터 표시. 검색줄 오른쪽 끝에 붙는다 — 새 줄을 만들면 CHROME이 늘어
 // 목록이 그만큼 준다. 필터가 없으면 아무것도 내지 않는다(잡음 방지).
-export function filterSegment(state, { color = false, t = createT('en'), options = [] } = {}) {
+//
+// 색은 여기서 입히지 않는다 — 이 반환값이 searchLine의 tailWidth 계산에도
+// 그대로 쓰이는데, 색 코드를 섞으면 ESC 시퀀스가 표시 폭에 끼어든다(폭은
+// 항상 색을 입히기 전에 재야 한다). 칠하는 일은 호출부가 폭 계산을 끝낸
+// 뒤 마지막에 한다.
+export function filterSegment(state, { t = createT('en'), options = [] } = {}) {
   if (!state.cliFilter) return ''
   const at = options.indexOf(state.cliFilter)
   const pos = at === -1 ? '' : ` (${t('tui.filter.position', { current: at + 1, total: options.length })})`
-  const text = `${t('tui.filter.prefix')}${state.cliFilter}${pos}`
-  return color ? `${BOLD}${text}${RESET}` : text
+  return `${t('tui.filter.prefix')}${state.cliFilter}${pos}`
 }
 
 // 검색줄 = 하나의 입력칸이다. 포커스가 여기 있으면 입력 커서(▌)로 드러내고,
@@ -113,9 +117,10 @@ export function filterSegment(state, { color = false, t = createT('en'), options
 // 표시가 반전에 먹혀 읽히지 않는다.
 function searchLine(state, { limit, color, paint, t, filter = '' }) {
   const prefix = t('tui.search.prefix')
-  const tail = filter ? `  ${filter}` : ''
-  // 색 코드는 폭에 들어가면 안 되므로 색을 입히기 전 문자열로 잰다.
+  // filter는 항상 순수 텍스트다(filterSegment 참고) — 폭은 색을 입히기 전에
+  // 재고, tail을 화면에 낼 때만 paint로 칠한다.
   const tailWidth = filter ? width(filter) + 2 : 0
+  const tail = filter ? `  ${paint(BOLD, filter)}` : ''
   const room = Math.max(0, limit - width(prefix) - tailWidth)
 
   // 필터를 넣을 자리가 없으면 필터를 버린다 — 타이핑 중인 글자가 사라지는
@@ -147,12 +152,13 @@ export function render(state, opts = {}) {
   const title = `agent-installer${dryRun ? ' (dry-run)' : ''}`
   const counts = t('tui.counts', { picked, total: items.length })
   const head = cut(`${title}  ${counts}  ${repo}`, w)
+  const searching = String(state.query ?? '').trim() !== ''
   // 목록이 좁혀졌는가 — 검색어·CLI 필터 어느 쪽이든 활성 탭 안에서만 걸리는
   // 좁힘이라, 다른 탭에 뭐가 남았는지 알리는 몫(탭 줄의 shown/total)은
-  // 둘이 똑같이 진다. 이름을 'searching'에 묶어 두면 필터 몫이 새어 나간다.
-  const narrowed = String(state.query ?? '').trim() !== '' || Boolean(state.cliFilter)
+  // 둘이 똑같이 진다.
+  const narrowed = searching || Boolean(state.cliFilter)
 
-  const filter = filterSegment(state, { color, t, options: cliOptions })
+  const filter = filterSegment(state, { t, options: cliOptions })
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
     tabBar(state, { width: w, color, narrowed, t }),
@@ -164,11 +170,13 @@ export function render(state, opts = {}) {
   const all = displayList(state)
 
   if (all.length === 0) {
-    // cliFilter가 있으면 이미 위에서 갈렸으므로, 여기서 narrowed는
-    // 사실상 순수 텍스트 검색 여부와 같다.
-    const empty = state.cliFilter
-      ? t('tui.filter.empty', { cli: state.cliFilter })
-      : narrowed ? t('tui.empty.filtered') : t('tui.empty.none')
+    // 빈 이유가 검색어 때문일 수도 있는데, cliFilter를 먼저 물으면 "이 CLI에는
+    // 배선된 게 없다"는 문구가 거짓으로 뜰 수 있다 — 그 CLI가 이 탭의 다른
+    // 항목들을 지원하더라도, 검색어가 전부 걸러내면 이 분기에 들어온다.
+    // 검색어가 있으면 그쪽이 항상 참이므로 우선한다.
+    const empty = searching
+      ? t('tui.empty.filtered')
+      : state.cliFilter ? t('tui.filter.empty', { cli: state.cliFilter }) : t('tui.empty.none')
     if (body > 0) lines.push(paint(DIM, cut(empty, w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
