@@ -55,6 +55,10 @@ export function pad(text, limit) {
 // 공백이 있으면 마지막 공백에서 끊고(영문), 한 낱말이 limit보다 길거나
 // 공백이 없으면(한글) 표시 폭에서 끊는다. limit이 0 이하면 빈 배열을
 // 돌려준다 — 호출부가 폭을 잘못 계산했을 때 무한 루프에 빠지지 않게 한다.
+//
+// 문자 하나의 표시 폭이 limit보다 넓으면 그 문자를 버린다. limit < 2에서는
+// 폭을 지키면서 동시에 모든 문자를 담을 수 없다. 폭을 넘기면 TUI 레이아웃이
+// 무너지지만, 버리면 내용만 손실된다. 따라서 폭 불변식을 택했다.
 export function wrap(text, limit) {
   const s = String(text ?? '')
   if (limit <= 0 || s === '') return []
