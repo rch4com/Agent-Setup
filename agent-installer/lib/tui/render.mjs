@@ -60,20 +60,22 @@ function checkbox(row, selected) {
   return `[${selected.has(row.id) ? MARK.on : MARK.off}]`
 }
 
-// 탭 줄. 검색 중이면 탭마다 적중 수를 보여 준다 —
-// 검색은 활성 탭 안으로만 걸리므로, 다른 탭에 결과가 있다는 사실을 여기서 알린다.
+// 탭 줄. 목록이 좁혀졌으면(검색어·CLI 필터 어느 쪽이든) 탭마다 적중 수를
+// 보여 준다 — 검색·필터는 활성 탭 안으로만 걸리므로, 다른 탭에 결과가
+// 있다는 사실을 여기서 알린다. 그래야 필터가 사용자를 빈 탭에 가둬 두고
+// 아무 설명도 없이 방치하는 일이 없다.
 // 폭이 모자라면 활성 탭 하나 + 위치 표시로 줄인다(줄바꿈은 화면을 무너뜨린다).
 // tab 자체는 rows.mjs가 만든 소문자 id다 — 화면에는 t로 번역한 이름만 낸다.
-export function tabBar(state, { width: limit, color = false, searching = false, t = createT('en') } = {}) {
+export function tabBar(state, { width: limit, color = false, narrowed = false, t = createT('en') } = {}) {
   const counts = tabCounts(state)
   if (counts.length === 0) return ''
   const active = activeTab(state)
 
   const segs = counts.map(({ tab, shown, total }) => ({
     tab,
-    text: searching ? `${t(`section.${tab}`)} ${shown}/${total}` : `${t(`section.${tab}`)} ${total}`,
+    text: narrowed ? `${t(`section.${tab}`)} ${shown}/${total}` : `${t(`section.${tab}`)} ${total}`,
     active: tab === active,
-    empty: searching && shown === 0,
+    empty: narrowed && shown === 0,
   }))
 
   const SEP = '  '
@@ -145,12 +147,15 @@ export function render(state, opts = {}) {
   const title = `agent-installer${dryRun ? ' (dry-run)' : ''}`
   const counts = t('tui.counts', { picked, total: items.length })
   const head = cut(`${title}  ${counts}  ${repo}`, w)
-  const searching = String(state.query ?? '').trim() !== ''
+  // 목록이 좁혀졌는가 — 검색어·CLI 필터 어느 쪽이든 활성 탭 안에서만 걸리는
+  // 좁힘이라, 다른 탭에 뭐가 남았는지 알리는 몫(탭 줄의 shown/total)은
+  // 둘이 똑같이 진다. 이름을 'searching'에 묶어 두면 필터 몫이 새어 나간다.
+  const narrowed = String(state.query ?? '').trim() !== '' || Boolean(state.cliFilter)
 
   const filter = filterSegment(state, { color, t, options: cliOptions })
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
-    tabBar(state, { width: w, color, searching, t }),
+    tabBar(state, { width: w, color, narrowed, t }),
     searchLine(state, { limit: w, color, paint, t, filter }),
     '',
   ]
@@ -159,9 +164,11 @@ export function render(state, opts = {}) {
   const all = displayList(state)
 
   if (all.length === 0) {
+    // cliFilter가 있으면 이미 위에서 갈렸으므로, 여기서 narrowed는
+    // 사실상 순수 텍스트 검색 여부와 같다.
     const empty = state.cliFilter
       ? t('tui.filter.empty', { cli: state.cliFilter })
-      : searching ? t('tui.empty.filtered') : t('tui.empty.none')
+      : narrowed ? t('tui.empty.filtered') : t('tui.empty.none')
     if (body > 0) lines.push(paint(DIM, cut(empty, w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {

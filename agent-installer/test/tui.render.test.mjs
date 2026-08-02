@@ -136,3 +136,15 @@ test('필터로 탭이 비면 그 사실을 알린다', () => {
   const text = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }).join('\n')
   assert.match(text, /kiro에 배선되는 항목이 없습니다/)
 })
+
+// 탭 줄은 "다른 탭에 뭐가 남았나"를 알려 주는 유일한 자리다. CLI 필터로
+// 좁혔을 때도 걸러진 수가 보여야 사용자가 빈 탭에서 길을 잃지 않는다.
+// codex를 고른 이유: ROWS에서 Bravo만 codex를 지원해(Alpha·Long은 claude만)
+// shown(1) < total(3)이 되어 분할이 실제로 검증된다 — 전부 지원했다면
+// 어느 쪽 분기든 같은 문자열이 나와 이 테스트가 아무것도 못 잡는다.
+test('CLI 필터만 걸어도 탭 줄이 걸러진 수를 보여 준다', () => {
+  const s = setCliFilter(createState(ROWS), 'codex')
+  const bar = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] })[1]
+  assert.match(bar, /\d+\/\d+/, '필터 중에는 shown/total이 보여야 한다')
+  assert.match(bar, /1\/3/, 'Bravo 하나만 codex를 지원하므로 1/3이어야 한다')
+})

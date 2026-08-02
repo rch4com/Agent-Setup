@@ -304,8 +304,9 @@ export default {
   'tui.lang.overridden': '--lang / AGENT_SETUP_LANG still wins on the next run.',
 
   // CLI 필터 표시. 검색줄 오른쪽 끝에 붙는다(Task 7) — filterSegment가 쓴다.
+  // 필터가 없을 때는 아무것도 내지 않는다(잡음 방지) — "전체" 라벨을 위한
+  // 키를 따로 두지 않는다.
   'tui.filter.prefix': 'CLI › ',
-  'tui.filter.all': 'all',
   'tui.filter.position': '{current}/{total}',
   'tui.filter.empty': '  Nothing in this tab is wired for {cli}.',
 

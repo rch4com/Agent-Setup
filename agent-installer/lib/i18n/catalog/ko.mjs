@@ -296,7 +296,6 @@ export default {
 
   // CLI 필터 표시. en.mjs 쪽 주석 참고.
   'tui.filter.prefix': 'CLI › ',
-  'tui.filter.all': '전체',
   'tui.filter.position': '{current}/{total}',
   'tui.filter.empty': '  이 탭에는 {cli}에 배선되는 항목이 없습니다.',
 
