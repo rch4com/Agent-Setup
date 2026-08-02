@@ -122,6 +122,35 @@ test('makeExec는 shell 경로에서도 DEP0190(shell+args) 경고를 내지 않
   assert.equal(res.status, 0, `DEP0190 또는 실행 실패:\n${res.stderr}`)
 })
 
+// 회귀: spawn 자체가 실패하면(ENOENT 등) err.stderr가 undefined가 아니라 빈
+// 문자열로 온다(execFileSync 시절엔 undefined였다). ??로 폴백을 판단하면 빈
+// 문자열을 "값 있음"으로 보고 err.message(바이너리 이름이 담긴 진단 텍스트)를
+// 버린다 — 사용자에게 "gstack setup 실패: " 처럼 빈 진단만 남는다. 스텁은
+// 둘 다 그냥 값을 동기로 반환하므로 이 차이를 재현하지 못한다 — 실제 자식
+// 프로세스로 확인한다.
+test('makeExec: 존재하지 않는 바이너리는 빈 진단이 아니라 바이너리 이름을 남긴다', async () => {
+  const exec = makeExec(false, () => {})
+  const r = await exec('definitely-not-a-real-binary-xyz', [], { shell: false })
+  assert.equal(r.ok, false)
+  assert.notEqual(r.output, '')
+  assert.match(r.output, /definitely-not-a-real-binary-xyz/)
+})
+
+// 회귀: execFile은 stdio 옵션을 무시하고 자식에게 열린 stdin 파이프를 그대로
+// 넘긴다. 옛 execFileSync는 stdio: ['ignore', ...]로 자식의 stdin을 즉시
+// 닫아 뒀다 — 스폰 직후 우리가 stdin.end()로 그 동작을 복원했는지, 실제
+// 자식으로 확인한다. 복원되지 않으면 자식이 EOF를 못 받아 타이머(1.5초)까지
+// 기다린다 — 이 테스트는 수십 ms 안에 끝나야 한다.
+test('makeExec: 자식의 stdin을 닫아 EOF를 준다(안 닫으면 자식이 멈춘다)', async () => {
+  const exec = makeExec(false, () => {})
+  const childCode = "process.stdin.on('end', () => { console.log('EOF'); process.exit(0) }); process.stdin.resume(); setTimeout(() => { console.log('NO-EOF'); process.exit(0) }, 1500)"
+  const start = Date.now()
+  const r = await exec(process.execPath, ['-e', childCode])
+  assert.equal(r.ok, true, r.output)
+  assert.equal(r.output.trim(), 'EOF')
+  assert.ok(Date.now() - start < 500, `stdin이 열린 채로 남아 타임아웃까지 기다린 듯하다: ${Date.now() - start}ms`)
+})
+
 // await를 빠뜨린 자리는 { ok, output } 대신 Promise를 받는다. r.ok가
 // undefined라 `if (!r.ok)` 폴백이 늘 돌고, 실패가 성공으로 읽힌다.
 // 사람 눈으로는 놓치기 쉬워 소스에서 직접 잡는다.

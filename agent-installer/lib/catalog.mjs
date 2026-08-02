@@ -76,16 +76,27 @@ export function makeExec(dryRun, log = console.log) {
     // 어차피 우리가 직접 quote하므로, 완성된 한 줄 명령을 넘기고 인자 배열은 비운다.
     const [file, fileArgs] = shell ? [[cmd, ...args].map((s) => shellQuote(s)).join(' '), []] : [cmd, args]
     try {
-      // execFile은 기본으로 stdout·stderr를 버퍼에 담는다(자식 프로세스에
-      // 부모의 stdio를 물려주지 않는다) — 그래서 stdio 옵션을 따로 줄 필요가 없다.
-      const { stdout } = await execFileAsync(file, fileArgs, {
+      // execFile은 stdio를 강제로 파이프로 고정하고 옵션으로 넘겨도 무시한다 —
+      // 그래서 stdout·stderr는 버퍼링이 공짜로 따라온다. 문제는 stdin이다:
+      // 파이프가 열린 채로 자식에게 넘어가므로, stdin을 읽는 명령(자격 증명·
+      // 확인 프롬프트 등)은 EOF를 못 받아 영원히 멈춘다. 옛 execFileSync는
+      // stdio: ['ignore', ...]로 자식의 stdin을 즉시 닫아 뒀다 — 그 동작을
+      // 복원하려면 스폰 직후 우리가 직접 stdin을 닫아야 한다.
+      const p = execFileAsync(file, fileArgs, {
         encoding: 'utf8',
         ...opts,
         shell,
       })
+      // 옵션 조합에 따라 stdin이 없을 수 있다 — 없으면 조용히 넘어간다.
+      p.child.stdin?.end()
+      const { stdout } = await p
       return { ok: true, output: stdout }
     } catch (err) {
-      return { ok: false, output: String(err.stderr ?? err.message) }
+      // spawn 자체가 실패하면(ENOENT 등) err.stderr가 undefined가 아니라
+      // 빈 문자열로 온다 — ??는 빈 문자열을 "값 있음"으로 보고 통과시켜
+      // err.message(바이너리 이름이 담긴 진단 텍스트)를 삼켜 버린다. ||로
+      // 빈 문자열도 폴백하게 한다.
+      return { ok: false, output: String(err.stderr || err.message) }
     }
   }
 }
