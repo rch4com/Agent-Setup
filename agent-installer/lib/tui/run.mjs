@@ -347,16 +347,19 @@ export async function runTui(root, opts = {}) {
         const results = await runApply(changes)
 
         // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
-        // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 건너뜀은 실패가
-        // 아니다 — 진행 화면에 이미 나타났고, 다시 여기 나열하면 사용자가
-        // 스스로 취소한 일을 실패처럼 읽게 된다.
-        const notable = results.filter((r) => !r.ok && !r.skipped)
+        // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 성공해도 message가
+        // 붙은 결과(definePlugin·ponytail이 claude CLI 부재로 config 직접
+        // 기록으로 대체할 때 등)는 똑같이 사연이 있다 — ok만 보고 걸러내면
+        // 그 사연이 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
+        // 이미 나타났고, 다시 여기 나열하면 사용자가 스스로 취소한 일을
+        // 실패처럼 읽게 된다.
+        const notable = results.filter((r) => !r.skipped && (!r.ok || r.message))
         await suspend(async () => {
           if (notable.length > 0) {
             log('')
             for (const r of notable) {
               const message = toText(t, r.message)
-              log(`  ✖ ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+              log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
             }
           }
           log(`\n${t('apply.seeGitDiff')}`)

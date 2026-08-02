@@ -1,10 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, writeFileSync } from 'node:fs'
+import { delimiter, join } from 'node:path'
 import { runTui } from '../lib/tui/run.mjs'
-import { createT } from '../lib/i18n/index.mjs'
+import { createT, msg, toText } from '../lib/i18n/index.mjs'
 import { readRecord } from '../lib/bootstrap/record.mjs'
 import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
 
@@ -273,6 +273,50 @@ test('적용 중 Ctrl+C는 건너뜀으로 남기고 실패로 취급하지 않�
     assert.equal(result.interactive, true, '"아무 키나" 대기가 키를 받지 못하고 멈췄다')
   } finally {
     process.exitCode = before
+  }
+})
+
+// claude CLI가 실제로 PATH에 있으면 아래 테스트가 진짜 claude 프로세스를
+// 띄워 marketplace add·plugin install을 시도한다 — 로컬 Claude Code 설정을
+// 실제로 건드리는 부작용이라 테스트에서는 절대 안 된다. claude 실행 파일이
+// 든 PATH 항목만 걸러 내, items.ponytail.test.mjs의 failingExec와 같은
+// 조건(claude가 없는 환경)을 진짜 subprocess를 태우면서도 안전하게 재현한다.
+function pathWithoutExecutable(name) {
+  const names = process.platform === 'win32' ? [name, `${name}.exe`, `${name}.cmd`, `${name}.bat`] : [name]
+  return (process.env.PATH ?? '').split(delimiter)
+    .filter((dir) => dir && !names.some((n) => existsSync(join(dir, n))))
+    .join(delimiter)
+}
+
+// F2: definePlugin·ponytail은 claude CLI가 없으면 .claude/settings.json
+// 직접 기록으로 대체하고, 그래도 성공(ok:true)으로 돌아오되 message를
+// 남긴다(item.plugin.deferred) — 왜 대체 경로를 탔는지 사용자가 알아야
+// 한다. dry-run의 exec는 항상 성공만 돌려주므로(lib/catalog.mjs makeExec)
+// 이 대체 경로를 태우려면 dryRun:false로 실제 exec를 태워야 한다 — 아래
+// '적용 실패는...' 테스트가 exec와 무관한 throw로 실패를 재현하는 것과
+// 같은 이유다.
+test('성공해도 메시지가 있으면 적용 뒤 로그에 남는다', async () => {
+  const savedPath = process.env.PATH
+  process.env.PATH = pathWithoutExecutable('claude')
+  try {
+    const root = makeTempRepo()
+    const { log, result } = await drive([
+      TAB, // 작업 탭 → PLUGIN 탭
+      ...type('ponytail'),
+      DOWN, SPACE,
+      ENTER, // 제출 → 검토
+      ENTER, // 적용
+      ANY, ...QUIT,
+    ], { root, dryRun: false })
+
+    assert.ok(log.includes('✔'), '성공 표시가 로그에 없다')
+    assert.ok(
+      log.includes(toText(createT('ko'), msg('item.plugin.deferred'))),
+      `대체 경로 사연이 로그에 없다: ${log}`,
+    )
+    assert.equal(result.interactive, true)
+  } finally {
+    process.env.PATH = savedPath
   }
 })
 
