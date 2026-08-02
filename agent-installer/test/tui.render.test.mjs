@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { render, renderReview, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
 import { createState, move } from '../lib/tui/state.mjs'
-import { createT } from '../lib/i18n/index.mjs'
+import { createT, msg } from '../lib/i18n/index.mjs'
 import { width } from '../lib/width.mjs'
 
 const T = createT('ko')
@@ -16,21 +16,43 @@ function row(id, label, supports) {
   }
 }
 
-const ROWS = [row('mcp.a', 'Alpha', ['claude']), row('mcp.b', 'Bravo', ['claude', 'codex'])]
+// 상세가 짧은 행과 긴 행을 함께 둔다. Alpha·Bravo는 상세가 2~3줄이라
+// 클램프 하한(4)에 함께 뭉개져, 패널이 내용에 종속돼도 자리가 안 갈린다 —
+// 클램프 범위 안에 드는 행이 있어야 배분 변화가 드러난다.
+const LONG = {
+  kind: 'item', id: 'mcp.long', section: 'mcp', group: null, label: 'Long',
+  hint: '미설치 · CLI 1/10', fullHint: '미설치', statusDetail: null, status: 'absent',
+  previewTarget: null, searchText: 'mcp.long long',
+  item: {
+    id: 'mcp.long', category: 'mcp', label: 'Long', scope: 'project',
+    supports: ['claude'],
+    unsupported: {
+      codex: msg('item.unsupported.claudePlugin'),
+      gemini: msg('item.unsupported.claudeSkill'),
+      kilo: msg('item.unsupported.ponytailUser'),
+      kiro: msg('item.unsupported.ponytailRules'),
+    },
+  },
+}
+
+const ROWS = [row('mcp.a', 'Alpha', ['claude']), row('mcp.b', 'Bravo', ['claude', 'codex']), LONG]
 
 // 커서를 옮길 때마다 패널 높이가 변하면 목록이 위아래로 출렁인다.
 // 아코디언을 기각한 이유가 바로 그것이라, 높이는 터미널 크기로만 정한다.
 test('패널 높이는 커서 위치와 무관하다', () => {
   const a = createState(ROWS)
-  const b = move(a, 1)
-  // Alpha와 Bravo는 지원 CLI 수가 달라 상세 길이가 다르다. 그런데도 패널이
-  // 시작하는 자리는 같아야 한다. 총 줄 수만 비교하면 소용이 없다 —
-  // body + panel은 언제나 room이라, 배분이 내용에 따라 흔들려도 합은 보존된다.
+  const b = move(a, 1) // Bravo — Alpha보다 상세가 한 줄 길다
+  const c = move(a, 2) // Long — 클램프 범위([4,12]) 안에 드는 상세 길이
+  // Alpha·Bravo·Long은 상세 길이가 저마다 다르다. 그런데도 패널이 시작하는
+  // 자리는 같아야 한다. 총 줄 수만 비교하면 소용이 없다 — body + panel은
+  // 언제나 room이라, 배분이 내용에 따라 흔들려도 합은 보존된다.
   const sep = (s) => render(s, { width: 80, height: 30, t: T }).findIndex((l) => l.startsWith('─'))
   assert.ok(sep(a) > 0, '구분선을 찾지 못하면 이 테스트는 아무것도 지키지 못한다')
-  assert.equal(sep(a), sep(b), '커서를 옮기면 목록이 출렁인다')
+  assert.equal(sep(a), sep(b), '커서를 옮기면 목록이 출렁인다 (Alpha↔Bravo)')
+  assert.equal(sep(a), sep(c), '커서를 옮기면 목록이 출렁인다 (Alpha↔Long, 클램프 범위 안)')
   const at = (s) => render(s, { width: 80, height: 30, t: T }).length
   assert.equal(at(a), at(b))
+  assert.equal(at(a), at(c))
 })
 
 test('지면이 넉넉하면 목록과 패널이 화면을 나눠 갖는다', () => {
