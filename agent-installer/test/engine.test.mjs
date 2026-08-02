@@ -101,3 +101,71 @@ test('apply: 키 없는 일반 오류는 message가 문자열로 남는다', asy
   assert.equal(typeof results[0].message, 'string')
   assert.equal(results[0].message, '그냥 실패')
 })
+
+function fakeItem(id, { fails = false, runs = null } = {}) {
+  return {
+    id, label: id, category: 'mcp', scope: 'project', supports: ['claude'], unsupported: {},
+    async detect() { return { status: 'absent' } },
+    async install(ctx) {
+      if (runs) await ctx.exec(runs[0], runs.slice(1))
+      if (fails) throw new Error('boom')
+    },
+    async uninstall() {},
+  }
+}
+
+test('항목마다 시작과 끝을 알린다', async () => {
+  const changes = [
+    { item: fakeItem('a'), action: 'install' },
+    { item: fakeItem('b'), action: 'install' },
+  ]
+  const events = []
+  await apply('/tmp/x', changes, { dryRun: true, log: () => {}, onProgress: (e) => events.push(e) })
+  assert.deepEqual(events.map((e) => `${e.phase}:${e.item.id}`), ['start:a', 'done:a', 'start:b', 'done:b'])
+  assert.deepEqual(events.filter((e) => e.phase === 'start').map((e) => e.index), [0, 1])
+  assert.equal(events[0].total, 2)
+})
+
+test('실패해도 다음 항목으로 이어지고 done이 그 사실을 담는다', async () => {
+  const changes = [
+    { item: fakeItem('a', { fails: true }), action: 'install' },
+    { item: fakeItem('b'), action: 'install' },
+  ]
+  const events = []
+  const results = await apply('/tmp/x', changes, { dryRun: true, log: () => {}, onProgress: (e) => events.push(e) })
+  assert.equal(events.find((e) => e.phase === 'done' && e.item.id === 'a').ok, false)
+  assert.equal(results.length, 2)
+})
+
+// 화면이 "지금 무엇이 도는가"를 보여 줄 수 있는 유일한 경로다.
+test('실행 직전에 명령을 알린다', async () => {
+  const changes = [{ item: fakeItem('a', { runs: ['npx', '-y', 'thing'] }), action: 'install' }]
+  const events = []
+  await apply('/tmp/x', changes, { dryRun: true, log: () => {}, onProgress: (e) => events.push(e) })
+  const cmd = events.find((e) => e.phase === 'command')
+  assert.equal(cmd.command, 'npx -y thing')
+})
+
+// 외부 명령을 중간에 죽이면 반쯤 설치된 상태가 남는다. 그래서 항목 경계에서만 멈춘다.
+test('중단 요청은 현재 항목을 마친 뒤 나머지를 건너뛴다', async () => {
+  const changes = [
+    { item: fakeItem('a'), action: 'install' },
+    { item: fakeItem('b'), action: 'install' },
+    { item: fakeItem('c'), action: 'install' },
+  ]
+  let seen = 0
+  const results = await apply('/tmp/x', changes, {
+    dryRun: true, log: () => {},
+    onProgress: (e) => { if (e.phase === 'done') seen++ },
+    shouldStop: () => seen >= 1,
+  })
+  assert.equal(results.filter((r) => r.skipped).length, 2)
+  assert.equal(results[0].skipped, undefined)
+})
+
+test('onProgress 없이도 예전과 같이 동작한다', async () => {
+  const changes = [{ item: fakeItem('a'), action: 'install' }]
+  const results = await apply('/tmp/x', changes, { dryRun: true, log: () => {} })
+  assert.equal(results.length, 1)
+  assert.equal(results[0].ok, true)
+})
