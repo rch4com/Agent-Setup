@@ -83,7 +83,7 @@ test('Tab은 탭을 옮긴다 — 활성 표시가 따라 움직인다', async (
 })
 
 test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적용', async () => {
-  const { screen, log } = await drive([
+  const { screen, frames, log } = await drive([
     ...TO_MCP,
     ...type('supabase'), // 검색칸 포커스로 올라가 걸러진다
     DOWN,                // 목록으로 내려간다(첫 결과가 커서)
@@ -96,7 +96,11 @@ test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적
   assert.equal(screen.includes('제출 검토'), true, '검토 화면이 뜨지 않았다')
   // Task 11부터 성공한 항목은 로그에 나열되지 않는다 — 진행 화면이 대신
   // 보여 준다(runApply의 onProgress). log는 실패 사연 전용으로 좁혀졌다.
-  assert.equal(screen.includes('Supabase MCP'), true, '진행 화면에 항목이 보이지 않았다')
+  //
+  // screen 전체에서 찾으면 목록·검토 화면이 이미 같은 라벨을 그려 놓아
+  // 진행 화면이 통째로 비어 있어도 통과한다. 진행 화면만 골라 그 안에서 본다.
+  const progressFrame = frames.filter((f) => f.includes('적용 중')).pop() ?? ''
+  assert.ok(progressFrame.includes('Supabase MCP'), '진행 화면에 항목 라벨이 없다')
   assert.equal(log.includes('Supabase'), false, '성공한 항목은 log에 남지 않아야 한다')
 })
 
