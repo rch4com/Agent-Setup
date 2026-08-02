@@ -126,6 +126,9 @@ export function progressLines(progress, opts = {}) {
   for (let i = lines.length; i < height - 2; i++) lines.push('')
 
   lines.push('')
+  // done 분기(아래)는 aborted가 아닐 때만 오고, 그때 skipped는 위에서 늘
+  // 0이다 — 그래서 skippedSuffix는 항상 빈 문자열이다. progress.doneSkipped
+  // 키는 이 분기가 실제로 채울 일이 없어 지웠다(더는 어디서도 쓰지 않는다).
   const foot = progress.aborted
     ? t('progress.aborted', { count: skipped })
     : done < progress.total
@@ -133,7 +136,7 @@ export function progressLines(progress, opts = {}) {
       : t('progress.done', {
         ok: progress.entries.filter((e) => e.state === 'done').length,
         failed: progress.entries.filter((e) => e.state === 'failed').length,
-        skippedSuffix: skipped > 0 ? t('progress.doneSkipped', { count: skipped }) : '',
+        skippedSuffix: '',
       })
   lines.push(paint(DIM, cut(foot, w)))
   return lines.slice(0, height)

@@ -284,7 +284,6 @@ export default {
   'tui.toggledAll': '{tab} 탭의 보이는 항목을 모두 선택했습니다.',
   'tui.toggledNone': '{tab} 탭의 보이는 항목을 모두 해제했습니다.',
   'tui.nonInteractive': '대화형 화면은 터미널에서만 열립니다. --list · --set 으로도 다룰 수 있습니다.',
-  'tui.applyHeader': '적용할 변경 {count}건{suffix}:',
   'tui.pressAnyKey': '계속하려면 아무 키나 누르세요…',
   'tui.confirmSuffix': ' [y/N] ',
 
@@ -299,7 +298,6 @@ export default {
   'progress.aborted': '중단했습니다 — {count}건 건너뜀',
   'progress.skipped': '건너뜀',
   'progress.done': '끝났습니다 — 성공 {ok}건, 실패 {failed}건{skippedSuffix}',
-  'progress.doneSkipped': ', 건너뜀 {count}건',
   'progress.plain': '[{index}/{total}] {action} {label}',
   'progress.plainDone': '      {mark} {seconds}초',
 

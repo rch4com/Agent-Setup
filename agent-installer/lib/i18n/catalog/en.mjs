@@ -293,7 +293,6 @@ export default {
   'tui.toggledAll': 'Selected every visible item in the {tab} tab.',
   'tui.toggledNone': 'Cleared every visible item in the {tab} tab.',
   'tui.nonInteractive': 'The interactive screen only opens in a terminal. --list and --set work too.',
-  'tui.applyHeader': '{count} change(s) to apply{suffix}:',
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
 
@@ -309,7 +308,6 @@ export default {
   'progress.aborted': 'Stopped — {count} item(s) skipped',
   'progress.skipped': 'skipped',
   'progress.done': 'Done — {ok} succeeded, {failed} failed{skippedSuffix}',
-  'progress.doneSkipped': ', {count} skipped',
   'progress.plain': '[{index}/{total}] {action} {label}',
   'progress.plainDone': '      {mark} {seconds}s',
 
