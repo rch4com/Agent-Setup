@@ -297,6 +297,22 @@ export default {
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
 
+  // 진행 화면(tui/progress.mjs) 문구. Task 9의 이벤트(start·command·done)를
+  // 사람이 읽는 줄로 바꾼다. plain*은 비TTY(CI·파이프)용 한 줄 출력이다.
+  'progress.title': 'Applying — {count} change(s){suffix}',
+  'progress.counter': '{done}/{total}  {percent}%',
+  'progress.elapsed': '{seconds}s',
+  'progress.elapsedMin': '{minutes}m{seconds}s',
+  'progress.running': '{seconds}s elapsed',
+  'progress.more': '  …and {count} more',
+  'progress.abortHint': 'Ctrl+C stops after the current item',
+  'progress.aborted': 'Stopped — {count} item(s) skipped',
+  'progress.skipped': 'skipped',
+  'progress.done': 'Done — {ok} succeeded, {failed} failed{skippedSuffix}',
+  'progress.doneSkipped': ', {count} skipped',
+  'progress.plain': '[{index}/{total}] {action} {label}',
+  'progress.plainDone': '      {mark} {seconds}s',
+
   // 언어 행(action.language) 전용. 저장 성공·dry-run·실패·강제 로케일 네 갈래를 덮는다.
   'tui.lang.saved': 'Saved to {path}',
   'tui.lang.dryRun': 'dry-run — applied to this session only',

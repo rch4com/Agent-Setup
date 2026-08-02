@@ -288,6 +288,21 @@ export default {
   'tui.pressAnyKey': '계속하려면 아무 키나 누르세요…',
   'tui.confirmSuffix': ' [y/N] ',
 
+  // 진행 화면(tui/progress.mjs) 문구. en.mjs 쪽 주석 참고.
+  'progress.title': '적용 중 — 변경 {count}건{suffix}',
+  'progress.counter': '{done}/{total}  {percent}%',
+  'progress.elapsed': '{seconds}초',
+  'progress.elapsedMin': '{minutes}분{seconds}초',
+  'progress.running': '{seconds}초 경과',
+  'progress.more': '  …외 {count}건',
+  'progress.abortHint': 'Ctrl+C 중단 (현재 항목까지 마칩니다)',
+  'progress.aborted': '중단했습니다 — {count}건 건너뜀',
+  'progress.skipped': '건너뜀',
+  'progress.done': '끝났습니다 — 성공 {ok}건, 실패 {failed}건{skippedSuffix}',
+  'progress.doneSkipped': ', 건너뜀 {count}건',
+  'progress.plain': '[{index}/{total}] {action} {label}',
+  'progress.plainDone': '      {mark} {seconds}초',
+
   // 언어 행(action.language) 전용. en.mjs 쪽 주석 참고.
   'tui.lang.saved': '{path}에 저장했습니다',
   'tui.lang.dryRun': 'dry-run — 이번 세션에만 적용했습니다',
