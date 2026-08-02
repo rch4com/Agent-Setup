@@ -174,6 +174,9 @@ test('부트스트랩이 단계 진행을 알린다', () => {
 // manifest.ignore.length보다 많은 결과를 돌려준다 — 예측한 total을 고정해 두면
 // done이 total을 넘어서면서 진행률이 100%를 넘는다.
 test('.gitignore가 부정 항목을 가리면 진행률이 100%를 넘지 않는다', () => {
+  const cleanEvents = []
+  runBootstrap(makeTempRepo(), { log: () => {}, onProgress: (e) => cleanEvents.push(e) })
+
   const root = makeTempRepo()
   writeFileSync(join(root, '.gitignore'), '.vscode/\n')
   const events = []
@@ -185,4 +188,11 @@ test('.gitignore가 부정 항목을 가리면 진행률이 100%를 넘지 않�
     assert.ok(doneSeq[i] >= doneSeq[i - 1], 'done이 역행했다')
   }
   assert.equal(events.at(-1).done, events.at(-1).total)
+  // 위 단언들은 total이 그냥 39에 멈춰 있어도 전부 통과한다 — ensureIgnore의
+  // 경고 결과가 실제로 total에 반영되는지는 따로 확인해야 한다. 이 값을 세지
+  // 않게 되돌리는 미래의 변경이 있어도 위 세 단언은 조용히 계속 통과한다.
+  assert.ok(
+    events.at(-1).total > cleanEvents.at(-1).total,
+    `가려진 부정 항목의 경고가 total에 반영되지 않았다: ${events.at(-1).total} vs ${cleanEvents.at(-1).total}`,
+  )
 })
