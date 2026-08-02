@@ -8,6 +8,8 @@ import { assertExclusive } from '../lib/engine.mjs'
 import { normalizeBody } from '../lib/bootstrap/text.mjs'
 import { GITMESSAGE_EN, GITMESSAGE_KO, GITMESSAGE_REL } from '../lib/gitmessage.mjs'
 import { createT, toText } from '../lib/i18n/index.mjs'
+import { agentHint, buildRows } from '../lib/tui/rows.mjs'
+import { categoryLabel } from '../lib/design-md/flow.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 const T = createT('en')
@@ -163,4 +165,25 @@ test('assertExclusive는 두 언어판을 함께 고른 --set을 거부한다', 
     (err) => err.key === 'error.exclusiveItems',
   )
   assert.doesNotThrow(() => assertExclusive(all, new Set(['config.gitmessage.ko', 'skill.caveman'])))
+})
+
+// 평평한 목록(printPlain·--list)에는 그룹 헤더가 없다 — 무엇을 건드리는
+// 항목인지 알 길이 없고, '.gitmessage'로 검색해도 걸리지 않았다.
+test('힌트와 검색어에 대상 파일이 들어간다', async () => {
+  const { en } = await items()
+  const state = { item: en, status: 'absent', detail: null }
+  assert.match(agentHint(en, state, T), /\.gitmessage\.txt/)
+
+  const [row] = buildRows({ agentStates: [state], t: T })
+  assert.ok(row.searchText.includes('.gitmessage'), `검색어에 대상 파일이 없다: ${row.searchText}`)
+  assert.equal(row.exclusive, en.exclusive, '행이 배타 키를 물고 가야 라디오로 그려진다')
+})
+
+// 헤더 하나가 "무엇을 고르는 자리이고 규칙이 무엇인가"를 함께 말한다.
+test('그룹 헤더가 대상 파일과 배타 규칙을 밝힌다', () => {
+  for (const locale of ['en', 'ko']) {
+    const label = categoryLabel(createT(locale), '__commit')
+    assert.match(label, /\.gitmessage\.txt/, `${locale}: 헤더에 대상 파일이 없다`)
+    assert.notEqual(label, '__commit', `${locale}: 헤더가 번역되지 않았다`)
+  }
 })

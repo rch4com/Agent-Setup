@@ -6,6 +6,7 @@ import { delimiter, join } from 'node:path'
 import { runTui } from '../lib/tui/run.mjs'
 import { createT, msg, toText } from '../lib/i18n/index.mjs'
 import { readRecord } from '../lib/bootstrap/record.mjs'
+import { GITMESSAGE_KO } from '../lib/gitmessage.mjs'
 import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
 
 // 가짜 TTY로 키 루프를 돌린다. keyReader가 이벤트를 큐에 쌓으므로
@@ -348,4 +349,44 @@ test('적용 실패는 화면 밖에서 사연을 보여 주고 종료 코드를
   } finally {
     process.exitCode = before
   }
+})
+
+// ── 종료 전용 키 ──────────────────────────────────────────────────
+//
+// Ctrl+C는 "중단"이고 Esc는 검색어·포커스를 먼저 되돌리느라 최대 세 번을
+// 눌러야 나간다 — 어느 쪽도 "나가는 키"로 배우기 어렵다. Ctrl+Q는 어느
+// 상태에서든 한 번에 통해야 그 몫을 한다.
+const CQ = { name: 'q', ctrl: true }
+
+test('Ctrl+Q는 목록에서 즉시 빠져나온다', async () => {
+  const { result } = await drive([CQ])
+  assert.equal(result.interactive, true)
+})
+
+test('Ctrl+Q는 검색어를 친 상태에서도 한 번에 빠져나온다', async () => {
+  // Esc였다면 검색어 지우기 → 목록으로 → 종료까지 세 번이 필요한 자리다.
+  const { result } = await drive([...type('supabase'), CQ])
+  assert.equal(result.interactive, true)
+})
+
+test('Ctrl+Q는 검토 화면에서도 빠져나온다', async () => {
+  const { result, log } = await drive([...TO_MCP, ...type('supabase'), SPACE, CQ, CQ])
+  assert.equal(result.interactive, true)
+  assert.equal(log.includes('적용'), false, '검토 화면에서 나갔으므로 적용이 돌면 안 된다')
+})
+
+test('종료 키 안내가 화면에 늘 떠 있다', async () => {
+  const { lastListFrame } = await drive([CQ])
+  assert.ok(lastListFrame.includes('Ctrl+Q 종료'), '종료 키 안내가 화면에 없다')
+})
+
+// 배타 묶음에서 체크가 조용히 뒤집히면 사용자는 자기가 잘못 눌렀다고 읽는다.
+test('배타 항목을 바꾸면 무엇이 해제됐는지 알린다', async () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitmessage.txt'), GITMESSAGE_KO)
+  // CONFIG 탭으로 가서 영어판을 고른다 — 한국어판이 이미 켜져 있는 자리다.
+  // 타이핑은 검색칸으로 올라가므로 DOWN으로 목록에 내려와야 Space가 선택이 된다.
+  const { screen } = await drive([TAB, TAB, TAB, TAB, ...type('english'), DOWN, SPACE, CQ], { root, columns: 160 })
+  assert.match(screen, /같은 파일이라/, `배타 전환 안내가 없다`)
+  assert.match(screen, /Korean commit template/)
 })

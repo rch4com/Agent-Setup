@@ -2,9 +2,9 @@ import { defineGitmessage, GITMESSAGE_EN } from '../gitmessage.mjs'
 
 export default defineGitmessage({
   id: 'config.gitmessage.en',
-  // 목록의 라벨 자리는 24칸이다 — 'Commit template (English)'는 한 칸이 넘쳐
-  // 잘린다. 이 도구가 이미 쓰는 --lang en|ko 표기를 따르고, 전문은 note가 편다.
-  label: 'Commit template (EN)',
+  // 두 판을 가르는 낱말을 맨 앞에 둔다 — 라벨 자리(24칸)에서 눈이 먼저 닿는
+  // 곳이고, 그룹 헤더가 이미 "커밋 템플릿"을 말하고 있어 뒤쪽은 확인용이다.
+  label: 'English commit template',
   body: GITMESSAGE_EN,
   note: 'item.config.gitmessage.en.note',
 })

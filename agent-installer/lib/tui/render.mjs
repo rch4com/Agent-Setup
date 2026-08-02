@@ -55,9 +55,15 @@ export function reviewBodyHeight(height) {
 
 const MARK = { action: '▶', on: '×', off: ' ' }
 
+// 대괄호는 "여러 개 고를 수 있다"는 보편적 신호다 — 한 파일에 한 벌만 놓이는
+// 배타 묶음(커밋 템플릿의 두 언어판)에 그대로 쓰면 화면이 거짓말을 한다.
+// 둥근 괄호로 바꿔 라디오임을 드러낸다. 안쪽 글자는 그대로 둔다: ×는 이미
+// 이 화면이 쓰는 글자라 폭 계산이 검증된 값이고, ●·•는 동아시아 폭이
+// 모호(Ambiguous)해 터미널에 따라 두 칸으로 그려져 열을 밀 수 있다.
 function checkbox(row, selected) {
   if (row.kind === 'action') return `[${MARK.action}]`
-  return `[${selected.has(row.id) ? MARK.on : MARK.off}]`
+  const mark = selected.has(row.id) ? MARK.on : MARK.off
+  return row.exclusive ? `(${mark})` : `[${mark}]`
 }
 
 // 탭 줄. 목록이 좁혀졌으면(검색어·CLI 필터 어느 쪽이든) 탭마다 적중 수를
@@ -211,9 +217,18 @@ export function render(state, opts = {}) {
     for (let i = shown.length; i < room; i++) lines.push('')
   }
 
+  // 종료 키는 힌트 줄 **오른쪽 끝에 고정**한다. 나머지 힌트는 좁은 터미널에서
+  // 뒤쪽부터 잘려 나가는데, 하필 그때 가장 절실한 것이 "여기서 어떻게
+  // 빠져나가나"다 — 잘려도 되는 안내와 절대 사라지면 안 되는 안내를 같은
+  // 줄에 이어 붙여 두면 늘 후자가 먼저 사라진다. 상태 메시지가 힌트를
+  // 대신할 때도 이 자리는 그대로 남는다.
   const hint = state.focus === 'search' ? t('tui.hint.search') : t('tui.hint.list')
+  const quit = t('tui.hint.quit')
+  const room = w - width(quit) - 2
   lines.push('')
-  lines.push(paint(DIM, cut(status || hint, w)))
+  lines.push(room < 8
+    ? paint(BOLD, cut(quit, w))
+    : `${paint(DIM, pad(status || hint, room))}  ${paint(BOLD, quit)}`)
   return lines
 }
 

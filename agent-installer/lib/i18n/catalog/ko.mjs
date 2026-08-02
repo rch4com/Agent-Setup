@@ -255,8 +255,8 @@ export default {
   'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치. 상류는 Codex·Antigravity 등 18개 런타임을 지원합니다(이 항목은 --claude)',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — en.mjs 쪽 주석 참고.
-  'item.config.gitmessage.en.note': '.gitmessage.txt를 영어판으로 쓰고 git commit.template이 그것을 가리키게 합니다. 저장소의 모든 도구와 사람이 함께 쓰는 한 벌이라 영어·한국어 중 하나만 고릅니다',
-  'item.config.gitmessage.ko.note': '.gitmessage.txt를 한국어판으로 쓰고 git commit.template이 그것을 가리키게 합니다. 저장소의 모든 도구와 사람이 함께 쓰는 한 벌이라 영어·한국어 중 하나만 고릅니다',
+  'item.config.gitmessage.en.note': '커밋 메시지를 영어로 씁니다. 템플릿을 놓고 git commit.template이 그것을 가리키게 하므로, 저장소의 모든 편집기와 도구에서 함께 열립니다',
+  'item.config.gitmessage.ko.note': '커밋 메시지를 한국어로 씁니다. 템플릿을 놓고 git commit.template이 그것을 가리키게 하므로, 저장소의 모든 편집기와 도구에서 함께 열립니다',
   'item.gitmessage.unregistered': '파일은 놓였지만 commit.template이 아직 가리키지 않습니다',
   'log.gitmessage.write': '  [dry-run] {path} 생성',
   'log.gitmessage.remove': '  [dry-run] {path} 제거',
@@ -290,9 +290,11 @@ export default {
   'tui.empty.none': '  항목이 없습니다.',
   'tui.hint.search': '입력=검색어   ↓ 목록으로   Tab 탭이동   Esc 검색해제   Ctrl+F CLI   Ctrl+D 상세',
   'tui.hint.list': 'Space 선택   ↑↓ 이동   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기   Ctrl+F CLI   Ctrl+D 상세',
+  // 힌트 줄 오른쪽 끝의 고정 자리. en.mjs 쪽 주석 참고.
+  'tui.hint.quit': 'Ctrl+Q 종료',
   'tui.review.title': '제출 검토 — 변경 {count}건',
   'tui.review.more': '  …외 {count}건',
-  'tui.review.hint': 'Enter 적용   Esc 취소',
+  'tui.review.hint': 'Enter 적용   Esc 취소   Ctrl+Q 종료',
   'tui.notItemRow': '이 행은 Enter로 실행합니다.',
   'tui.noPreview': '이 항목은 미리보기를 제공하지 않습니다.',
   'tui.opened': '열었습니다: {target}',
@@ -300,6 +302,8 @@ export default {
   'tui.submitCancelled': '제출을 취소했습니다.',
   'tui.toggledAll': '{tab} 탭의 보이는 항목을 모두 선택했습니다.',
   'tui.toggledNone': '{tab} 탭의 보이는 항목을 모두 해제했습니다.',
+  // 배타 묶음에서 형제가 함께 꺼졌을 때. en.mjs 쪽 주석 참고.
+  'tui.exclusiveSwitched': '{kept}(으)로 바꿨습니다 — 같은 파일이라 {dropped}은(는) 해제했습니다.',
   'tui.nonInteractive': '대화형 화면은 터미널에서만 열립니다. --list · --set 으로도 다룰 수 있습니다.',
   'tui.pressAnyKey': '계속하려면 아무 키나 누르세요…',
   'tui.confirmSuffix': ' [y/N] ',
@@ -330,6 +334,7 @@ export default {
   'tui.filter.empty': '  이 탭에는 {cli}에 배선되는 항목이 없습니다.',
 
   'item.location.user': '설치 위치: 사용자 글로벌',
+  'item.target': '대상 파일: {path}',
   // en.mjs 쪽 주석 참고.
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': '미배선 {count}곳: {groups}',
@@ -338,6 +343,7 @@ export default {
   'detail.unwired': '미배선',
   'detail.provider': '공급자',
   'detail.preview': '미리보기',
+  'detail.target': '대상 파일',
   'detail.scope.project': '저장소 스코프',
   'detail.scope.user': '사용자 전역',
   'detail.more': '  …외 {count}줄 — Ctrl+D로 펼치기',
@@ -363,6 +369,8 @@ export default {
   'category.context': '코드 이해',
   'category.style': '디자인 감각',
   'category.flow': '작업 방식',
+  // 헤더 하나가 무엇을 고르는 자리이고 규칙이 무엇인지 함께 말한다. en.mjs 쪽 주석 참고.
+  'category.commit': '커밋 메시지 템플릿 · .gitmessage.txt · 하나만 고릅니다',
   'category.service': '외부 서비스',
   'design.localSuffix': '{id} (로컬)',
   'design.localTag': '로컬',

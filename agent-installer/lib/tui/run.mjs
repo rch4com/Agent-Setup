@@ -176,7 +176,13 @@ export async function runTui(root, opts = {}) {
   const select = () => {
     const row = currentRow(state)
     if (row?.kind !== 'item') return t('tui.notItemRow')
+    const before = state.selected
     state = toggle(state)
+    // 배타 묶음에서 형제가 함께 꺼졌으면 그 사실을 말한다. 체크가 조용히
+    // 뒤집히면 사용자는 자기가 잘못 눌렀다고 읽는다 — 검색으로 형제가
+    // 화면 밖에 있을 때는 아예 무슨 일이 일어났는지 볼 수조차 없다.
+    const dropped = state.rows.filter((r) => r.id !== row.id && before.has(r.id) && !state.selected.has(r.id))
+    if (dropped.length > 0) return t('tui.exclusiveSwitched', { kept: row.label, dropped: dropped.map((r) => r.label).join(', ') })
     return ''
   }
 
@@ -194,7 +200,7 @@ export async function runTui(root, opts = {}) {
     for (;;) {
       draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color, t }))
       const key = await keys.next()
-      if (key.ctrl && key.name === 'c') return 'quit'
+      if (key.ctrl && (key.name === 'c' || key.name === 'q')) return 'quit'
       if (key.name === 'escape') return 'cancel'
       if (key.name === 'return' || key.name === 'enter') return 'apply'
     }
@@ -260,6 +266,14 @@ export async function runTui(root, opts = {}) {
       // 필터를 겹쳐 걸고 싶은 순간이다. 글자 키(c·d)를 쓰지 않는 이유는
       // 목록 포커스에서 아무 글자나 누르면 검색칸으로 올라가기 때문이다:
       // c를 필터에 배정하면 codex·claude를 검색어로 칠 수 없다.
+      // 종료 전용 키. Ctrl+C는 "중단"이고 Esc는 검색어·포커스를 먼저 되돌리느라
+      // 최대 세 번을 눌러야 나간다 — 어느 쪽도 "나가는 키"로 배우기 어렵다.
+      // Ctrl+Q는 두 포커스와 검토 화면에서 한 번에 통하며, 화면 오른쪽 끝에
+      // 늘 표시된다(render의 고정 자리). 글자 q를 쓰지 않는 이유는 Ctrl+F·
+      // Ctrl+D와 같다: 목록에서 아무 글자나 누르면 검색칸으로 올라간다.
+      // raw 모드가 IXON(흐름 제어)을 끄므로 Ctrl+Q는 터미널에 먹히지 않는다.
+      if (key.ctrl && key.name === 'q') break
+
       if (key.ctrl && (key.name === 'f' || key.name === 'b')) {
         state = cycleCliFilter(state, key.name === 'f' ? 1 : -1, CLI_OPTIONS)
         continue

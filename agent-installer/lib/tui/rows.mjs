@@ -26,7 +26,10 @@ export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config'
 // "무엇을 해 주는가"가 다른 항목이 섞여 있어서, 기구(plugin·mcp·skill)만으로는
 // 고를 때 비교가 되지 않는다. 표시 순서는 이 배열이 정한다.
 // `__`로 시작하는 id만 categoryLabel이 번역한다(design.md 카테고리와 같은 규칙).
-export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__service']
+// __commit은 CONFIG 탭에만 나오지만 규칙은 같다 — 헤더가 "무엇을 고르는
+// 자리인가"를 말한다. 커밋 템플릿은 대상 파일이 하나뿐이라 헤더에 그 파일
+// 이름과 "하나만"이라는 규칙까지 실어, 라디오 표시와 함께 읽히게 한다.
+export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__commit', '__service']
 
 function groupRank(group) {
   const i = GROUP_ORDER.indexOf(group)
@@ -75,6 +78,10 @@ export function agentHint(item, state, t = createT('en')) {
   if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
   const detail = toText(t, state.detail)
   if (detail) parts.push(detail)
+  // 대상 파일이 하나로 정해진 항목만 target을 갖는다. 평평한 목록(printPlain·
+  // --list)에는 그룹 헤더가 없어 무엇을 건드리는지 알 길이 없고, 검색어로도
+  // '.gitmessage'가 걸리지 않았다.
+  if (item.target) parts.push(t('item.target', { path: item.target }))
   if (item.scope === 'user') parts.push(t('item.location.user'))
   // note는 이제 카탈로그 키다.
   if (item.note) parts.push(t(item.note))

@@ -177,3 +177,66 @@ test('검색어 때문에 비었으면 CLI 전용 안내를 내지 않는다', (
   assert.ok(!text.includes('claude에 배선되는 항목이 없습니다'), 'CLI 전용 문구가 거짓으로 뜨면 안 된다')
   assert.match(text, /일치하는 항목이 없습니다/, '검색 안내가 대신 떠야 한다')
 })
+
+// ── 배타 항목의 라디오 표시 ───────────────────────────────────────
+//
+// 대괄호는 "여러 개 고를 수 있다"는 보편적 신호다. 한 파일에 한 벌만
+// 놓이는 항목에 그대로 쓰면 화면이 거짓말을 한다.
+
+function exclusiveRow(id, label) {
+  return {
+    ...row(id, label, undefined),
+    section: 'config', exclusive: 'gitmessage',
+    item: { id, category: 'config', label, scope: 'project', exclusive: 'gitmessage', unsupported: {} },
+  }
+}
+
+// 둘을 같은 탭에 둔다 — createState는 첫 탭을 열므로 섹션이 갈리면
+// 한쪽만 그려져 비교 자체가 성립하지 않는다.
+const X_ROWS = [
+  exclusiveRow('config.gitmessage.en', 'English commit template'),
+  { ...row('mcp.a', 'Alpha', ['claude']), section: 'config' },
+]
+
+test('배타 항목은 라디오로, 나머지는 체크박스로 그린다', () => {
+  const on = render(createState(X_ROWS, { selectedIds: ['config.gitmessage.en', 'mcp.a'] }), { width: 80, height: 30, t: T }).join('\n')
+  assert.ok(on.includes('(×) English commit template'), `라디오 켜짐이 아니다:\n${on}`)
+  assert.ok(on.includes('[×] Alpha'), '일반 항목은 체크박스여야 한다')
+
+  const off = render(createState(X_ROWS), { width: 80, height: 30, t: T }).join('\n')
+  assert.ok(off.includes('( ) English commit template'), `라디오 꺼짐이 아니다:\n${off}`)
+  assert.ok(off.includes('[ ] Alpha'))
+})
+
+// ── 종료 키 안내는 잘리지 않는다 ──────────────────────────────────
+//
+// 나머지 힌트는 좁은 터미널에서 뒤쪽부터 잘려 나가는데, 하필 그때 가장
+// 절실한 것이 "여기서 어떻게 빠져나가나"다.
+
+const lastLine = (opts) => render(createState(ROWS), { height: 30, t: T, ...opts }).at(-1)
+
+test('종료 키 안내는 힌트 줄 오른쪽 끝에 고정된다', () => {
+  const wide = lastLine({ width: 200 })
+  assert.ok(wide.includes('Space 선택'), '넓은 화면에서는 나머지 힌트도 함께 나온다')
+  assert.ok(wide.trimEnd().endsWith('Ctrl+Q 종료'), `오른쪽 끝이 아니다: "${wide}"`)
+})
+
+test('좁아서 힌트가 잘려도 종료 키는 남는다', () => {
+  for (const w of [200, 100, 60, 40, 30, 24]) {
+    const line = lastLine({ width: w })
+    assert.ok(line.includes('Ctrl+Q 종료'), `width ${w}에서 종료 키가 사라졌다: "${line}"`)
+    assert.ok(width(line) <= w, `width ${w}를 넘겼다: ${width(line)}`)
+  }
+})
+
+test('상태 메시지가 힌트를 대신할 때도 종료 키는 남는다', () => {
+  const line = render(createState(ROWS), { width: 100, height: 30, t: T, status: '이 항목은 미리보기가 없습니다.' }).at(-1)
+  assert.ok(line.includes('미리보기가 없습니다'), '상태 메시지가 나와야 한다')
+  assert.ok(line.trimEnd().endsWith('Ctrl+Q 종료'))
+})
+
+test('검토 화면도 종료 키를 안내한다', () => {
+  const changes = [{ action: 'install', item: { label: 'Alpha' } }]
+  const text = renderReview(changes, { width: 80, height: 24, t: T }).join('\n')
+  assert.ok(text.includes('Ctrl+Q 종료'))
+})

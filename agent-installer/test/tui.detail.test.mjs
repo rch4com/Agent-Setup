@@ -118,3 +118,34 @@ test('반환 줄 수는 어떤 height에서도 height를 넘지 않는다', () =
   }
   assert.equal(detailLines(PONYTAIL, { width: 40, height: 1, t: T }).length, 1)
 })
+
+// ── 라벨 열 폭 ────────────────────────────────────────────────────
+//
+// 왼쪽 라벨 열에 놓이는 문구를 하나라도 폭 계산에서 빠뜨리면 pad가 cut으로
+// 잘라 버린다 — 조용히 사라지므로 눈으로만 보면 놓친다. 한국어의
+// '미리보기'(8칸)가 폭 7의 열에서 '미리…'로 잘리던 회귀가 이것이다.
+test('상세 패널의 라벨 열은 어느 로케일에서도 잘리지 않는다', () => {
+  const base = { kind: 'item', status: 'absent', statusDetail: null }
+  // 행마다 어떤 라벨이 그 열에 놓이는지 못박는다 — 추측으로 훑으면 라벨이
+  // 통째로 빠져도 통과한다.
+  const cases = [
+    ['대상 파일', ['detail.target'], { ...base, item: { id: 'config.x', category: 'config', label: 'X', scope: 'project', target: '.gitmessage.txt', unsupported: {} } }],
+    ['design', ['detail.provider', 'detail.preview'], { ...base, previewTarget: 'https://example.com', item: { id: 'd.x', category: 'design', label: 'X', providerId: 'p', designCategory: 'Web' } }],
+    ['배선', ['detail.wired', 'detail.unwired'], { ...base, item: { id: 'mcp.x', category: 'mcp', label: 'X', scope: 'project', supports: ['claude'], unsupported: { codex: msg('item.unsupported.claudePlugin') } } }],
+  ]
+  for (const locale of ['en', 'ko']) {
+    const t = createT(locale)
+    for (const [name, keys, row] of cases) {
+      const text = detailLines(row, { width: 90, height: 12, t }).join('\n')
+      for (const key of keys) {
+        assert.ok(text.includes(t(key)), `${locale}/${name}: '${t(key)}' 라벨이 잘렸다\n${text}`)
+      }
+    }
+  }
+})
+
+test('대상 파일이 있는 항목은 상세 패널이 그 경로를 먼저 보인다', () => {
+  const row = { kind: 'item', status: 'absent', statusDetail: null, item: { id: 'config.x', category: 'config', label: 'X', scope: 'project', target: '.gitmessage.txt', note: 'item.skill.caveman.note', unsupported: {} } }
+  const lines = detailLines(row, { width: 90, height: 12, t: createT('ko') })
+  assert.ok(lines[1].includes('.gitmessage.txt'), `대상 파일 줄이 note보다 앞이 아니다: ${lines[1]}`)
+})

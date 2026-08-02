@@ -8,7 +8,7 @@
 import { toText, createT } from '../i18n/index.mjs'
 import { CLIS } from '../clis.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
-import { cut, pad, width, wrap } from '../width.mjs'
+import { cut, labelWidth, pad, width, wrap } from '../width.mjs'
 
 // 미배선 사유를 **같은 사유끼리** 묶는다. 사유 하나가 CLI 아홉 개에 그대로
 // 반복되면 줄만 길어지고 "무엇이 왜 빠졌는가"는 오히려 묻힌다.
@@ -25,10 +25,16 @@ export function unsupportedGroups(item, t) {
   return [...byReason].map(([why, clis]) => ({ clis, why }))
 }
 
-// '배선  ' / '미배선 ' 라벨 자리. 로케일마다 길이가 달라 상수로 박으면 열이
-// 어긋난다 — 그 로케일의 실제 라벨에서 폭을 뽑는다.
+// 왼쪽 라벨 열('배선'·'미배선'·'출처'·'미리보기'·'대상 파일')의 폭. 로케일마다
+// 길이가 달라 상수로 박으면 열이 어긋나므로 그 로케일의 실제 라벨에서 뽑는다.
+//
+// **이 열에 놓이는 라벨을 하나도 빠뜨리면 안 된다.** 예전에는 배선·미배선만
+// 재서, 한국어의 '미리보기'(8칸)가 폭 7의 열에 들어가 '미리…'로 잘렸다 —
+// pad는 넘치는 글을 cut으로 버리기 때문에 조용히 사라진다.
+const LEAD_KEYS = ['detail.wired', 'detail.unwired', 'detail.provider', 'detail.preview', 'detail.target']
+
 function leadWidth(t) {
-  return Math.max(width(t('detail.wired')), width(t('detail.unwired'))) + 1
+  return labelWidth(t, LEAD_KEYS) + 1
 }
 
 function headLine(row, w, t) {
@@ -75,6 +81,9 @@ function agentLines(row, w, t) {
   const item = row.item
   const lead = leadWidth(t)
   const out = [headLine(row, w, t)]
+  // 대상 파일은 note보다 먼저 낸다 — MCP의 배선표가 "어느 파일에 쓰이나"를
+  // 답하는 자리와 같은 몫이고, 산문보다 먼저 눈에 들어와야 한다.
+  if (item.target) out.push(cut(`${pad(t('detail.target'), lead)}${item.target}`, w))
   if (item.note) out.push(...wrap(t(item.note), w))
   if (row.statusDetail) out.push(...wrap(row.statusDetail, w))
   out.push(...wiredLines(item, w, lead, t))

@@ -263,8 +263,8 @@ export default {
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project. Upstream supports 18 runtimes (Codex, Antigravity, …); this item wires --claude only',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고
   // 무엇이 설정되는가"를 대신 말한다(상세 패널에 배선표가 없다).
-  'item.config.gitmessage.en.note': 'writes .gitmessage.txt in English and points git commit.template at it. One template for every tool and person in this repository — pick English or Korean, not both',
-  'item.config.gitmessage.ko.note': 'writes .gitmessage.txt in Korean and points git commit.template at it. One template for every tool and person in this repository — pick English or Korean, not both',
+  'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository',
+  'item.config.gitmessage.ko.note': 'commit messages in Korean. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository',
   'item.gitmessage.unregistered': 'file is in place, but commit.template does not point at it yet',
   'log.gitmessage.write': '  [dry-run] write {path}',
   'log.gitmessage.remove': '  [dry-run] remove {path}',
@@ -300,9 +300,11 @@ export default {
   'tui.empty.none': '  Nothing here.',
   'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab tab   Esc clear   Ctrl+F CLI   Ctrl+D detail',
   'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview   Ctrl+F CLI   Ctrl+D detail',
+  // 힌트 줄 오른쪽 끝의 고정 자리. 나머지 힌트가 다 잘려 나가도 이 자리는 남는다.
+  'tui.hint.quit': 'Ctrl+Q quit',
   'tui.review.title': 'Review — {count} change(s)',
   'tui.review.more': '  …and {count} more',
-  'tui.review.hint': 'Enter apply   Esc cancel',
+  'tui.review.hint': 'Enter apply   Esc cancel   Ctrl+Q quit',
   'tui.notItemRow': 'Press Enter to run this row.',
   'tui.noPreview': 'This item has no preview.',
   'tui.opened': 'Opened: {target}',
@@ -310,6 +312,8 @@ export default {
   'tui.submitCancelled': 'Submission cancelled.',
   'tui.toggledAll': 'Selected every visible item in the {tab} tab.',
   'tui.toggledNone': 'Cleared every visible item in the {tab} tab.',
+  // 배타 묶음에서 형제가 함께 꺼졌을 때. 조용히 뒤집히면 오조작으로 읽힌다.
+  'tui.exclusiveSwitched': 'Switched to {kept} — they share one file, so {dropped} was cleared.',
   'tui.nonInteractive': 'The interactive screen only opens in a terminal. --list and --set work too.',
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
@@ -343,6 +347,7 @@ export default {
   'tui.filter.empty': '  Nothing in this tab is wired for {cli}.',
 
   'item.location.user': 'installs to: user global',
+  'item.target': 'file: {path}',
   // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
   'item.cliCoverage': 'CLI {covered}/{total}',
   'item.unsupportedList': 'not wired for {count}: {groups}',
@@ -351,6 +356,7 @@ export default {
   'detail.unwired': 'unwired',
   'detail.provider': 'source',
   'detail.preview': 'preview',
+  'detail.target': 'file',
   'detail.scope.project': 'repo scope',
   'detail.scope.user': 'user global',
   'detail.more': '  …and {count} more line(s) — Ctrl+D to expand',
@@ -377,6 +383,9 @@ export default {
   'category.context': 'Code understanding',
   'category.style': 'Design taste',
   'category.flow': 'Way of working',
+  // 헤더 하나가 "무엇을 고르는 자리이고 규칙이 무엇인가"를 함께 말한다 —
+  // 대상 파일이 하나뿐인 배타 묶음이라 라디오 표시와 짝이 된다.
+  'category.commit': 'Commit template · .gitmessage.txt · pick one',
   'category.service': 'External services',
   'design.localSuffix': '{id} (local)',
   'design.localTag': 'local',

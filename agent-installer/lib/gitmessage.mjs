@@ -184,8 +184,11 @@ export function defineGitmessage({ id, label, body, note }) {
     category: 'config',
     label,
     scope: 'project',
-    group: '__flow',
+    group: '__commit',
     exclusive: GITMESSAGE_EXCLUSIVE,
+    // 이 항목이 손대는 파일. 그룹 헤더가 없는 평평한 목록에서도 무엇이
+    // 놓이는지 보이고, '.gitmessage'로 검색해도 걸린다.
+    target: GITMESSAGE_REL,
     unsupported: {},
     note,
 
