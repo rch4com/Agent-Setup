@@ -713,9 +713,10 @@ test('design 항목은 공급자·미리보기·설명을 보여 준다', () => 
 })
 
 test('어느 줄도 폭을 넘지 않는다', () => {
-  for (const line of detailLines(PONYTAIL, { width: 40, height: 20, t: T })) {
-    assert.ok(width(line) <= 40, `넘침(${width(line)}): ${line}`)
-  }
+  const lines = detailLines(PONYTAIL, { width: 40, height: 20, t: T })
+  // 빈 배열 위를 도는 루프는 무엇을 반환하든 통과한다. 내용이 있다는 것을 먼저 못박는다.
+  assert.ok(lines.length > 0, '상세가 비면 폭 검사가 공허해진다')
+  for (const line of lines) assert.ok(width(line) <= 40, `넘침(${width(line)}): ${line}`)
 })
 
 // 지면을 넘치면 남은 줄 수를 알리고 펼치는 길을 안내한다 — 조용히 자르면
@@ -933,7 +934,8 @@ test('패널을 펼치면 목록 자리를 전부 가져간다', () => {
 
 test('화면 줄 수는 터미널 높이를 넘지 않고 어느 줄도 폭을 넘지 않는다', () => {
   const lines = render(createState(ROWS), { width: 60, height: 30, t: T })
-  assert.ok(lines.length <= 30, `줄 수 ${lines.length}`)
+  // 위아래 경계를 모두 잡는다 — 상한만 두면 빈 화면이 통과한다.
+  assert.equal(lines.length, 30, `줄 수 ${lines.length}`)
   for (const line of lines) assert.ok(width(line) <= 60, `넘침: ${line}`)
 })
 
@@ -1352,7 +1354,7 @@ EOF
 `agent-installer/test/tui.render.test.mjs` 끝에 추가한다.
 
 ```js
-import { setCliFilter } from '../lib/tui/state.mjs'
+import { setCliFilter, setFocus, setQuery } from '../lib/tui/state.mjs'
 import { CLI_IDS } from '../lib/clis.mjs'
 
 // 순환 목록은 [null, ...CLI_IDS]다 — codex는 세 번째(전체·claude 다음)다.
@@ -1375,9 +1377,13 @@ test('검색칸 포커스에서도 필터 표시가 반전 밖에 남는다', ()
 })
 
 // 폭이 모자라면 검색이 이긴다 — 타이핑 중인 글자가 사라지면 안 된다.
-test('좁은 폭에서는 필터 표시를 버린다', () => {
-  const s = setCliFilter(createState(ROWS), 'codex')
+test('좁은 폭에서는 필터 표시를 버리고 검색칸을 남긴다', () => {
+  const s = setQuery(setCliFilter(createState(ROWS), 'codex'), 'alp')
   const lines = render(s, { width: 26, height: 30, t: T, cliOptions: [null, ...CLI_IDS] })
+  const text = lines.join('\n')
+  // 버렸다는 것을 직접 못박는다 — 폭 검사만으로는 필터가 그려졌는지 알 수 없다.
+  assert.ok(!text.includes('CLI › codex'), '좁은 폭에서는 필터를 버려야 한다')
+  assert.ok(text.includes('alp'), '검색어는 남아야 한다')
   for (const line of lines) assert.ok(width(line) <= 26, `넘침: ${line}`)
 })
 
@@ -2046,7 +2052,9 @@ test('중단하면 건너뛴 건수를 알린다', () => {
 test('어느 줄도 폭을 넘지 않고 높이를 넘지 않는다', () => {
   const p = feed([{ index: 0, phase: 'start', item: CHANGES[0].item, action: 'install' }])
   const lines = progressLines(p, { width: 40, height: 8, now: 2000, t: T })
-  assert.ok(lines.length <= 8)
+  // 상한만 두면 빈 배열이 통과한다 — 실제로 그렸는지도 함께 못박는다.
+  assert.ok(lines.length > 0 && lines.length <= 8, `줄 수 ${lines.length}`)
+  assert.ok(lines.join('\n').includes('Alpha'), '실행 중 항목이 그려져야 한다')
   for (const line of lines) assert.ok(width(line) <= 40, `넘침: ${line}`)
 })
 
