@@ -93,23 +93,47 @@ export function tabBar(state, { width: limit, color = false, searching = false, 
     .join('')
 }
 
+// 필터 표시. 검색줄 오른쪽 끝에 붙는다 — 새 줄을 만들면 CHROME이 늘어
+// 목록이 그만큼 준다. 필터가 없으면 아무것도 내지 않는다(잡음 방지).
+export function filterSegment(state, { color = false, t = createT('en'), options = [] } = {}) {
+  if (!state.cliFilter) return ''
+  const at = options.indexOf(state.cliFilter)
+  const pos = at === -1 ? '' : ` (${t('tui.filter.position', { current: at + 1, total: options.length })})`
+  const text = `${t('tui.filter.prefix')}${state.cliFilter}${pos}`
+  return color ? `${BOLD}${text}${RESET}` : text
+}
+
 // 검색줄 = 하나의 입력칸이다. 포커스가 여기 있으면 입력 커서(▌)로 드러내고,
-// 컬러에서는 줄 전체를 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
+// 컬러에서는 입력 영역을 반전시켜 "지금 여기에 타이핑된다"를 분명히 한다 —
 // 이 상태에서만 스페이스가 선택이 아니라 검색어로 들어가기 때문이다.
-function searchLine(state, { limit, color, paint, t }) {
+//
+// 반전은 **입력 영역까지만** 칠한다. 줄 끝까지 채워 반전시키면 오른쪽 필터
+// 표시가 반전에 먹혀 읽히지 않는다.
+function searchLine(state, { limit, color, paint, t, filter = '' }) {
   const prefix = t('tui.search.prefix')
-  const room = Math.max(0, limit - width(prefix))
+  const tail = filter ? `  ${filter}` : ''
+  // 색 코드는 폭에 들어가면 안 되므로 색을 입히기 전 문자열로 잰다.
+  const tailWidth = filter ? width(filter) + 2 : 0
+  const room = Math.max(0, limit - width(prefix) - tailWidth)
+
+  // 필터를 넣을 자리가 없으면 필터를 버린다 — 타이핑 중인 글자가 사라지는
+  // 쪽이 더 나쁘다. 탭 줄의 shown/total 표기가 필터가 걸려 있음을 이미 알린다.
+  if (room < 8) return searchLine(state, { limit, color, paint, t, filter: '' })
+
   if (state.focus === 'search') {
-    const text = `${prefix}${cut(`${state.query}▌`, room)}`
-    return color ? `${REVERSE}${pad(text, limit)}${RESET}` : text
+    const field = `${prefix}${cut(`${state.query}▌`, room)}`
+    const body = color ? `${REVERSE}${pad(field, limit - tailWidth)}${RESET}` : field
+    return `${body}${tail}`
   }
-  if (state.query) return `${prefix}${cut(state.query, room)}`
-  return `${prefix}${paint(DIM, cut(t('tui.search.placeholder'), room))}`
+  const body = state.query
+    ? `${prefix}${cut(state.query, room)}`
+    : `${prefix}${paint(DIM, cut(t('tui.search.placeholder'), room))}`
+  return `${body}${tail}`
 }
 
 export function render(state, opts = {}) {
   // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
-  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', detailExpanded = false, t = createT('en') } = opts
+  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', detailExpanded = false, cliOptions = [], t = createT('en') } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
   const w = Math.max(24, columns - 1)
@@ -123,10 +147,11 @@ export function render(state, opts = {}) {
   const head = cut(`${title}  ${counts}  ${repo}`, w)
   const searching = String(state.query ?? '').trim() !== ''
 
+  const filter = filterSegment(state, { color, t, options: cliOptions })
   const lines = [
     color ? `${BOLD}${title}${RESET}${cut(`  ${counts}  ${repo}`, Math.max(0, w - width(title)))}` : head,
     tabBar(state, { width: w, color, searching, t }),
-    searchLine(state, { limit: w, color, paint, t }),
+    searchLine(state, { limit: w, color, paint, t, filter }),
     '',
   ]
 
@@ -134,7 +159,10 @@ export function render(state, opts = {}) {
   const all = displayList(state)
 
   if (all.length === 0) {
-    if (body > 0) lines.push(paint(DIM, cut(searching ? t('tui.empty.filtered') : t('tui.empty.none'), w)))
+    const empty = state.cliFilter
+      ? t('tui.filter.empty', { cli: state.cliFilter })
+      : searching ? t('tui.empty.filtered') : t('tui.empty.none')
+    if (body > 0) lines.push(paint(DIM, cut(empty, w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
     const window = all.slice(state.offset, state.offset + body)

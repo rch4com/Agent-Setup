@@ -7,8 +7,10 @@ import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { createT, toText, LOCALES } from '../i18n/index.mjs'
 import { RECORD_REL, writeLang } from '../bootstrap/record.mjs'
 import { collectRows, installedIds } from './rows.mjs'
+import { CLI_IDS } from '../clis.mjs'
 import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
+  cycleCliFilter,
 } from './state.mjs'
 import { render, renderReview, bodyHeight } from './render.mjs'
 
@@ -92,6 +94,10 @@ export async function runTui(root, opts = {}) {
   // 타이핑하면 검색칸으로 올라간다.
   let state = createState(collected.rows, { selectedIds: installedIds(collected.rows), focus: 'list' })
   let status = ''
+  // 순환 대상: 전체(null) + CLI 10개. state.mjs는 아무것도 import 하지 않으므로
+  // 목록을 여기서 만들어 넘긴다.
+  const CLI_OPTIONS = [null, ...CLI_IDS]
+  let detailExpanded = false
 
   emitKeypressEvents(stdin)
   stdin.setRawMode(true)
@@ -103,8 +109,11 @@ export async function runTui(root, opts = {}) {
   const draw = (lines) => stdout.write(HOME + lines.map((l) => l + CLEAR_LINE).join('\n') + '\n' + CLEAR_DOWN)
   const paint = () => {
     const height = stdout.rows ?? 24
-    state = scroll(state, bodyHeight(height))
-    draw(render(state, { width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t }))
+    state = scroll(state, bodyHeight(height, detailExpanded))
+    draw(render(state, {
+      width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t,
+      detailExpanded, cliOptions: CLI_OPTIONS,
+    }))
   }
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
@@ -188,6 +197,16 @@ export async function runTui(root, opts = {}) {
 
       if (key.ctrl && key.name === 'c') break
 
+      // Ctrl 조합은 두 포커스에서 모두 통한다 — 검색으로 좁힌 직후가 CLI
+      // 필터를 겹쳐 걸고 싶은 순간이다. 글자 키(c·d)를 쓰지 않는 이유는
+      // 목록 포커스에서 아무 글자나 누르면 검색칸으로 올라가기 때문이다:
+      // c를 필터에 배정하면 codex·claude를 검색어로 칠 수 없다.
+      if (key.ctrl && (key.name === 'f' || key.name === 'b')) {
+        state = cycleCliFilter(state, key.name === 'f' ? 1 : -1, CLI_OPTIONS)
+        continue
+      }
+      if (key.ctrl && key.name === 'd') { detailExpanded = !detailExpanded; continue }
+
       // ── 검색칸에 포커스: 타이핑이 곧 검색어다(스페이스 포함, 두 단어 검색 가능).
       if (state.focus === 'search') {
         // Esc: 검색어가 있으면 지우고 검색칸에 남는다. 이미 비었으면 목록으로 내려간다.
@@ -223,8 +242,8 @@ export async function runTui(root, opts = {}) {
         continue
       }
       if (key.name === 'down' || (key.ctrl && key.name === 'n')) { state = move(state, 1); continue }
-      if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24)); continue }
-      if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24)); continue }
+      if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
+      if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
 
       // 탭 이동 — Tab/Shift+Tab, 좌우 화살표.
       if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }

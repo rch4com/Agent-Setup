@@ -280,8 +280,8 @@ export default {
   'tui.search.placeholder': 'type to search · ↓ for the list',
   'tui.empty.filtered': '  Nothing matches in this tab. Press Tab to try another.',
   'tui.empty.none': '  Nothing here.',
-  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab switch tab   Esc clear',
-  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab switch tab   Enter run/submit   Ctrl+A all   Ctrl+O preview',
+  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab tab   Esc clear   Ctrl+F CLI   Ctrl+D detail',
+  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview   Ctrl+F CLI   Ctrl+D detail',
   'tui.review.title': 'Review — {count} change(s)',
   'tui.review.more': '  …and {count} more',
   'tui.review.hint': 'Enter apply   Esc cancel',
@@ -302,6 +302,12 @@ export default {
   'tui.lang.dryRun': 'dry-run — applied to this session only',
   'tui.lang.saveFailed': 'Could not save the language: {message}',
   'tui.lang.overridden': '--lang / AGENT_SETUP_LANG still wins on the next run.',
+
+  // CLI 필터 표시. 검색줄 오른쪽 끝에 붙는다(Task 7) — filterSegment가 쓴다.
+  'tui.filter.prefix': 'CLI › ',
+  'tui.filter.all': 'all',
+  'tui.filter.position': '{current}/{total}',
+  'tui.filter.empty': '  Nothing in this tab is wired for {cli}.',
 
   'item.location.user': 'installs to: user global',
   // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.

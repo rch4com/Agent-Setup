@@ -210,3 +210,19 @@ test('Ctrl+O는 커서 항목을 열고, 미리보기가 없는 항목은 안내
   assert.deepEqual(bare.targets, [])
   assert.equal(noPreview.screen.includes('미리보기를 제공하지 않습니다'), true)
 })
+
+const CTRL_F = { name: 'f', ctrl: true }
+
+// 글자 키는 전부 검색에 양보한다는 규칙이 이 TUI의 뼈대다. c를 필터에
+// 배정하면 codex·claude를 검색어로 칠 수 없다.
+// ESC 세 번: 검색어 지우기 → 목록으로 → 종료.
+test('c와 d는 필터 키가 아니라 검색어로 들어간다', async () => {
+  const { screen } = await drive([...type('cd'), ESC, ESC, ESC])
+  assert.ok(screen.includes('검색 › cd'), 'cd가 검색어로 들어가야 한다')
+  assert.ok(!screen.includes('CLI › c'), 'CLI 필터가 걸리면 안 된다')
+})
+
+test('Ctrl+F가 CLI 필터를 돌린다', async () => {
+  const { screen } = await drive([CTRL_F, ESC])
+  assert.ok(screen.includes('CLI › claude'), '첫 순환은 claude여야 한다')
+})

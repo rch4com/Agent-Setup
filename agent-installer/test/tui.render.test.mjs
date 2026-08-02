@@ -1,9 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { render, renderReview, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
-import { createState, move } from '../lib/tui/state.mjs'
+import { createState, move, setCliFilter, setFocus, setQuery } from '../lib/tui/state.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
 import { width } from '../lib/width.mjs'
+import { CLI_IDS } from '../lib/clis.mjs'
 
 const T = createT('ko')
 
@@ -98,4 +99,40 @@ test('제출 검토는 패널 자리를 빼앗기지 않는다', () => {
   const text = renderReview(changes, { width: 60, height: 24, t: T }).join('\n')
   assert.ok(text.includes('Item11'), '24줄 터미널이면 12건이 다 보여야 한다')
   assert.ok(!text.includes('…외'), '자를 이유가 없다')
+})
+
+// 순환 목록은 [null, ...CLI_IDS]다 — codex는 세 번째(전체·claude 다음)다.
+test('필터가 걸리면 검색줄 오른쪽에 CLI와 위치가 보인다', () => {
+  const s = setCliFilter(createState(ROWS), 'codex')
+  const text = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }).join('\n')
+  assert.match(text, /CLI › codex/)
+  assert.ok(text.includes(`3/${CLI_IDS.length + 1}`), '순환 위치가 보여야 한다')
+})
+
+// 검색칸 반전이 줄 끝까지 칠하면 오른쪽 필터 표시가 반전에 먹힌다.
+test('검색칸 포커스에서도 필터 표시가 반전 밖에 남는다', () => {
+  const s = setFocus(setCliFilter(createState(ROWS), 'codex'), 'search')
+  const line = render(s, { width: 80, height: 30, color: true, t: T, cliOptions: [null, ...CLI_IDS] })[2]
+  const RESET = `${String.fromCharCode(27)}[0m`
+  const at = line.indexOf('CLI › codex')
+  assert.ok(at !== -1, '필터 표시가 있어야 한다')
+  const resetBefore = line.lastIndexOf(RESET, at)
+  assert.ok(resetBefore !== -1 && resetBefore < at, '필터는 반전이 끝난 뒤에 와야 한다')
+})
+
+// 폭이 모자라면 검색이 이긴다 — 타이핑 중인 글자가 사라지면 안 된다.
+test('좁은 폭에서는 필터 표시를 버리고 검색칸을 남긴다', () => {
+  const s = setQuery(setCliFilter(createState(ROWS), 'codex'), 'alp')
+  const lines = render(s, { width: 26, height: 30, t: T, cliOptions: [null, ...CLI_IDS] })
+  const text = lines.join('\n')
+  // 버렸다는 것을 직접 못박는다 — 폭 검사만으로는 필터가 그려졌는지 알 수 없다.
+  assert.ok(!text.includes('CLI › codex'), '좁은 폭에서는 필터를 버려야 한다')
+  assert.ok(text.includes('alp'), '검색어는 남아야 한다')
+  for (const line of lines) assert.ok(width(line) <= 26, `넘침: ${line}`)
+})
+
+test('필터로 탭이 비면 그 사실을 알린다', () => {
+  const s = setCliFilter(createState(ROWS), 'kiro')
+  const text = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }).join('\n')
+  assert.match(text, /kiro에 배선되는 항목이 없습니다/)
 })

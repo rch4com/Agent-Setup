@@ -271,8 +271,8 @@ export default {
   'tui.search.placeholder': '타이핑하면 검색 · ↓ 로 목록',
   'tui.empty.filtered': '  이 탭에는 일치하는 항목이 없습니다. Tab으로 다른 탭을 보세요.',
   'tui.empty.none': '  항목이 없습니다.',
-  'tui.hint.search': '입력=검색어(스페이스 포함)   ↓ 목록으로   Tab 탭이동   Esc 검색해제',
-  'tui.hint.list': 'Space 선택   ↑↓ 이동(맨 위 ↑=검색칸)   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기',
+  'tui.hint.search': '입력=검색어   ↓ 목록으로   Tab 탭이동   Esc 검색해제   Ctrl+F CLI   Ctrl+D 상세',
+  'tui.hint.list': 'Space 선택   ↑↓ 이동   Tab 탭   Enter 실행/제출   Ctrl+A 전체   Ctrl+O 미리보기   Ctrl+F CLI   Ctrl+D 상세',
   'tui.review.title': '제출 검토 — 변경 {count}건',
   'tui.review.more': '  …외 {count}건',
   'tui.review.hint': 'Enter 적용   Esc 취소',
@@ -293,6 +293,12 @@ export default {
   'tui.lang.dryRun': 'dry-run — 이번 세션에만 적용했습니다',
   'tui.lang.saveFailed': '언어를 저장하지 못했습니다: {message}',
   'tui.lang.overridden': '다음 실행에서는 --lang / AGENT_SETUP_LANG이 여전히 이깁니다.',
+
+  // CLI 필터 표시. en.mjs 쪽 주석 참고.
+  'tui.filter.prefix': 'CLI › ',
+  'tui.filter.all': '전체',
+  'tui.filter.position': '{current}/{total}',
+  'tui.filter.empty': '  이 탭에는 {cli}에 배선되는 항목이 없습니다.',
 
   'item.location.user': '설치 위치: 사용자 글로벌',
   // en.mjs 쪽 주석 참고.
