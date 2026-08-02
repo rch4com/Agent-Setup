@@ -159,3 +159,12 @@ test('dry-run은 기록도 쓰지 않는다', () => {
   runBootstrap(root, { t, dryRun: true, log() {} })
   assert.equal(readRecord(root), null)
 })
+
+test('부트스트랩이 단계 진행을 알린다', () => {
+  const root = makeTempRepo()
+  const events = []
+  runBootstrap(root, { log: () => {}, onProgress: (e) => events.push(e) })
+  assert.ok(events.length > 0)
+  assert.equal(events.at(-1).done, events.at(-1).total)
+  assert.ok(events.every((e) => e.done <= e.total))
+})

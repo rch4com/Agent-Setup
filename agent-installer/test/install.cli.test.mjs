@@ -203,3 +203,12 @@ test('--lang은 오류 메시지에도 적용된다', () => {
   // 한 메시지 안에서 언어가 갈리지 않아야 한다.
   assert.doesNotMatch(r.stderr, /Unknown argument/)
 })
+
+// CI 로그에 ANSI 제어문자를 흘리지 않는다. 비TTY에서는 평문 한 줄씩만 낸다.
+test('비대화형 --set은 평문 진행 줄을 낸다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--set', 'mcp.notion', '--dry-run'], { env: KO })
+  assert.equal(r.status, 0)
+  assert.match(r.stdout, /\[1\/1\]/)
+  assert.ok(!r.stdout.includes(String.fromCharCode(27)), 'CI 로그에 ANSI 제어문자가 없어야 한다')
+})
