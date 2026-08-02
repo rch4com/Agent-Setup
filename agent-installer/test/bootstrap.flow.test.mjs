@@ -168,3 +168,21 @@ test('부트스트랩이 단계 진행을 알린다', () => {
   assert.equal(events.at(-1).done, events.at(-1).total)
   assert.ok(events.every((e) => e.done <= e.total))
 })
+
+// .gitignore에 '.vscode/'가 이미 있으면 ensureIgnore의 warnBlockedNegations가
+// 부정 항목(!.vscode/mcp.json, !.vscode/settings.json)마다 경고 결과를 더 얹어
+// manifest.ignore.length보다 많은 결과를 돌려준다 — 예측한 total을 고정해 두면
+// done이 total을 넘어서면서 진행률이 100%를 넘는다.
+test('.gitignore가 부정 항목을 가리면 진행률이 100%를 넘지 않는다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitignore'), '.vscode/\n')
+  const events = []
+  runBootstrap(root, { log: () => {}, onProgress: (e) => events.push(e) })
+  assert.ok(events.length > 0)
+  assert.ok(events.every((e) => e.done <= e.total), 'done이 total을 넘어섰다')
+  const doneSeq = events.map((e) => e.done)
+  for (let i = 1; i < doneSeq.length; i++) {
+    assert.ok(doneSeq[i] >= doneSeq[i - 1], 'done이 역행했다')
+  }
+  assert.equal(events.at(-1).done, events.at(-1).total)
+})

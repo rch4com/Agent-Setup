@@ -24,7 +24,9 @@ export function runBootstrap(root, opts = {}) {
 
   // 총 단계 수. 동기 파일 작업이라 단계 바만 돌지만, 무엇이 남았는지는
   // 알려 줄 수 있다. adopt는 파일을 만들지 않으므로 기록 쓰기 한 단계뿐이다.
-  const total = adopt
+  // 예측일 뿐이다 — ensureIgnore는 부정 항목이 기존 .gitignore에 가려지면
+  // manifest.ignore.length보다 많은 결과(경고 포함)를 돌려줄 수 있다.
+  let total = adopt
     ? 1
     : manifest.dirs.length + manifest.files.length + (manifest.settings ?? []).length
       + manifest.blocks.length + manifest.adapters.length + manifest.ignore.length + 1
@@ -33,6 +35,11 @@ export function runBootstrap(root, opts = {}) {
     const list = Array.isArray(results) ? results : [results]
     for (const r of list) {
       done++
+      // 실제 진행이 예측을 앞지르면 천장을 함께 올린다. total을 고정해 두면
+      // done > total인 알림이 나가 진행률이 100%를 넘고 바가 자기 너비를
+      // 넘겨 그려진다 — done을 total에 맞춰 죽이면 화면은 멈춘 것처럼 보이는데
+      // 남은 단계가 조용히 계속 도는, 더 나쁜 오류가 된다.
+      if (done > total) total = done
       if (onProgress) onProgress({ done, total, path: r?.path ?? null })
     }
     return list
