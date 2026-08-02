@@ -1,10 +1,11 @@
 // 순수 렌더 — 상태와 크기를 받아 화면 줄 배열을 돌려준다.
 // 커서 이동·지우기 같은 제어 시퀀스는 run.mjs가 맡는다.
-import { displayList, tabCounts, activeTab } from './state.mjs'
+import { displayList, tabCounts, activeTab, currentRow } from './state.mjs'
 import { CLI_IDS } from '../clis.mjs'
 import { createT } from '../i18n/index.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
 import { cut, pad, width } from '../width.mjs'
+import { detailLines } from './detail.mjs'
 
 // 폭 계산은 화면 전용이 아니다 — 비대화형 목록도 같은 열 맞춤이 필요해
 // lib/width.mjs에 있다. 여기서 다시 내보내는 것은 호출부(테스트 포함)가
@@ -21,8 +22,27 @@ const RESET = `${ESC}[0m`
 const CHROME = 6
 export const LABEL_WIDTH = 24
 
-export function bodyHeight(height) {
-  return Math.max(3, height - CHROME)
+// 상세 패널은 목록과 화면을 나눠 갖는다. 높이를 커서가 아니라 **터미널
+// 크기로만** 정하는 것이 핵심이다 — 커서를 옮길 때마다 높이가 변하면
+// 목록이 출렁이고, 그것이 아코디언(행 펼침)을 기각한 이유였다.
+const PANEL_SHARE = 0.4
+const PANEL_MIN = 4
+const PANEL_MAX = 12
+// 목록이 3줄 밑으로 내려가는 쪽이 패널이 사라지는 것보다 나쁘다.
+const PANEL_FLOOR = PANEL_MIN + 3
+
+export function panelHeight(height, expanded = false) {
+  const room = Math.max(0, height - CHROME)
+  if (expanded) return room
+  if (room < PANEL_FLOOR) return 0
+  return Math.min(PANEL_MAX, Math.max(PANEL_MIN, Math.round(room * PANEL_SHARE)))
+}
+
+export function bodyHeight(height, expanded = false) {
+  const room = Math.max(0, height - CHROME)
+  const panel = panelHeight(height, expanded)
+  // 패널이 없을 때는 예전과 같이 최소 3줄을 보장한다.
+  return panel === 0 ? Math.max(3, room) : room - panel
 }
 
 const MARK = { action: '▶', on: '×', off: ' ' }
@@ -81,7 +101,7 @@ function searchLine(state, { limit, color, paint, t }) {
 
 export function render(state, opts = {}) {
   // columns로 받는다 — width로 두면 모듈의 width() 함수를 함수 스코프 전체에서 가린다.
-  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', t = createT('en') } = opts
+  const { width: columns = 80, height = 24, repo = '', dryRun = false, color = false, status = '', detailExpanded = false, t = createT('en') } = opts
 
   // 마지막 칸은 비워 둔다 — 폭을 꽉 채우면 터미널이 줄을 넘긴다.
   const w = Math.max(24, columns - 1)
@@ -102,11 +122,11 @@ export function render(state, opts = {}) {
     '',
   ]
 
-  const body = bodyHeight(height)
+  const body = bodyHeight(height, detailExpanded)
   const all = displayList(state)
 
   if (all.length === 0) {
-    lines.push(paint(DIM, cut(searching ? t('tui.empty.filtered') : t('tui.empty.none'), w)))
+    if (body > 0) lines.push(paint(DIM, cut(searching ? t('tui.empty.filtered') : t('tui.empty.none'), w)))
     for (let i = 1; i < body; i++) lines.push('')
   } else {
     const window = all.slice(state.offset, state.offset + body)
@@ -126,6 +146,18 @@ export function render(state, opts = {}) {
       lines.push(here ? paint(REVERSE, text) : text)
     }
     for (let i = window.length; i < body; i++) lines.push('')
+  }
+
+  // 상세 패널 — 목록 아래 고정 자리. 높이가 커서와 무관하므로 목록이
+  // 출렁이지 않는다. 지면이 모자라면 panelHeight가 0을 돌려 통째로 빠진다.
+  const panel = panelHeight(height, detailExpanded)
+  if (panel > 0) {
+    lines.push(paint(DIM, '─'.repeat(w)))
+    const room = panel - 1
+    const detail = detailLines(currentRow(state), { width: w, height: room, t })
+    const shown = detail.length > 0 ? detail : [paint(DIM, cut(t('detail.empty'), w))]
+    for (const line of shown.slice(0, room)) lines.push(line)
+    for (let i = shown.length; i < room; i++) lines.push('')
   }
 
   const hint = state.focus === 'search' ? t('tui.hint.search') : t('tui.hint.list')
