@@ -2,6 +2,33 @@
 
 최신 항목이 위에 옵니다. 상세 사용법은 `AgentSetup-README.md`를 참조하세요.
 
+## 미배선 사유를 상류 검증대로 적는다 (2026-08-02, 1.6.0)
+
+**일괄 "Claude Code 전용" 사유가 다섯 항목에서 거짓 정보였다.** superpowers·
+bkit·impeccable·gstack·GSD의 상류를 1차 자료(README·설치 스크립트·npm
+tarball·로컬 설치본)로 검증한 결과, 다섯 도구 모두 Claude 밖 CLI를 지원한다 —
+배선이 Claude뿐인 것은 사실이지만, 그 사유가 "전용"이라고 말하면 상류가
+지원하는 CLI에서 거짓이 된다.
+
+- **`definePlugin`·`defineSkill`이 항목별 미배선 사유를 받는다.** 넘긴 CLI만
+  덮고 나머지는 기존 일괄 사유로 채운다 — ponytail이 손으로 하던 패턴의
+  공식화라 안 넘긴 항목은 그대로다.
+- **다섯 항목의 사유를 CLI별로 정밀화.** superpowers는 하니스별 별도 설치
+  5개 CLI, bkit은 별도 배포판(bkit-codex·bkit-gemini) 2개, impeccable은
+  "상류는 지원하나 npx 설치가 공유 `.agents/skills` 연결을 끊어 배선하지
+  않음" 6개, gstack은 `./setup --host` 3개, GSD는 런타임 플래그 4개.
+  상류에 경로가 없는 CLI는 "공식 설치 경로 없음"으로 구분한다.
+- **Gemini CLI → Antigravity 승계를 반영.** Google이 2026-06-18 Gemini CLI를
+  종료하고 Antigravity CLI를 공식 후계로 지정했다. GSD의 gemini 사유는
+  "상류가 제거(--antigravity로 승계)"로, bkit-gemini는 승계 추정으로 적었다.
+  Antigravity는 CLI 목록에 없으므로 superpowers·GSD의 note에 명시했다.
+- **확장 시 함정을 주석으로 고정.** GSD `--uninstall`은 런타임 플래그가 없으면
+  기본값 claude를 지운다. gstack README의 `--host cursor`·`slate`는 setup이
+  거부한다(exit 1). impeccable의 Junction 파괴는 버그가 아니라 설계다
+  (`isInProjectProviderLink`).
+
+`1.6.0`은 136 파일로 발행된다.
+
 ## 상세 패널과 실시간 진행 바 (2026-08-02, 1.5.0)
 
 **목록 한 줄에 우겨넣던 정보를 상세 패널로 내리고, 적용이 얼마나 남았는지
