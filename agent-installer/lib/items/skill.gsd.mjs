@@ -15,11 +15,11 @@ export default defineSkill({
     return { status: found ? 'installed' : 'absent' }
   },
   async install({ root, exec }) {
-    const r = exec('npx', ['-y', '@opengsd/gsd-core@latest', '--claude', '--local'], { cwd: root })
+    const r = await exec('npx', ['-y', '@opengsd/gsd-core@latest', '--claude', '--local'], { cwd: root })
     if (!r.ok) throw new LocalizedError('error.gsdInstall', { output: r.output })
   },
   async uninstall({ root, exec }) {
-    const r = exec('npx', ['-y', '@opengsd/gsd-core@latest', '--uninstall'], { cwd: root })
+    const r = await exec('npx', ['-y', '@opengsd/gsd-core@latest', '--uninstall'], { cwd: root })
     if (!r.ok) throw new LocalizedError('error.gsdUninstall', { output: r.output })
   },
 })

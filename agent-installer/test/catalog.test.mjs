@@ -74,9 +74,9 @@ test('defineMcp install은 누락 CLI만 채우고 uninstall은 전부 제거한
   assert.equal((await item.detect(ctx)).status, 'absent')
 })
 
-test('makeExec는 공백 포함 명령과 인자를 온전히 전달한다', () => {
+test('makeExec는 공백 포함 명령과 인자를 온전히 전달한다', async () => {
   const exec = makeExec(false, () => {})
-  const r = exec(process.execPath, ['-e', 'console.log(process.argv[1])', 'a b c'])
+  const r = await exec(process.execPath, ['-e', 'console.log(process.argv[1])', 'a b c'])
   assert.equal(r.ok, true)
   assert.equal(r.output.trim(), 'a b c')
 })
@@ -103,10 +103,10 @@ test('shellQuote: POSIX는 작은따옴표로 $()·백틱까지 막는다', () =
 })
 
 // 실제 셸을 거쳐도 메타문자가 리터럴로 도착하는지 본다(호스트 OS의 셸로).
-test('makeExec: 셸 메타문자가 든 인자를 리터럴로 전달한다', () => {
+test('makeExec: 셸 메타문자가 든 인자를 리터럴로 전달한다', async () => {
   const exec = makeExec(false, () => {})
   const nasty = process.platform === 'win32' ? 'a&b|c^(d)' : 'a&b|c$(id)`id`'
-  const r = exec(process.execPath, ['-e', 'console.log(process.argv[1])', nasty], { shell: true })
+  const r = await exec(process.execPath, ['-e', 'console.log(process.argv[1])', nasty], { shell: true })
   assert.equal(r.ok, true, r.output)
   assert.equal(r.output.trim(), nasty)
 })
@@ -116,8 +116,29 @@ test('makeExec: 셸 메타문자가 든 인자를 리터럴로 전달한다', ()
 test('makeExec는 shell 경로에서도 DEP0190(shell+args) 경고를 내지 않는다', () => {
   const code = `import { makeExec } from ${JSON.stringify(CATALOG_URL)}
     const exec = makeExec(false, () => {})
-    const r = exec(process.execPath, ['-e', 'console.log(process.argv[1])', 'a b c'], { shell: true })
+    const r = await exec(process.execPath, ['-e', 'console.log(process.argv[1])', 'a b c'], { shell: true })
     if (!r.ok || r.output.trim() !== 'a b c') { console.error('unexpected:', JSON.stringify(r)); process.exit(2) }`
   const res = spawnSync(process.execPath, ['--throw-deprecation', '--input-type=module', '-e', code], { encoding: 'utf8' })
   assert.equal(res.status, 0, `DEP0190 또는 실행 실패:\n${res.stderr}`)
+})
+
+// await를 빠뜨린 자리는 { ok, output } 대신 Promise를 받는다. r.ok가
+// undefined라 `if (!r.ok)` 폴백이 늘 돌고, 실패가 성공으로 읽힌다.
+// 사람 눈으로는 놓치기 쉬워 소스에서 직접 잡는다.
+test('exec 호출은 전부 await한다', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs')
+  const { join, dirname } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const lib = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib')
+  const files = [
+    join(lib, 'catalog.mjs'),
+    ...readdirSync(join(lib, 'items')).map((f) => join(lib, 'items', f)),
+  ]
+  for (const file of files) {
+    readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+      // 정의부(`(cmd, args, opts)` 꼴)와 주석은 건너뛴다.
+      if (!/\bexec\(/.test(line) || /^\s*\/\//.test(line) || /=>/.test(line)) return
+      assert.match(line, /await exec\(/, `${file}:${i + 1} — await 없는 exec: ${line.trim()}`)
+    })
+  }
 })

@@ -67,8 +67,8 @@ export default {
   async install({ root, dryRun, exec, log = () => {}, t }) {
     let deferred = false
     if (!isPluginEnabled(root, [INSTALL_ID])) {
-      exec('claude', ['plugin', 'marketplace', 'add', MARKETPLACE.repo], { cwd: root })
-      const r = exec('claude', ['plugin', 'install', INSTALL_ID, '--scope', 'project'], { cwd: root })
+      await exec('claude', ['plugin', 'marketplace', 'add', MARKETPLACE.repo], { cwd: root })
+      const r = await exec('claude', ['plugin', 'install', INSTALL_ID, '--scope', 'project'], { cwd: root })
       if (!r.ok) {
         if (!dryRun) enablePlugin(root, INSTALL_ID, MARKETPLACE)
         deferred = true
@@ -86,7 +86,7 @@ export default {
 
   async uninstall({ root, dryRun, exec, log = () => {}, t }) {
     if (isPluginEnabled(root, [INSTALL_ID])) {
-      const r = exec('claude', ['plugin', 'uninstall', INSTALL_ID], { cwd: root })
+      const r = await exec('claude', ['plugin', 'uninstall', INSTALL_ID], { cwd: root })
       if (!r.ok && !dryRun) disablePlugin(root, [INSTALL_ID])
     }
     if (!hasOpencode(root)) return

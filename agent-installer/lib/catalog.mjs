@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { CLIS, CLI_IDS } from './clis.mjs'
 import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
@@ -58,8 +59,13 @@ export function shellQuote(text, platform = process.platform) {
   return `'${s.replace(/'/g, "'\\''")}'`
 }
 
+const execFileAsync = promisify(execFile)
+
+// 비동기다. 동기 실행은 이벤트 루프를 통째로 막아, npx가 도는 수십 초 동안
+// 진행 화면을 한 번도 다시 그릴 수 없었다. 반환 형태({ ok, output })는
+// 그대로라 호출부는 await만 더하면 된다.
 export function makeExec(dryRun, log = console.log) {
-  return (cmd, args, opts = {}) => {
+  return async (cmd, args, opts = {}) => {
     if (dryRun) {
       log(`  [dry-run] ${cmd} ${args.join(' ')}`)
       return { ok: true, output: '' }
@@ -70,13 +76,14 @@ export function makeExec(dryRun, log = console.log) {
     // 어차피 우리가 직접 quote하므로, 완성된 한 줄 명령을 넘기고 인자 배열은 비운다.
     const [file, fileArgs] = shell ? [[cmd, ...args].map((s) => shellQuote(s)).join(' '), []] : [cmd, args]
     try {
-      const output = execFileSync(file, fileArgs, {
+      // execFile은 기본으로 stdout·stderr를 버퍼에 담는다(자식 프로세스에
+      // 부모의 stdio를 물려주지 않는다) — 그래서 stdio 옵션을 따로 줄 필요가 없다.
+      const { stdout } = await execFileAsync(file, fileArgs, {
         encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
         ...opts,
         shell,
       })
-      return { ok: true, output }
+      return { ok: true, output: stdout }
     } catch (err) {
       return { ok: false, output: String(err.stderr ?? err.message) }
     }
@@ -130,8 +137,8 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
     },
     async install(ctx) {
       const { root, dryRun, exec } = ctx
-      if (marketplace) exec('claude', ['plugin', 'marketplace', 'add', marketplace.repo], { cwd: root })
-      const r = exec('claude', ['plugin', 'install', installId, '--scope', 'project'], { cwd: root })
+      if (marketplace) await exec('claude', ['plugin', 'marketplace', 'add', marketplace.repo], { cwd: root })
+      const r = await exec('claude', ['plugin', 'install', installId, '--scope', 'project'], { cwd: root })
       if (!r.ok) {
         if (!dryRun) enablePlugin(root, installId, marketplace)
         return { fallback: true, message: msg('item.plugin.deferred') }
@@ -139,7 +146,7 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
     },
     async uninstall(ctx) {
       const { root, dryRun, exec } = ctx
-      const r = exec('claude', ['plugin', 'uninstall', installId], { cwd: root })
+      const r = await exec('claude', ['plugin', 'uninstall', installId], { cwd: root })
       if (!r.ok && !dryRun) disablePlugin(root, detectIds)
     },
   }
@@ -197,14 +204,14 @@ export function defineRegistrySkill({ id, label, source, skill, note, group = nu
       return { status: findSkillDir(root, skill) ? 'installed' : 'absent' }
     },
     async install({ root, exec }) {
-      const r = exec('npx', ['-y', 'skills@latest', 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy'], { cwd: root })
+      const r = await exec('npx', ['-y', 'skills@latest', 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy'], { cwd: root })
       if (!r.ok) throw new LocalizedError('error.registrySkillInstall', { skill, output: r.output })
     },
     async uninstall({ root, dryRun, exec }) {
       // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리를
       // 남긴다(실측). 그래서 성공/실패와 무관하게 남은 디렉터리를 우리가 지운다 —
       // 남겨 두면 detect가 계속 installed로 읽어 제거가 안 된 채 성공으로 보인다.
-      exec('npx', ['-y', 'skills@latest', 'remove', skill, '--agent', 'universal', '--yes'], { cwd: root })
+      await exec('npx', ['-y', 'skills@latest', 'remove', skill, '--agent', 'universal', '--yes'], { cwd: root })
       if (dryRun) return
       const dir = findSkillDir(root, skill)
       if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
