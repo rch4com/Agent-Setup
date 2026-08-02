@@ -257,9 +257,15 @@ test('적용 중 화면이 진행 바를 그린다', async () => {
 test('적용 중 Ctrl+C는 건너뜀으로 남기고 실패로 취급하지 않는다', async () => {
   const before = process.exitCode
   try {
-    const { screen, log, result } = await drive([TAB, SPACE, ENTER, ENTER, CC, ANY, ...QUIT])
+    // 두 항목을 고른다 — footer의 건너뜀 집계가 실제 건수를 세는지까지
+    // 검증하려면 건너뛴 항목이 하나뿐이면 안 된다(0건과 헷갈릴 여지가 없어야 한다).
+    const { screen, log, result } = await drive([TAB, SPACE, DOWN, SPACE, ENTER, ENTER, CC, ANY, ...QUIT])
 
     assert.ok(screen.includes('중단했습니다'), '중단 화면이 그려지지 않았다')
+    // run.mjs가 apply() 결과로 entries의 state를 미리 skipped로 덮어쓰면
+    // progressLines의 pending→skipped 겹쳐 보기가 더는 pending을 찾지 못해
+    // "0건 건너뜀"으로 어긋난다 — 실제 건수(2건)를 못박아 그 회귀를 잡는다.
+    assert.match(screen, /2건 건너뜀/, '건너뜀 집계가 실제 건수와 어긋난다')
     assert.equal(log.includes('✖'), false, '건너뜀이 실패 사연으로 나오면 안 된다')
     assert.equal(process.exitCode, before, '사용자가 취소한 것을 실패로 세우면 안 된다')
     // ANY가 "아무 키나" 대기에 도달했고 그 뒤 ESC로 정상 종료됐다 —

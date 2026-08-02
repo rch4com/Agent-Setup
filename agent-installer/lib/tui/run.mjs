@@ -231,12 +231,15 @@ export async function runTui(root, opts = {}) {
           drawProgress()
         },
       })
-      // 건너뛴 항목을 화면에도 반영하고 마지막 상태를 한 번 더 그린다.
       // aborted는 apply()가 끝난 뒤에만 세운다 — 도중에 세우면 실행 중 항목이
       // aborted:true와 공존해, progressLines의 pending→skipped 겹쳐 보기가
-      // 아직 끝나지 않은 항목까지 건너뛴 것으로 잘못 그린다.
-      const entries = progress.entries.map((e, i) => (results[i]?.skipped ? { ...e, state: 'skipped' } : e))
-      progress = { ...progress, entries, aborted: stopRequested }
+      // 아직 끝나지 않은 항목까지 건너뛴 것으로 잘못 그린다. entries 자체는
+      // 건드리지 않는다 — 시도조차 하지 않은 항목은 그대로 pending으로
+      // 남아 있어야 progressLines(viewEntry)가 그 상태를 skipped로 겹쳐
+      // 보며 표시와 집계("N건 건너뜀")를 함께 맞출 수 있다. 여기서 먼저
+      // state를 skipped로 바꿔 버리면 그 겹쳐 보기가 더는 pending을 찾지
+      // 못해 집계가 항상 0이 된다.
+      progress = { ...progress, aborted: stopRequested }
       drawProgress()
       if (results.some((r) => !r.ok && !r.skipped)) process.exitCode = 1
       return results

@@ -54,9 +54,12 @@ test('실패는 실패로 표시된다', () => {
 })
 
 test('중단하면 건너뛴 건수를 알린다', () => {
+  // CHANGES 3건 중 1건만 끝났다 — 나머지 2건(Bravo·Caesar)이 건너뛴 항목이다.
+  // /건너뜀/만 보면 항목 줄의 "건너뜀" 표시에도 걸려 숫자가 어긋나도 통과한다 —
+  // 그래서 footer가 실제로 2건이라고 말하는지까지 못박는다.
   let p = feed([{ index: 0, phase: 'done', item: CHANGES[0].item, action: 'install', ok: true, ms: 10 }])
   p = { ...p, aborted: true }
-  assert.match(progressLines(p, { width: 60, height: 20, now: 2000, t: T }).join('\n'), /건너뜀/)
+  assert.match(progressLines(p, { width: 60, height: 20, now: 2000, t: T }).join('\n'), /2건 건너뜀/)
 })
 
 test('어느 줄도 폭을 넘지 않고 높이를 넘지 않는다', () => {
