@@ -5,6 +5,36 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Splitting the documents into English and Korean (2026-08-03, 1.9.0)
+
+**The screen and the logs were fully translated back in 1.2.0, yet the documents
+that explain the tool were Korean-only.** A user who got past the first screen in
+English was stopped at the very next step — following the link from the npm page
+led to nothing they could read.
+
+- **The base names belong to the English editions.** `AgentSetup-README.md` and
+  `AgentSetup-README-CHANGES.md` are English, and the Korean editions carry
+  `.ko.md`. The repository had already settled on English as the reference
+  language (the catalog originates in English), and the links on the published
+  package page point at those two names, so moving the files would break them
+  outside the repository.
+- **Links follow the language of the document.** The English usage doc links to
+  the English changelog, the Korean usage doc to the Korean changelog. Only the
+  language switcher sits at the head of each document as a single line — nowhere
+  in the body does the language you are reading change out from under you.
+- **The root `README.md` and `agent-installer/README.md` were matched to their
+  sections' language.** The latter holds an English section and a Korean section
+  in one file, so the same link appears twice — and until now both pointed at the
+  Korean document. The changelog link, missing from both places, was added too.
+- **Only one piece of Korean is left in the English editions.** It is
+  `'미리보기'`, the string in the width-computation bug the 1.8.0 entry describes —
+  that an 8-column Korean word was truncated in a column of width 7 is the fact
+  itself, so translating it would break the explanation.
+
+`1.9.0` ships with the same 139 files as 1.8.0. The split documents live only in
+the repository; the only change that rides in the package is the links in
+`agent-installer/README.md`.
+
 ## A key to leave, and the commit template choice drawn as radios (2026-08-02, 1.8.0)
 
 **The screen was failing to say two things: how to leave, and the fact that the
