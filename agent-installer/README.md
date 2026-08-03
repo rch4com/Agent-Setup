@@ -93,6 +93,7 @@ The generated layout, how each tool is wired, the installable items, and the
 DESIGN.md library are documented on GitHub.
 
 - [Usage and generated structure](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.md)
+- [Changelog](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README-CHANGES.md)
 - [Repository](https://github.com/rch4com/Agent-Setup)
 
 ## License
@@ -189,7 +190,8 @@ Node.js 20 이상.
 생성되는 구조, 도구별 연결 방식, 설치 가능한 항목, DESIGN.md 라이브러리 등
 상세 문서는 GitHub에 있습니다.
 
-- [사용법과 생성 구조](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.md)
+- [사용법과 생성 구조](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.ko.md)
+- [변경 이력](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README-CHANGES.ko.md)
 - [저장소](https://github.com/rch4com/Agent-Setup)
 
 ## 라이선스
