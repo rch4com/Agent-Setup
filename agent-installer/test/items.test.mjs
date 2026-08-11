@@ -7,9 +7,9 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 20개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 21개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 20)
+  assert.equal(items.length, 21)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -23,6 +23,7 @@ test('loadItems는 20개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('skill.gstack'))
   assert.ok(ids.includes('skill.caveman'))
   assert.ok(ids.includes('skill.taste'))
+  assert.ok(ids.includes('skill.hallmark'))
 })
 
 // 그룹은 화면의 소분류 헤더로 나가므로, 오타 하나가 헤더를 raw id(`__tokne`)로
