@@ -5,6 +5,39 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## The Hallmark skill item (2026-08-10, 1.10.0)
+
+**The design-sense group held two items, and both stood on "make something
+new".** `plugin.impeccable` carries a design language and `skill.taste` handles
+landing pages. Scoring a screen that already exists, or rebuilding its structure
+from scratch, was an empty spot.
+
+- **`skill.hallmark`** — it has four verbs. The default builds new UI, `audit`
+  scores existing code against the anti-patterns without editing, `redesign`
+  keeps the copy, IA, and brand while throwing out the structure, and `study`
+  extracts the design DNA from a screenshot or URL you admire. Everything runs
+  through 21 themes and 57 slop-test gates.
+- **`study` can also emit a portable `design.md`** — only when asked. It runs
+  opposite to the DESIGN.MD tab, which fetches already-published brand documents
+  into `design-md/<provider>/<name>/DESIGN.md`: this one extracts from a
+  reference the user picked and writes it at the project root. The format is
+  Hallmark's own convention, so it does not mix with what the tab fetches.
+- **Not one line of new wiring.** Upstream lays the skill out as
+  `skills/hallmark/SKILL.md`, so the existing registry path (`npx skills add …
+  --agent universal --copy`) drops it straight into `.agents/skills/hallmark`.
+- **The `name` in `SKILL.md` matches the directory name** — the very point where
+  `skill.taste` diverged, so it was checked. It is found by name without falling
+  back to the frontmatter scan.
+- **All 106 files under `references/` are copied along with it** (measured
+  2026-08-10). If only the skill body arrived and the references did not, the
+  install would look successful while the substance of the rule-set was entirely
+  missing — a real install and removal were each run once to confirm.
+- **Upstream documents Cursor and Codex paths too, but they are per-CLI
+  directories** (`.cursor/rules`, `~/.codex/skills`). One shared path covers all
+  10 at once, so that route is not the narrower one — `supports` is every CLI.
+
+`1.10.0` ships 140 files — the 139 of 1.9.0 plus the one item file.
+
 ## Splitting the documents into English and Korean (2026-08-03, 1.9.0)
 
 **The screen and the logs were fully translated back in 1.2.0, yet the documents
