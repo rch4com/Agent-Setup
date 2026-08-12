@@ -23,7 +23,9 @@ function packInfo() {
       // npm은 notice를 stderr로 보낸다. JSON만 읽으려면 분리해야 한다.
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    cached = JSON.parse(out)[0]
+    // npm 11까지는 결과 배열을, npm 12부터는 패키지 이름을 키로 둔 객체를 준다.
+    const parsed = JSON.parse(out)
+    cached = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0]
   }
   return cached
 }
