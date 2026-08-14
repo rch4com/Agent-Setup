@@ -40,9 +40,11 @@ export default {
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => !SUPPORTS.includes(c)).map((c) => [
       c,
-      // codex·copilot·gemini는 상류에 설치 경로가 있지만 전부 사용자 스코프다.
-      // 나머지는 플러그인 기구 자체가 없어 AGENTS.md에 규칙을 옮겨 적어야 한다.
-      ['codex', 'copilot', 'gemini'].includes(c)
+      // codex·copilot·grok·gemini는 상류에 설치 경로가 있지만 전부 사용자
+      // 스코프다. grok은 `grok plugin install DietrichGebert/ponytail --trust`로
+      // 플러그인 기구가 엄연히 있다 — "기구가 없다" 쪽에 두면 거짓이다
+      // (2026-08-15 재측정). 나머지는 상류의 규칙 파일을 손으로 옮겨야 한다.
+      ['codex', 'copilot', 'gemini', 'grok'].includes(c)
         ? msg('item.unsupported.ponytailUser')
         : msg('item.unsupported.ponytailRules'),
     ]),

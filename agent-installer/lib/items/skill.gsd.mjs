@@ -8,12 +8,14 @@ function hasGsdFiles(dir) {
   return existsSync(dir) && readdirSync(dir).some((f) => f.startsWith('gsd-'))
 }
 
-// 상류(v1.9.1)는 런타임 플래그 18개(--codex·--antigravity 등)를 지원하지만
-// 이 항목은 --claude만 배선한다. Gemini CLI는 상류가 명시 제거했다(2026-06-18
-// Google 종료, --gemini는 --antigravity 안내 후 종료). 상류의 --kilo는
-// OpenCode 파생 "Kilo"(~/.config/kilo)라 이 저장소의 Kilo Code(.kilocode)와
-// 같은 제품인지 미확인이라 지원으로 표기하지 않는다(2026-08-02 검증).
-const FLAGS = ['codex', 'opencode', 'copilot', 'kimi']
+// 상류(v1.10.0)는 런타임 플래그 19개(--codex·--antigravity 등)를 지원하지만
+// 이 항목은 --claude만 배선한다. Gemini CLI는 상류가 명시 제거했다 —
+// `--gemini --local`이 2026-06-18 종료 안내를 찍고 파일을 하나도 만들지 않는
+// 것을 실측했다(2026-08-15).
+// --kilo가 이 저장소의 Kilo Code와 같은 제품인지는 오래 미확인이었는데,
+// `--kilo --local`이 만든 .kilo/skills/ 71개를 설치된 Kilo Code
+// (@kilocode/cli 7.3.45)가 전부 로드하는 것을 실측해 해소했다(2026-08-15).
+const FLAGS = ['codex', 'opencode', 'copilot', 'kimi', 'kilo']
 
 export default defineSkill({
   id: 'skill.gsd', label: 'GSD (Get Shit Done)', group: '__flow', scope: 'project',

@@ -88,6 +88,52 @@ test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', as
   assert.equal(why('skill.gsd', 'kiro'), 'item.unsupported.upstreamNone')
 })
 
+// 2026-08-15 재측정에서 뒤집힌 판정들. 상류가 지원을 새로 추가했거나(grok),
+// 같은 제품인지 모르던 것이 실측으로 밝혀졌다(kilo). 되돌아가면 화면이 다시
+// "상류에 없다"고 거짓말한다.
+test('상류가 새로 지원한 CLI는 없다고 말하지 않는다', async () => {
+  const items = await loadItems()
+  const why = (id, cli) => items.find((i) => i.id === id).unsupported[cli].key
+  // superpowers 6.3.0의 `### Grok Build CLI`
+  assert.equal(why('plugin.superpowers', 'grok'), 'item.unsupported.superpowersSeparate')
+  // ponytail은 grok 플러그인 기구가 있다 — 사유는 "기구 없음"이 아니라 사용자 스코프
+  assert.equal(why('plugin.ponytail', 'grok'), 'item.unsupported.ponytailUser')
+  // GSD --kilo가 만든 .kilo/skills를 Kilo Code가 읽는 것을 실측
+  assert.equal(why('skill.gsd', 'kilo'), 'item.unsupported.gsdFlag')
+})
+
+// 일괄 폴백이 붙어 "Claude Code 전용 플러그인"이라 말하던 세 항목. 셋 다
+// 상류가 다른 CLI를 지원하므로 그 문구는 거짓이었다.
+test('폴백을 밟던 항목은 검증된 사유를 갖는다', async () => {
+  const items = await loadItems()
+  const why = (id, cli) => items.find((i) => i.id === id).unsupported[cli].key
+  // ECC: codex만 스코프가 이유고 나머지는 285개라는 규모가 이유다
+  assert.equal(why('plugin.ecc', 'codex'), 'item.unsupported.eccCodexHome')
+  assert.equal(why('plugin.ecc', 'kimi'), 'item.unsupported.eccScale')
+  assert.equal(why('plugin.ecc', 'gemini'), 'item.unsupported.eccScale')
+  // Understand Anything: install.sh도 copilot 플러그인도 사용자 스코프
+  assert.equal(why('plugin.understand-anything', 'copilot'), 'item.unsupported.uaUser')
+  assert.equal(why('plugin.understand-anything', 'codex'), 'item.unsupported.uaUser')
+  // Matt Pocock: 상류가 우리 레지스트리 경로를 직접 안내한다
+  assert.equal(why('plugin.mattpocock-skills', 'codex'), 'item.unsupported.mattpocockRegistry')
+})
+
+// definePlugin·defineSkill의 기본 사유는 상류를 확인하지 않고도 9개 CLI에
+// 일괄로 붙는다 — 그래서 검증을 건너뛴 항목이 조용히 거짓 정보를 내보냈다.
+// 폴백 자체는 두 define의 계약이라 남기되(catalog.test.mjs가 검증한다),
+// 실제 항목이 그걸 밟으면 여기서 막는다.
+test('실제 항목은 검증하지 않은 일괄 폴백 사유를 쓰지 않는다', async () => {
+  const FALLBACK = ['item.unsupported.claudePlugin', 'item.unsupported.claudeSkill']
+  for (const item of await loadItems()) {
+    for (const [cli, why] of Object.entries(item.unsupported ?? {})) {
+      assert.ok(
+        !FALLBACK.includes(why.key),
+        `${item.id}/${cli}: 폴백 사유 '${why.key}' — 상류를 확인하고 사유를 명시하세요`,
+      )
+    }
+  }
+})
+
 test('unsupported 사유는 구조화 메시지다', async () => {
   const t = createT('en')
   for (const item of await loadItems()) {
