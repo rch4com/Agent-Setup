@@ -5,6 +5,42 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 미배선 사유를 22개 항목 전수 재측정으로 맞춘다 (2026-08-15, 1.11.1)
+
+**상세 패널의 "왜 이 CLI에는 배선하지 않는가"가 여섯 자리에서 거짓이었다.**
+22개 항목 × 10개 CLI를 상류 README와 실제 CLI로 다시 재고, 사실과 어긋난 곳만
+고쳤다. 설치·제거 로직은 한 줄도 바뀌지 않는다 — 화면에 나가는 문장만 바뀐다.
+
+- **상류가 그 사이 지원을 늘린 자리가 셋.** superpowers는 6.2.0의 11개 하니스가
+  6.3.0에서 14개가 되며 Grok Build가 들어왔다(`grok plugin install
+  superpowers@xai-official --trust`). ponytail도 `grok plugin install
+  DietrichGebert/ponytail --trust`가 있어 "플러그인 기구가 없습니다"가 거짓이었다
+  — 맞는 사유는 사용자 스코프다. GSD는 1.9.1에서 1.10.0이 되며 `--kilo`가 생겼다.
+- **`--kilo`가 우리 Kilo Code와 같은 제품인지 오래 미확인이었다.**
+  `--kilo --local`이 만든 `.kilo/skills/` 71개를 설치된 Kilo Code
+  (@kilocode/cli 7.3.45)가 전부 읽는 것을 실측해 해소했다.
+- **`definePlugin`의 기본 사유가 검증을 우회하고 있었다.** `unsupported`를
+  넘기지 않으면 9개 CLI에 일괄로 "Claude Code 전용 플러그인"이 붙는데, ECC·
+  Understand Anything·Matt Pocock 셋이 그 경로로 무검증 통과했고 셋 다 거짓이었다.
+  ECC는 `codex plugin add ecc@ecc` 네이티브 지원에 `install.sh --target`으로
+  Gemini(`.gemini/`)·Kimi(`.kimi-code/`)를 프로젝트 로컬로 설치한다. Understand
+  Anything은 Copilot CLI 플러그인 직접 설치까지 있다. Matt Pocock은 상류가
+  `npx skills add`(우리가 쓰는 바로 그 레지스트리 경로)를 안내한다.
+- **셋의 진짜 사유를 명시했다.** ECC는 codex만 활성 `CODEX_HOME` 하나뿐이라
+  프로젝트 스코프가 없고, 나머지는 skills/에 284개가 들어 있어 공유 디렉터리를
+  덮는 것이 이유다. Understand Anything은 install.sh도 copilot 플러그인도 사용자
+  스코프다. Matt Pocock은 상류가 없어서가 아니라 우리가 플러그인 쪽을 골라서다.
+- **폴백을 다시 밟으면 테스트가 막는다.** 실제 항목이
+  `item.unsupported.claudePlugin`·`claudeSkill`을 쓰면 실패한다. 두 키는
+  `definePlugin`·`defineSkill`의 계약이라 남기되, 항목이 상류 확인 없이 그 위에
+  얹히는 길만 끊었다.
+
+정확했던 판정은 그대로 뒀다 — gstack의 `--host`(codex·opencode·kiro), impeccable의
+지원 도구 목록, bkit의 별도 배포판, GSD의 `--gemini`다. `--gemini --local`이
+2026-06-18 종료 안내만 찍고 파일을 하나도 만들지 않는 것도 실측으로 확인했다.
+
+오래된 수치도 함께 맞췄다 — ECC 281개 → 284개, Matt Pocock 22종 → 35종이다.
+
 ## Diagram Design 스킬 항목 (2026-08-15, 1.11.0)
 
 **디자인 감각 그룹의 세 항목은 모두 화면을 다뤘고, 그림을 다루는 자리는

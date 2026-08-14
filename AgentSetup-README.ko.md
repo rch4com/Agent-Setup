@@ -466,13 +466,13 @@ node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 �
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
-| 플러그인 | `plugin.superpowers`, `plugin.bkit`, `plugin.mattpocock-skills` | Claude Code 플러그인 기구로 `--scope project` 설치. superpowers는 상류가 Codex·Antigravity 등 11개 하니스를 하니스별 설치로, bkit은 Codex·Gemini를 별도 배포판(bkit-codex·bkit-gemini)으로 지원하지만 이 항목이 배선하는 것은 Claude 판뿐입니다 — CLI별 사유는 상세 패널에 표시. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
+| 플러그인 | `plugin.superpowers`, `plugin.bkit`, `plugin.mattpocock-skills` | Claude Code 플러그인 기구로 `--scope project` 설치. superpowers는 상류가 Codex·Grok Build 등 14개 하니스를 하니스별 설치로, bkit은 Codex·Gemini를 별도 배포판(bkit-codex·bkit-gemini)으로, Matt Pocock은 `npx skills add`(공유 `.agents/skills`)로도 지원하지만 이 항목이 배선하는 것은 Claude 판뿐입니다 — CLI별 사유는 상세 패널에 표시. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
 | 플러그인 | `plugin.ponytail` | Claude Code 플러그인과 OpenCode `opencode.jsonc`의 `plugin` 배열에 동시 배선(둘 다 프로젝트 스코프). 기존 `plugin` 항목은 보존하고 끝에만 덧붙입니다. 나머지 CLI는 상류 설치가 사용자 스코프이거나(Codex·Copilot·Gemini) 플러그인 기구가 없어 항목 note에 사유를 표시합니다 |
 | MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
 | MCP | `mcp.graphify` | stdio 방식 — PATH에 `graphify-mcp`가 필요합니다 (`uv tool install "graphifyy[mcp]"`). 인자 없이 실행 디렉터리의 `graphify-out/graph.json`을 읽으므로 그래프도 저장소 안에 남습니다 |
 | MCP | `mcp.headroom` | stdio 방식 — PATH에 `headroom`이 필요합니다 (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`). 상류 `server.json`과 같은 `headroom mcp serve` 계약으로 등록합니다 |
-| 플러그인 | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code 마켓플레이스 플러그인, `--scope project`. 세 도구 모두 다른 CLI용 설치 경로가 있지만 사용자 스코프이거나(ECC·Understand Anything) 이 저장소의 `.agents/skills` 연결을 끊어서(impeccable) 쓰지 않습니다 — 항목 note에 사유가 나옵니다 |
+| 플러그인 | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code 마켓플레이스 플러그인, `--scope project`. 세 도구 모두 다른 CLI용 설치 경로가 있지만 쓰지 않는 까닭이 각기 다릅니다 — ECC는 스킬이 284개라 공유 디렉터리를 덮고(Codex만 따로, 활성 `CODEX_HOME` 하나에만 설치돼 프로젝트 스코프가 없습니다), Understand Anything은 사용자 스코프이며, impeccable은 이 저장소의 `.agents/skills` 연결을 끊습니다 — 항목 note와 상세 패널에 사유가 나옵니다 |
 | 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 10개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다. 상류 Hallmark는 Cursor·Codex용 경로도, Diagram Design은 Claude·Codex 플러그인 매니페스트도 따로 두지만 모두 CLI별 디렉터리라, 공유 경로 하나가 10개를 함께 덮습니다 |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --claude --local` 프로젝트 로컬 설치. 상류는 `--codex`·`--antigravity` 등 18개 런타임을 지원하지만 이 항목은 `--claude`만 배선합니다 |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리). 상류 setup은 `--host`로 Codex·Kiro·OpenCode도 지원하지만 이 항목은 기본값(Claude)으로만 실행합니다 |

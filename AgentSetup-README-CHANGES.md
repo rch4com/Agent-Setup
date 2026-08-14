@@ -5,6 +5,49 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Unwired reasons corrected by re-measuring all 22 items (2026-08-15, 1.11.1)
+
+**The detail panel's "why is this CLI not wired" was false in six places.** All
+22 items were re-measured against upstream READMEs and the actual CLIs across
+10 targets, and only the parts that contradicted reality were changed. Not one
+line of install or uninstall logic moves — only the sentences on screen.
+
+- **Upstream added support in three places since we last checked.** superpowers
+  went from 11 harnesses in 6.2.0 to 14 in 6.3.0, and Grok Build was one of the
+  additions (`grok plugin install superpowers@xai-official --trust`). ponytail
+  also ships `grok plugin install DietrichGebert/ponytail --trust`, so "no
+  plugin mechanism" was false — the correct reason is user scope. GSD went from
+  1.9.1 to 1.10.0 and gained `--kilo`.
+- **Whether that `--kilo` meant our Kilo Code was unresolved for a long time.**
+  Settled by measurement: the 71 entries `--kilo --local` writes into
+  `.kilo/skills/` are all loaded by the installed Kilo Code
+  (@kilocode/cli 7.3.45).
+- **`definePlugin`'s default reason was routing around verification.** When
+  `unsupported` is omitted, all 9 CLIs get "Claude Code plugin only" — and ECC,
+  Understand Anything, and Matt Pocock all passed through unverified that way,
+  all three falsely. ECC ships native `codex plugin add ecc@ecc` support and
+  installs Gemini (`.gemini/`) and Kimi (`.kimi-code/`) project-locally through
+  `install.sh --target`. Understand Anything even has a direct Copilot CLI
+  plugin install. Matt Pocock's upstream documents `npx skills add` — the very
+  registry route this repository already uses.
+- **Their real reasons are now stated.** For ECC, Codex has only the single
+  active `CODEX_HOME` and no project scope, while the rest are blocked by the
+  284 entries in skills/ that would swamp the shared directory. Understand
+  Anything is user-scoped through both install.sh and the copilot plugin. Matt
+  Pocock is not missing upstream support — we chose the plugin route.
+- **Stepping back onto the fallback now fails a test.** A real item that uses
+  `item.unsupported.claudePlugin` or `claudeSkill` is rejected. Both keys stay
+  as the contract of `definePlugin` and `defineSkill`; only the path where an
+  item rides on them without checking upstream is closed.
+
+Judgments that were already correct were left alone — gstack's `--host`
+(codex, opencode, kiro), impeccable's supported-tools list, bkit's separate
+distributions, and GSD's `--gemini`. That last one was confirmed by measurement
+too: `--gemini --local` prints the 2026-06-18 sunset notice and creates no files.
+
+Two stale counts were corrected along the way — ECC 281 → 284, Matt Pocock
+22 → 35.
+
 ## The Diagram Design skill item (2026-08-15, 1.11.0)
 
 **All three items in the design-sense group handled screens, and the spot for
