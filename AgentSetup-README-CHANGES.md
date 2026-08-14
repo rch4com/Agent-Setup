@@ -5,6 +5,40 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## The Diagram Design skill item (2026-08-15, 1.11.0)
+
+**All three items in the design-sense group handled screens, and the spot for
+drawings was empty.** Architecture diagrams, flowcharts, and sequence diagrams
+still shipped in the default Mermaid skin, and the moment one landed in a deck
+it read as foreign to the brand.
+
+- **`skill.diagram-design`** — draws 27 diagram types as self-contained HTML
+  with inline SVG. It also takes `.drawio` and `.mmd` sources and redraws them
+  under the same rules, and an onboarding path pulls brand colors and fonts
+  from a website URL to rewrite `references/style-guide.md`.
+- **Not one line of new wiring.** Upstream lays the skill out at
+  `skills/diagram-design/SKILL.md`, which the existing registry route reads as
+  is. The `name` in SKILL.md matches the directory too, so it never takes the
+  frontmatter fallback that `skill.taste` walks.
+- **Upstream also ships `.claude-plugin` and `.codex-plugin` manifests.** All
+  the plugin route adds is three entries in `commands/` (`/export-diagram`,
+  `/import-drawio`, `/import-mermaid`), and those are thin wrappers that
+  delegate to `skills/…/references/` — the substance all arrives through the
+  shared skill. In exchange we avoid per-CLI directories and all 10 CLIs see it
+  at once.
+- **A real install and removal moved 147 files** (1 SKILL.md + 104 assets + 39
+  references + 3 scripts). If the body arrives without its references, the
+  install looks successful while the rules have no substance.
+
+Two things bite when writing in a non-Latin script. The default fonts
+(Instrument Serif, Geist, Geist Mono) carry no CJK glyphs, so labels fall back
+to a substitute and the font stack in `references/style-guide.md` has to be
+swapped. And PNG export needs `pip install playwright` plus
+`playwright install chromium` separately — the skill surfaces the instruction
+and stops rather than installing either for you.
+
+One more item file brings the published package from 140 files to 141.
+
 ## Restoring the provenance 1.10.0 lost (2026-08-14, 1.10.1)
 
 **1.10.0 was published from a local machine instead of through the workflow.**

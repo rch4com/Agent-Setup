@@ -5,6 +5,37 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Diagram Design 스킬 항목 (2026-08-15, 1.11.0)
+
+**디자인 감각 그룹의 세 항목은 모두 화면을 다뤘고, 그림을 다루는 자리는
+비어 있었다.** 아키텍처도·플로차트·시퀀스도는 여전히 Mermaid 기본 스킨으로
+나가, 발표 자료에 붙이는 순간 브랜드와 따로 놀았다.
+
+- **`skill.diagram-design`** — 다이어그램 27종을 자체 완결형 HTML(인라인 SVG)로
+  그린다. `.drawio`·`.mmd` 원본을 받아 같은 규칙으로 다시 그리는 경로와,
+  웹사이트 URL에서 브랜드 색·폰트를 뽑아 `references/style-guide.md`를
+  덮어쓰는 온보딩 경로가 함께 있다.
+- **배선은 한 줄도 새로 만들지 않았다.** 상류 배치가
+  `skills/diagram-design/SKILL.md`라 기존 레지스트리 경로가 그대로 읽는다.
+  SKILL.md의 `name`도 디렉터리 이름과 같아, `skill.taste`가 밟던 frontmatter
+  폴백을 거치지 않는다.
+- **상류는 `.claude-plugin`·`.codex-plugin` 매니페스트도 함께 둔다.** 그 경로만
+  주는 것은 `commands/` 세 개(`/export-diagram`·`/import-drawio`·
+  `/import-mermaid`)인데, 본문을 `skills/…/references/`에 위임하는 얇은
+  래퍼다 — 규칙의 알맹이는 공유 스킬 쪽에 전부 온다. 대신 CLI별 디렉터리를
+  피하고 10개 CLI가 한 번에 본다.
+- **실제 설치·제거로 147개 파일이 오가는 것을 확인했다** (SKILL.md 1 + assets
+  104 + references 39 + scripts 3). 본문만 오고 참조가 빠지면 설치는 성공으로
+  보이면서 규칙의 알맹이가 없다.
+
+한글로 쓸 때 두 가지가 걸린다. 기본 폰트(Instrument Serif·Geist·Geist Mono)에
+한글 글리프가 없어 라벨이 대체 폰트로 떨어지므로 `references/style-guide.md`의
+폰트 스택을 바꿔야 하고, PNG 내보내기는 `pip install playwright` +
+`playwright install chromium`이 따로 필요하다. 스킬은 이 둘을 자동으로
+설치하지 않고 안내만 하고 멈춘다.
+
+항목 파일 하나가 늘어 발행 파일은 140개에서 141개가 된다.
+
 ## 1.10.0에서 끊긴 출처 증명을 잇는다 (2026-08-14, 1.10.1)
 
 **1.10.0은 워크플로를 거치지 않고 로컬에서 발행됐다.** `--provenance`는 CI의
