@@ -252,6 +252,7 @@ export default {
   'item.skill.caveman.note': '원시인 말투로 답해 출력 토큰을 줄입니다. 코드와 오류는 그대로 둡니다. /caveman으로 켜고 끕니다',
   'item.skill.taste.note': '랜딩 페이지·포트폴리오·리디자인용 안티슬롭 프런트엔드 스킬 (스킬 이름: design-taste-frontend)',
   'item.skill.hallmark.note': '네 가지 동사(신규 제작·audit·redesign·study)를 갖춘 안티 AI슬롭 디자인 스킬. 테마 21종과 슬롭 테스트 57종. 상류는 Cursor·Codex 경로도 안내하지만 공유 스킬 디렉터리 하나로 10개 CLI가 함께 봅니다',
+  'item.skill.diagram-design.note': '브랜드 색·폰트로 다이어그램 27종을 그리는 HTML/SVG 스킬. Mermaid·draw.io 원본도 다시 그립니다. 기본 폰트(Instrument Serif·Geist)에 한글 글리프가 없어 style-guide.md에서 바꿔야 하고, PNG 내보내기는 Playwright·Chromium이 따로 필요합니다. 상류 플러그인의 명령 3개는 빠지지만 그 본문인 references/는 그대로 옵니다',
   'item.skill.karpathy.note': '과설계와 모호한 완료 기준을 줄이는 행동 지침',
   'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음.',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치. 상류는 Codex·Antigravity 등 18개 런타임을 지원합니다(이 항목은 --claude)',

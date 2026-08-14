@@ -259,6 +259,7 @@ export default {
   'item.skill.caveman.note': 'cuts output tokens by answering in caveman-speak; code and errors stay byte-exact. Toggle with /caveman',
   'item.skill.taste.note': 'anti-slop frontend skill for landing pages, portfolios and redesigns (skill name: design-taste-frontend)',
   'item.skill.hallmark.note': 'anti-AI-slop design skill with four verbs (build, audit, redesign, study). 21 themes and 57 slop-test gates. Upstream also documents Cursor and Codex paths; the shared skills directory covers all 10 CLIs at once',
+  'item.skill.diagram-design.note': 'draws 27 diagram types in HTML/SVG using your brand colors and fonts; also redraws Mermaid and draw.io sources. The default fonts (Instrument Serif, Geist) carry no CJK glyphs — swap them in style-guide.md — and PNG export needs Playwright and Chromium separately. The three upstream slash commands are left out, but the references/ they delegate to come along',
   'item.skill.karpathy.note': 'behavioral guidelines that curb overbuilding and vague success criteria',
   'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally.',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project. Upstream supports 18 runtimes (Codex, Antigravity, …); this item wires --claude only',
