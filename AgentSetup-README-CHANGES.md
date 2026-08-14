@@ -5,6 +5,28 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Restoring the provenance 1.10.0 lost (2026-08-14, 1.10.1)
+
+**1.10.0 was published from a local machine instead of through the workflow.**
+`--provenance` attaches only with CI's OIDC token, so the attestation chain
+running since 1.6.0 broke at that one version. npm does not allow republishing
+a version that already exists, so 1.10.0 itself cannot be repaired.
+
+- **The tag is what publishes.** Pushing a tag starting with `v` runs the
+  workflow from the checks through to the release, so calling `npm publish` by
+  hand skips that path. 1.10.0 went up by hand, and the workflow that followed
+  failed because it could not publish the same version twice.
+- **`npm pack --dry-run --json` is now read in both shapes.** From npm 12 the
+  result is an object keyed by package name rather than an array. A check that
+  assumed only the array caught `undefined`, and all 10 tarball assertions
+  failed at once — the check had fallen behind, not the artifact.
+- **This fix does not ride along in the package.** `files` holds only
+  `install.mjs`, `lib/`, `README.md`, and `LICENSE`, so `test/` is never
+  published.
+
+`1.10.1` ships the same 140 files as 1.10.0. The contents are unchanged; only
+the provenance is added.
+
 ## The Hallmark skill item (2026-08-10, 1.10.0)
 
 **The design-sense group held two items, and both stood on "make something
