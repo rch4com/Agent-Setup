@@ -5,6 +5,46 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## superpowers and Matt Pocock can now be installed as shared skills (2026-08-15, 1.12.0)
+
+**Both items reached Claude Code and nothing else.** 1.11.1 corrected the
+reasons to say that upstream supports other CLIs — but saying it is not the same
+as opening the road. There is now a second edition of each that lands in the
+shared `.agents/skills`, where 6 of the 10 CLIs read it natively (measured) and
+the remaining three reach it through the junctions the bootstrap creates.
+
+- **`skill.superpowers`** — 14 skills. `skill.mattpocock-skills` — 35. For Matt
+  Pocock this is not a side road: upstream documents
+  `npx skills add mattpocock/skills` itself.
+- **Exclusive with the plugin edition.** Turning both on would register the same
+  skills twice, once from the plugin cache and once from the shared directory.
+  The exclusivity mechanism built for the commit templates carries over as-is:
+  the TUI clears the sibling, and `--set` with both is rejected. The labels are
+  split too — `superpowers (plugin)` / `superpowers (skills)`.
+- **What you give up is stated.** The skill edition gets no upstream hooks —
+  superpowers loses the session-start hook that injects `using-superpowers` at
+  the start of a conversation, while Matt Pocock has no hooks to lose.
+- **An item that installs many skills cannot know what to delete.** The only
+  evidence is `skills-lock.json`, which the registry leaves at the repository
+  root. Only entries from the same source are removed, so several registry
+  skills can coexist without touching each other. An item with `skill: '*'`
+  must name an anchor skill for detect to look at, and omitting it fails at
+  definition time.
+
+**A lock-file leak was fixed along the way — it predates this change.** The
+registry's remove leaves both the directory and the lock entry behind. We have
+long deleted the directory, but the lock entry stayed, so a repository that had
+finished uninstalling still had a `skills-lock.json` claiming the skill was
+installed. That file is committed and shared, so a teammate restoring from it
+would resurrect deleted skills. Now only our own entries are pruned, and the
+file itself is removed when no skills remain.
+
+This applies to the 5 existing registry skills too. Verified by real install and
+removal: with superpowers' 14 skills sitting alongside diagram-design, removing
+only superpowers deleted exactly 14 directories and 14 lock entries.
+
+Two more items bring the published package from 141 files to 143.
+
 ## Unwired reasons corrected by re-measuring all 22 items (2026-08-15, 1.11.1)
 
 **The detail panel's "why is this CLI not wired" was false in six places.** All
