@@ -5,6 +5,36 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## agent-browser·find-skills·mcp-builder 공유 스킬을 넣는다 (2026-08-15, 1.15.0)
+
+**레지스트리 스킬 셋을 더한다.** 셋 다 `npx skills add … --agent universal
+--copy`로 공유 `.agents/skills`에 실물을 복사하므로 한 번 설치로 10개 CLI가
+함께 본다. 스크래치 저장소에서 설치·제거를 실측했다 — 디렉터리와
+skills-lock.json 항목이 정확히 셋 생기고 정확히 셋 사라진다.
+
+- **`skill.agent-browser`** (vercel-labs/agent-browser) — 브라우저 자동화
+  CLI를 쓰게 하는 스킬. SKILL.md는 안내 스텁이고 실제 워크플로 지침은 설치된
+  CLI가 런타임에 준다(`agent-browser skills get core`) — 그래서 PATH의
+  `agent-browser` 바이너리(`npm i -g agent-browser` 후 최초 1회
+  `agent-browser install`, Chrome for Testing 다운로드)가 사실상 전제고
+  note가 알린다. 본문은 Bash 호출뿐이라 하네스 중립이고, frontmatter의
+  allowed-tools·hidden은 Claude 문법이라 다른 CLI는 무시한다. 네이티브
+  바이너리는 Windows x64를 포함한다.
+- **`skill.find-skills`** (vercel-labs/skills) — 공개 스킬 레지스트리를
+  검색해 설치를 안내한다. 이 저장소의 레지스트리 항목들이 쓰는 `npx skills`
+  CLI 본체 리포가 자체 배포하는 유일한 스킬이다. npx skills 명령만 지시해
+  하네스 중립이다.
+- **`skill.mcp-builder`** (anthropics/skills) — MCP 서버 제작 가이드
+  (Python FastMCP·Node MCP SDK). 상류 리포 17종 중 이 하나만 `--skill`로
+  고른다. 본문이 참조하는 reference/ 문서 4종과 스킬별 LICENSE.txt
+  (Apache-2.0)가 스킬 디렉터리에 함께 복사돼 상대경로도 고지도 유지된다 —
+  실측으로 확인했다. 리포 단위 라이선스는 없고 스킬별로 갈린다.
+
+가이드가 함께 꼽은 design-taste-frontend(skill.taste)와 GSD(skill.gsd)는
+이미 있던 항목이다 — GSD는 가이드의 `--global` 대신 이 저장소의 원칙대로
+`--claude --local`(프로젝트 스코프)로 배선돼 있다. 항목이 셋 늘어 발행
+파일은 146개에서 149개가 된다.
+
 ## Ponytail도 하니스 전역으로 설치할 수 있게 한다 (2026-08-15, 1.14.0)
 
 **전역 판 둘째 항목.** 상류 재검증(2026-08-15)에서 ponytail이 superpowers와

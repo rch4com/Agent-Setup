@@ -5,6 +5,41 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## agent-browser, find-skills, and mcp-builder join the shared skills (2026-08-15, 1.15.0)
+
+**Three more registry skills.** All three are copied into the shared
+`.agents/skills` with `npx skills add … --agent universal --copy`, so one
+install reaches all 10 CLIs. Install and removal were measured in a scratch
+repository — exactly three directories and three skills-lock.json entries
+appear, and exactly three disappear.
+
+- **`skill.agent-browser`** (vercel-labs/agent-browser) — a skill that drives
+  the browser-automation CLI. The SKILL.md is a discovery stub; the real
+  workflow guidance is served at runtime by the installed CLI
+  (`agent-browser skills get core`) — so the `agent-browser` binary on PATH
+  (`npm i -g agent-browser`, then `agent-browser install` once to download
+  Chrome for Testing) is a de-facto prerequisite, and the note says so. The
+  body only issues Bash calls, so it is harness-neutral; the allowed-tools and
+  hidden frontmatter lines are Claude syntax that other CLIs ignore. The
+  native binary covers Windows x64.
+- **`skill.find-skills`** (vercel-labs/skills) — searches the public skills
+  registry and guides installs. It is the only skill shipped by the repo of
+  the `npx skills` CLI this repository's registry items already use. It only
+  instructs npx skills commands — harness-neutral.
+- **`skill.mcp-builder`** (anthropics/skills) — a guide for building MCP
+  servers (Python FastMCP, Node MCP SDK). Of the 17 skills upstream, exactly
+  this one is picked with `--skill`. The four reference/ documents its body
+  links to and the per-skill LICENSE.txt (Apache-2.0) are copied along inside
+  the skill directory, so relative paths and the license notice survive —
+  verified by measurement. The repo has no repo-wide license; it varies per
+  skill.
+
+The guide that motivated this batch also picks design-taste-frontend
+(skill.taste) and GSD (skill.gsd) — both already present. GSD is wired
+`--claude --local` (project scope) per this repository's principle, instead
+of the guide's `--global`. Three more items bring the published file count
+from 146 to 149.
+
 ## Ponytail can now be installed harness-globally too (2026-08-15, 1.14.0)
 
 **The second global-edition item.** The upstream re-verification (2026-08-15)
