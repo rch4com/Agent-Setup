@@ -7,7 +7,8 @@ import { msg } from '../i18n/index.mjs'
 // 아니라 "우리가 플러그인 쪽을 골랐다"이고, 사유가 그렇게 말해야 레지스트리
 // 항목으로 옮길 수 있다는 것도 화면에서 읽힌다.
 export default definePlugin({
-  id: 'plugin.mattpocock-skills', label: 'Matt Pocock skills', group: '__flow',
+  id: 'plugin.mattpocock-skills', label: 'Matt Pocock (plugin)', group: '__flow',
+  exclusive: 'mattpocock',
   installId: 'mattpocock-skills@mattpocock',
   detectIds: ['mattpocock-skills@mattpocock'],
   marketplace: { name: 'mattpocock', repo: 'mattpocock/skills' },

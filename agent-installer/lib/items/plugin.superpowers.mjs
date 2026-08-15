@@ -13,7 +13,8 @@ import { msg } from '../i18n/index.mjs'
 const SEPARATE = ['codex', 'gemini', 'opencode', 'kimi', 'copilot', 'grok']
 
 export default definePlugin({
-  id: 'plugin.superpowers', label: 'superpowers', group: '__flow',
+  id: 'plugin.superpowers', label: 'superpowers (plugin)', group: '__flow',
+  exclusive: 'superpowers',
   installId: 'superpowers@claude-plugins-official',
   detectIds: ['superpowers@claude-plugins-official', 'superpowers@superpowers-marketplace'],
   note: 'item.plugin.superpowers.note',

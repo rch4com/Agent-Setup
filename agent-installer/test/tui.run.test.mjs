@@ -387,6 +387,6 @@ test('배타 항목을 바꾸면 무엇이 해제됐는지 알린다', async () 
   // CONFIG 탭으로 가서 영어판을 고른다 — 한국어판이 이미 켜져 있는 자리다.
   // 타이핑은 검색칸으로 올라가므로 DOWN으로 목록에 내려와야 Space가 선택이 된다.
   const { screen } = await drive([TAB, TAB, TAB, TAB, ...type('english'), DOWN, SPACE, CQ], { root, columns: 160 })
-  assert.match(screen, /같은 파일이라/, `배타 전환 안내가 없다`)
+  assert.match(screen, /한 자리를 두고 다투므로/, `배타 전환 안내가 없다`)
   assert.match(screen, /Korean commit template/)
 })

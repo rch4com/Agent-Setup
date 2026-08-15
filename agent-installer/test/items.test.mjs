@@ -1,15 +1,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { loadItems } from '../lib/catalog.mjs'
+import { assertExclusive } from '../lib/engine.mjs'
 import { createT } from '../lib/i18n/index.mjs'
 import { GROUP_ORDER } from '../lib/tui/rows.mjs'
 import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 22개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 24개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 22)
+  assert.equal(items.length, 24)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -25,6 +26,28 @@ test('loadItems는 22개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('skill.taste'))
   assert.ok(ids.includes('skill.hallmark'))
   assert.ok(ids.includes('skill.diagram-design'))
+  assert.ok(ids.includes('skill.superpowers'))
+  assert.ok(ids.includes('skill.mattpocock-skills'))
+})
+
+// 같은 상류를 플러그인과 공유 스킬 양쪽으로 넣으면 같은 스킬이 두 경로에서
+// 잡혀 중복 등록된다. 배타 키가 풀리면 TUI가 형제를 자동으로 끄지 않고
+// --set도 둘을 함께 받아 조용히 그 상태를 만든다.
+test('같은 상류의 플러그인 판과 스킬 판은 배타다', async () => {
+  const items = await loadItems()
+  const pick = (id) => items.find((i) => i.id === id)
+  for (const [pluginId, skillId, key] of [
+    ['plugin.superpowers', 'skill.superpowers', 'superpowers'],
+    ['plugin.mattpocock-skills', 'skill.mattpocock-skills', 'mattpocock'],
+  ]) {
+    assert.equal(pick(pluginId).exclusive, key, `${pluginId}: 배타 키가 없다`)
+    assert.equal(pick(skillId).exclusive, key, `${skillId}: 배타 키가 없다`)
+    assert.throws(
+      () => assertExclusive(items, new Set([pluginId, skillId])),
+      /exclusiveItems|한 자리|same slot/,
+      `${key}: 둘을 함께 골라도 거절하지 않는다`,
+    )
+  }
 })
 
 // 그룹은 화면의 소분류 헤더로 나가므로, 오타 하나가 헤더를 raw id(`__tokne`)로
