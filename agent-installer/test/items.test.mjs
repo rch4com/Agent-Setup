@@ -2,18 +2,19 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { loadItems } from '../lib/catalog.mjs'
 import { assertExclusive } from '../lib/engine.mjs'
-import { createT } from '../lib/i18n/index.mjs'
+import { createT, toText } from '../lib/i18n/index.mjs'
 import { GROUP_ORDER } from '../lib/tui/rows.mjs'
 import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 25개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 26개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 25)
+  assert.equal(items.length, 26)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
+  assert.ok(ids.includes('global.ponytail'))
   assert.ok(ids.includes('global.superpowers'))
   assert.ok(ids.includes('config.gitmessage.ko'))
   assert.ok(ids.includes('mcp.notion'))
@@ -143,6 +144,23 @@ test('superpowers 전역 판은 CLI별로 정확한 미배선 사유를 갖는�
   assert.equal(why('vscode'), 'item.unsupported.upstreamNone')
 })
 
+// ponytail 전역 판. claude·opencode는 프로젝트 항목(plugin.ponytail)의 자리,
+// kiro·vscode는 상류가 룰 파일 수동 배치만 안내한다(2026-08-15 재검증).
+test('ponytail 전역 판은 CLI별로 정확한 미배선 사유를 갖는다', async () => {
+  const items = await loadItems()
+  const item = items.find((i) => i.id === 'global.ponytail')
+  assert.deepEqual(item.supports, ['codex', 'gemini', 'copilot'])
+  assert.equal(item.scope, 'user')
+  const why = (cli) => item.unsupported[cli].key
+  assert.equal(why('claude'), 'item.unsupported.globalProjectItem')
+  assert.equal(why('opencode'), 'item.unsupported.globalProjectItem')
+  assert.equal(why('grok'), 'item.unsupported.ponytailGlobalGrok')
+  assert.equal(why('kiro'), 'item.unsupported.ponytailRules')
+  assert.equal(why('vscode'), 'item.unsupported.ponytailRules')
+  assert.equal(why('kilo'), 'item.unsupported.upstreamNone')
+  assert.equal(why('kimi'), 'item.unsupported.upstreamNone')
+})
+
 // 일괄 폴백이 붙어 "Claude Code 전용 플러그인"이라 말하던 세 항목. 셋 다
 // 상류가 다른 CLI를 지원하므로 그 문구는 거짓이었다.
 test('폴백을 밟던 항목은 검증된 사유를 갖는다', async () => {
@@ -180,7 +198,9 @@ test('unsupported 사유는 구조화 메시지다', async () => {
   for (const item of await loadItems()) {
     for (const [cli, why] of Object.entries(item.unsupported ?? {})) {
       assert.equal(typeof why, 'object', `${item.id}/${cli}: 사유가 구조체가 아니다`)
-      assert.doesNotThrow(() => t(why.key), `${item.id}/${cli}: 알 수 없는 키 ${why.key}`)
+      // 화면과 같은 경로(toText)로 렌더한다 — t(why.key)만 부르면
+      // globalProjectItem처럼 매개변수를 쓰는 사유가 거짓 실패한다.
+      assert.doesNotThrow(() => toText(t, why), `${item.id}/${cli}: 렌더 실패 ${why.key}`)
     }
   }
 })
