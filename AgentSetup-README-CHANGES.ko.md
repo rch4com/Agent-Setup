@@ -5,6 +5,32 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Ponytail도 하니스 전역으로 설치할 수 있게 한다 (2026-08-15, 1.14.0)
+
+**전역 판 둘째 항목.** 상류 재검증(2026-08-15)에서 ponytail이 superpowers와
+같은 헤드리스 경로를 갖춘 것이 확인됐다 — codex·copilot은 마켓플레이스
+2단계, gemini는 `gemini extensions install`. 새 항목 `global.ponytail`이
+그 세 자리를 맡는다.
+
+- **공통 기구를 `lib/global-plugin.mjs`로 뺐다.** 감지(codex config.toml·
+  copilot config.json·gemini extensions·전역 opencode.json), copilot 한 번
+  재시도, "이 머신에 있는 CLI 기준" 상태 판정, `--set` 보호까지 —
+  superpowers 판이 실측으로 굳힌 동작을 두 항목이 그대로 공유한다.
+  항목 파일에는 상류 좌표와 미배선 사유만 남는다.
+- **claude·opencode는 다루지 않는다.** 둘은 프로젝트 항목(`plugin.ponytail`)
+  이 저장소 스코프로 배선하는 자리다 — 전역 판이 겹치면 같은 플러그인이
+  두 번 등록된다.
+- **codex는 설치 후 대화형 후속 단계가 있다.** 상류가 `/hooks`로 훅 등록
+  확인과 새 스레드 시작을 안내한다 — 명령으로 대신할 수 없어 note로 알린다.
+  제거도 상류는 `scripts/uninstall.js` 선행을 안내하는데 하니스마다 위치가
+  달라 자동화하지 않는다 — 이 항목은 플러그인만 제거한다.
+- **grok은 이번에도 제외.** 상류 명령(`grok plugin install
+  DietrichGebert/ponytail --trust`)은 있지만 감지·제거 경로를 실측할 CLI가
+  없다 — superpowers 전역 판과 같은 기준이다. kiro·vscode는 상류가 룰 파일
+  수동 배치만 안내한다.
+
+항목이 하나, 공용 모듈이 하나 늘어 발행 파일은 144개에서 146개가 된다.
+
 ## superpowers를 하니스 전역으로도 설치할 수 있게 한다 (2026-08-15, 1.13.0)
 
 **프로젝트 스코프로 배선할 수 없는 하니스가 남아 있었다.** 상류는 14개

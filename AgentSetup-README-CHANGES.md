@@ -5,6 +5,35 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Ponytail can now be installed harness-globally too (2026-08-15, 1.14.0)
+
+**The second global-edition item.** The upstream re-verification (2026-08-15)
+confirmed that ponytail now has the same headless roads superpowers has — the
+two-step marketplace flow for codex and copilot, `gemini extensions install`
+for gemini. The new item `global.ponytail` takes those three seats.
+
+- **The shared machinery moved to `lib/global-plugin.mjs`.** Detection (codex
+  config.toml, copilot config.json, gemini extensions, the global
+  opencode.json), the single copilot retry, "judge against the CLIs present on
+  this machine", and the `--set` protection — everything the superpowers
+  edition hardened through measurement is now shared by both items. The item
+  files carry only upstream coordinates and per-CLI reasons.
+- **claude and opencode are not handled.** Those seats belong to the
+  project-scope item (`plugin.ponytail`) — overlapping them globally would
+  register the same plugin twice.
+- **codex has an interactive follow-up after install.** Upstream asks you to
+  check hook registration via `/hooks` and start a new thread — no command can
+  do that for you, so the note says so. For removal upstream recommends running
+  `scripts/uninstall.js` first, but its location differs per harness, so it is
+  not automated — this item removes the plugin only.
+- **grok stays out, again.** Upstream ships `grok plugin install
+  DietrichGebert/ponytail --trust`, but there is no CLI here to verify the
+  detect/remove paths against — the same bar the superpowers edition set.
+  kiro and vscode only get manual rule-file placement upstream.
+
+One more item and one shared module bring the published file count from 144 to
+146.
+
 ## superpowers can now be installed harness-globally too (2026-08-15, 1.13.0)
 
 **Some harnesses had no project-scope road at all.** Upstream supports 14
