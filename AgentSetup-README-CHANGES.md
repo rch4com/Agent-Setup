@@ -5,6 +5,53 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## GSD now wires five runtimes in one run (2026-08-16, 1.16.0)
+
+**This started as "GSD is a skill too — can't other harnesses use it?"** The
+answer is roughly half yes: of upstream's 18 runtimes, five are CLIs this
+repository covers, install at project scope, and are actually read by that CLI.
+All five are now wired.
+
+- **claude, codex, opencode, copilot, kilo.** Both the write locations and the
+  reads were measured — claude writes `.claude/commands` (not skills), codex
+  `.codex/skills`, opencode `.opencode/skills`, copilot `.github/skills`, kilo
+  `.kilo/skills`. And the reading side: `codex debug prompt-input` registers
+  the project skill root, `opencode debug skill` loads them, and
+  `copilot skill list` shows every gsd-*.
+- **It is a single call.** Upstream accepts several runtime flags at once
+  (measured: `--claude --codex --local` creates both directories). So all five
+  go in together, and runtimes already present are left out — no rewriting
+  3,500 files just to complete a partial install.
+- **Removal passes every flag too.** An `--uninstall` without runtime flags
+  removes only the default, claude, leaving four behind. Collecting the
+  installed runtimes into one call fixes that; 3,524 files dropping to 14 was
+  verified.
+- **Status is counted by the `gsd-` name.** Upstream removal leaves
+  `gsd-install-state.json` and a few hook files (and the directories) behind,
+  so checking for file existence would mark a removed runtime as installed
+  forever. Counting skill names instead survives the leftovers — measured. We
+  do not delete those leftovers: shared config files like
+  `.opencode/opencode.json` sit in the same place, and deleting what we did not
+  create is the more dangerous option.
+- **The four we cannot do differ in reason.** gemini was explicitly dropped
+  upstream (sunset 2026-06), kimi's `--kimi --local` refuses with
+  "Project-level Kimi install semantics remain deferred" (global only), and
+  kiro, grok, and vscode are not upstream runtimes at all.
+
+**gstack gained no new wiring — it was already reaching.** The
+`.claude/skills/gstack` this item clones into is a junction in a bootstrapped
+repository, so the files land in the shared `.agents/skills`. From there each
+CLI's skill-scan depth decides the reach: a nested probe showed **codex and
+opencode scan recursively and see the individual skills, while copilot scans
+one level and sees only the router skill**. The upstream `--host` route still
+goes unused because it installs into the home directory. The per-CLI reasons
+now follow those measurements — entries that only said "no upstream path" now
+state whether the CLI is actually reached.
+
+`defineSkill` takes `supports`. Skill items were pinned to claude alone until
+now; an item whose upstream ships per-runtime installs can pass the list, and
+the CLIs it names drop out of the unsupported reasons.
+
 ## agent-browser, find-skills, and mcp-builder join the shared skills (2026-08-15, 1.15.0)
 
 **Three more registry skills.** All three are copied into the shared

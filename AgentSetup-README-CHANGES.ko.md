@@ -5,6 +5,48 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## GSD를 다섯 런타임에 한 번에 배선한다 (2026-08-16, 1.16.0)
+
+**"GSD도 스킬인데 다른 하니스에서 쓸 수 없나"에서 출발했다.** 답은 절반쯤
+그렇다 — 상류 런타임 18종 중 이 저장소의 CLI이면서 프로젝트 스코프로 깔리고
+그 CLI가 실제로 읽는 것은 다섯이다. 그 다섯을 전부 배선했다.
+
+- **claude·codex·opencode·copilot·kilo.** 산출 위치와 읽기를 전부 실측했다 —
+  claude는 `.claude/commands`(skills가 아니다), codex는 `.codex/skills`,
+  opencode는 `.opencode/skills`, copilot은 `.github/skills`, kilo는
+  `.kilo/skills`. 읽는 쪽도 확인했다: `codex debug prompt-input`이 프로젝트
+  스킬 루트로 등록하고, `opencode debug skill`이 로드하고, `copilot skill
+  list`가 gsd-* 전부를 표시한다.
+- **호출은 한 번이다.** 상류가 플래그 동시 지정을 받는다(`--claude --codex
+  --local`이 두 디렉터리를 만드는 것을 실측). 그래서 다섯을 한 번에 깔고,
+  이미 있는 런타임은 빼고 부른다 — 부분 설치를 완성할 때 3,500개 파일을
+  다시 쓰지 않기 위해서다.
+- **제거도 플래그를 전부 넘긴다.** 런타임 플래그 없는 `--uninstall`은 기본값
+  claude만 지운다 — 넷이 남는다. 설치된 것을 모아 한 번에 넘기는 것으로
+  막았고, 실제로 3,524개 파일이 14개로 줄어드는 것을 확인했다.
+- **상태는 `gsd-` 이름으로 센다.** 상류 제거가 `gsd-install-state.json`과 훅
+  파일 몇 개를 남기는데(디렉터리도 남는다), 파일 존재만 보면 제거한 런타임이
+  영원히 설치됨으로 읽힌다. 스킬 이름 기준이라 잔재에 속지 않는 것을 실측으로
+  확인했다. 잔재를 우리가 지우지는 않는다 — 같은 자리에
+  `.opencode/opencode.json` 같은 공유 설정 파일이 섞여 있어, 우리가 만들지
+  않은 것을 지우는 쪽이 더 위험하다.
+- **못 하는 넷의 사유가 전부 다르다.** gemini는 상류가 명시 제거(2026-06
+  종료), kimi는 `--kimi --local`이 "Project-level Kimi install semantics
+  remain deferred"로 거부해 전역만 가능, kiro·grok·vscode는 상류 런타임 목록에
+  없다.
+
+**gstack은 배선을 늘리지 않았다 — 이미 닿고 있었다.** 이 항목이 clone하는
+`.claude/skills/gstack`은 부트스트랩 저장소에서 Junction이라 실물이 공유
+`.agents/skills`에 앉는다. 거기서부터는 CLI의 스킬 스캔 깊이가 도달 범위를
+정한다: 중첩 프로브로 재 보니 **codex·opencode는 재귀 스캔이라 개별 스킬까지,
+copilot은 1단계만 훑어 라우터 스킬 하나만** 본다. 상류 `--host` 경로는 홈에
+까는 사용자 스코프라 여전히 쓰지 않는다. 미배선 사유를 이 실측대로 갈랐다 —
+"상류에 경로가 없다"고만 적혀 있던 자리가 실제 도달 여부를 말하게 됐다.
+
+`defineSkill`이 `supports`를 받는다. 지금까지 스킬 항목은 claude 하나로
+고정이었는데, 상류가 런타임별 설치를 주는 항목이 생겨 목록을 넘길 수 있게
+했다 — 넘긴 CLI는 미배선 사유 대상에서 빠진다.
+
 ## agent-browser·find-skills·mcp-builder 공유 스킬을 넣는다 (2026-08-15, 1.15.0)
 
 **레지스트리 스킬 셋을 더한다.** 셋 다 `npx skills add … --agent universal
