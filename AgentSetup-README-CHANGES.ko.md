@@ -39,6 +39,12 @@
 지원 도구 목록, bkit의 별도 배포판, GSD의 `--gemini`다. `--gemini --local`이
 2026-06-18 종료 안내만 찍고 파일을 하나도 만들지 않는 것도 실측으로 확인했다.
 
+- **근거 없이 "추정"이라 적어 둔 자리도 하나 지웠다.** bkit의 Gemini판을 두고
+  "Antigravity 승계 추정"이라 했는데 근거가 없었다 — bkit-gemini는 v2.0.7까지
+  Gemini CLI 확장 그대로이고 README에 Antigravity가 한 번도 나오지 않는다.
+  대신 실측한 사실만 적는다: 최종 푸시가 2026-05-20이라 Gemini CLI 종료
+  이후로는 갱신이 없다.
+
 오래된 수치도 함께 맞췄다 — ECC 281개 → 284개, Matt Pocock 22종 → 35종이다.
 
 ## Diagram Design 스킬 항목 (2026-08-15, 1.11.0)

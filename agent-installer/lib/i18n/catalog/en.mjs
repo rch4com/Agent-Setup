@@ -234,7 +234,7 @@ export default {
   'item.unsupported.mattpocockRegistry': 'upstream also documents npx skills add (the shared .agents/skills), but this item wires the Claude Code plugin only',
   'item.unsupported.upstreamNone': 'no official install path upstream',
   'item.unsupported.superpowersSeparate': 'upstream supports it via a separate per-harness install — this item wires the Claude Code plugin only',
-  'item.unsupported.bkitPort': 'upstream ships separate ports (bkit-codex / bkit-gemini) installed apart from this plugin; the Gemini port presumably succeeds to Antigravity',
+  'item.unsupported.bkitPort': 'upstream ships separate ports (bkit-codex / bkit-gemini) installed apart from this plugin; the Gemini port is still a Gemini CLI extension and has had no update since the 2026-06-18 sunset',
   'item.unsupported.impeccableJunction': 'upstream supports it, but npx impeccable install breaks the shared .agents/skills link, so only the plugin route is wired',
   'item.unsupported.gstackHost': 'upstream supports it via ./setup --host — this item installs for Claude Code only',
   'item.unsupported.gsdFlag': 'upstream supports it via a runtime flag — this item installs with --claude only',

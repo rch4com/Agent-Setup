@@ -45,6 +45,13 @@ Judgments that were already correct were left alone — gstack's `--host`
 distributions, and GSD's `--gemini`. That last one was confirmed by measurement
 too: `--gemini --local` prints the 2026-06-18 sunset notice and creates no files.
 
+- **One place that said "presumably" without evidence is gone too.** bkit's
+  Gemini port was described as "presumably succeeds to Antigravity", which had
+  no basis — bkit-gemini is still a Gemini CLI extension through v2.0.7 and its
+  README never mentions Antigravity once. What replaces it is the measured
+  fact: its last push was 2026-05-20, so it has had no update since the Gemini
+  CLI sunset.
+
 Two stale counts were corrected along the way — ECC 281 → 284, Matt Pocock
 22 → 35.
 

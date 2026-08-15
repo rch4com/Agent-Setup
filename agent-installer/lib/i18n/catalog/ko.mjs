@@ -227,7 +227,7 @@ export default {
   'item.unsupported.mattpocockRegistry': '상류가 npx skills add(공유 .agents/skills)도 안내하지만 이 항목은 Claude Code 플러그인만 배선합니다',
   'item.unsupported.upstreamNone': '상류에 공식 설치 경로가 없습니다',
   'item.unsupported.superpowersSeparate': '상류가 하니스별 별도 설치로 지원합니다 — 이 항목은 Claude Code 플러그인만 배선합니다',
-  'item.unsupported.bkitPort': '상류가 별도 배포판(bkit-codex·bkit-gemini)으로 지원합니다 — 이 플러그인과 별개 설치이며, Gemini판은 Antigravity 승계 추정입니다',
+  'item.unsupported.bkitPort': '상류가 별도 배포판(bkit-codex·bkit-gemini)으로 지원합니다 — 이 플러그인과 별개 설치입니다. Gemini판은 Gemini CLI 확장 그대로이고 2026-06-18 종료 이후 갱신이 없습니다',
   'item.unsupported.impeccableJunction': '상류는 지원하지만 npx impeccable install이 공유 .agents/skills 연결을 끊어 플러그인 경로만 배선합니다',
   'item.unsupported.gstackHost': '상류는 ./setup --host로 지원합니다 — 이 항목은 Claude Code에만 설치합니다',
   'item.unsupported.gsdFlag': '상류는 런타임 플래그로 지원합니다 — 이 항목은 --claude로만 설치합니다',
