@@ -254,7 +254,7 @@ export default {
   'item.mcp.codebase-memory.note': 'needs the codebase-memory-mcp binary on PATH. Install: https://github.com/DeusData/codebase-memory-mcp (install.sh / install.ps1)',
   'item.mcp.graphify.note': 'needs the graphify-mcp binary on PATH. Install: uv tool install "graphifyy[mcp]". Reads graphify-out/graph.json — build it first with /graphify .',
   'item.mcp.headroom.note': 'needs the headroom binary on PATH. Install: uv tool install --python 3.13 "headroom-ai[proxy,mcp]". The proxy (headroom wrap) is a way of launching, not repo config',
-  'item.plugin.superpowers.note': 'official marketplace plugin. Upstream supports 11 harnesses (Codex, Antigravity, …) via per-harness installs',
+  'item.plugin.superpowers.note': 'official marketplace plugin. Upstream supports 14 harnesses (Codex, Grok Build, …) via per-harness installs',
   'item.plugin.mattpocock-skills.note': '35 engineering and productivity skills (code-review, diagnosing-bugs, domain-modeling, …)',
   'item.plugin.ponytail.note': 'lean-code ruleset. Wires the Claude Code plugin and the OpenCode plugin entry, both repo-scoped',
   'item.plugin.ecc.note': 'skills, instincts, memory and security for agent harnesses. Installed as a plugin — its skills/ holds 284 entries, too many to copy into the shared skills directory',

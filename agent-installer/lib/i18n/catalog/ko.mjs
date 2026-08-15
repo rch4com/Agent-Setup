@@ -247,7 +247,7 @@ export default {
   'item.mcp.codebase-memory.note': 'PATH에 codebase-memory-mcp 바이너리 필요. 설치: https://github.com/DeusData/codebase-memory-mcp (install.sh / install.ps1)',
   'item.mcp.graphify.note': 'PATH에 graphify-mcp 바이너리 필요. 설치: uv tool install "graphifyy[mcp]". graphify-out/graph.json을 읽으므로 /graphify .로 그래프를 먼저 만드세요',
   'item.mcp.headroom.note': 'PATH에 headroom 바이너리 필요. 설치: uv tool install --python 3.13 "headroom-ai[proxy,mcp]". 프록시(headroom wrap)는 실행 방식이라 저장소 설정 대상이 아닙니다',
-  'item.plugin.superpowers.note': '공식 마켓플레이스 플러그인. 상류는 Codex·Antigravity 등 11개 하니스를 하니스별 설치로 지원합니다',
+  'item.plugin.superpowers.note': '공식 마켓플레이스 플러그인. 상류는 Codex·Grok Build 등 14개 하니스를 하니스별 설치로 지원합니다',
   'item.plugin.mattpocock-skills.note': '엔지니어링·생산성 스킬 35종 (code-review, diagnosing-bugs, domain-modeling 등)',
   'item.plugin.ponytail.note': '군더더기 없는 코드 규칙 묶음. Claude Code 플러그인과 OpenCode plugin 항목을 저장소 범위로 배선합니다',
   'item.plugin.ecc.note': '에이전트 하네스용 스킬·본능·메모리·보안 묶음. skills/에 284개가 들어 있어 공유 스킬 디렉터리에 복사하지 않고 플러그인으로 설치합니다',
