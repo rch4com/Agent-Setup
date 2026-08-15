@@ -8,14 +8,17 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 26개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 29개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 26)
+  assert.equal(items.length, 29)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
   assert.ok(ids.includes('global.ponytail'))
   assert.ok(ids.includes('global.superpowers'))
+  assert.ok(ids.includes('skill.agent-browser'))
+  assert.ok(ids.includes('skill.find-skills'))
+  assert.ok(ids.includes('skill.mcp-builder'))
   assert.ok(ids.includes('config.gitmessage.ko'))
   assert.ok(ids.includes('mcp.notion'))
   assert.ok(ids.includes('mcp.graphify'))
