@@ -70,7 +70,20 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   for (const id of selectedIds) if (!known.has(id)) throw new LocalizedError('error.unknownItem', { id })
   assertExclusive(items, selectedIds)
 
-  const changes = planChanges(states, selectedIds)
+  // 전역(scope: 'user') 항목은 --set 생략만으로 지우지 않는다. --set은 "저장소가
+  // 가질 상태"의 선언이라 목록 밖 항목을 제거하는데, 전역 항목까지 그 규칙에
+  // 태우면 무관한 --set 실행 하나가 머신 전체 설치를 걷어 간다 — 스크래치
+  // 저장소에서 스킬 둘을 --set 하다가 copilot의 전역 superpowers가 함께
+  // 제거되는 것을 실측했다(2026-08-15). 전역 항목의 제거는 TUI에서 명시적으로
+  // 해제해 검토 화면을 거친다.
+  const changes = []
+  for (const c of planChanges(states, selectedIds)) {
+    if (c.action === 'uninstall' && c.item.scope === 'user') {
+      console.log(t('run.keepUserScope', { id: c.item.id }))
+      continue
+    }
+    changes.push(c)
+  }
   if (changes.length === 0) { console.log(t('apply.noChanges')); return }
 
   // 비대화형 경로다 — 바를 그리지 않고 평문 한 줄씩 흘린다.
