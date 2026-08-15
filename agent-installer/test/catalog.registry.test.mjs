@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineRegistrySkill } from '../lib/catalog.mjs'
 import { makeTempRepo } from './helpers.mjs'
@@ -101,4 +101,76 @@ test('레지스트리 스킬 uninstall: dry-run은 아무것도 지우지 않는
   const dir = putSkill(root, 'design-taste-frontend', 'design-taste-frontend')
   await item().uninstall({ root, dryRun: true, exec: recordingExec(true) })
   assert.equal(existsSync(dir), true)
+})
+
+// 여러 스킬을 한 번에 넣는 항목(skill: '*')은 지울 이름을 스스로 알 수 없다.
+// 근거는 레지스트리가 저장소 루트에 남기는 skills-lock.json뿐이다.
+
+function putLock(root, entries) {
+  writeFileSync(join(root, 'skills-lock.json'), `${JSON.stringify({ version: 1, skills: entries }, null, 2)}\n`)
+}
+
+function readLockFile(root) {
+  const file = join(root, 'skills-lock.json')
+  return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
+}
+
+const MULTI = { skill: '*', anchor: 'using-superpowers', source: 'https://github.com/obra/superpowers' }
+
+test("레지스트리 스킬: skill이 '*'인데 anchor가 없으면 정의 시점에 막는다", () => {
+  // anchor가 없으면 detect가 무엇을 봐야 할지 모른다 — 설치해도 계속 absent로
+  // 읽히는 항목이 조용히 카탈로그에 들어가는 것을 정의 시점에 끊는다.
+  assert.throws(() => item({ skill: '*', anchor: null }), (err) => err.key === 'error.registrySkillAnchor')
+})
+
+test("레지스트리 스킬 uninstall: '*'는 잠금 파일에서 같은 출처만 골라 지운다", async () => {
+  const root = makeTempRepo()
+  putSkill(root, 'using-superpowers', 'using-superpowers')
+  putSkill(root, 'brainstorming', 'brainstorming')
+  putSkill(root, 'diagram-design', 'diagram-design')   // 다른 항목이 넣은 것
+  putLock(root, {
+    'using-superpowers': { source: 'obra/superpowers' },
+    brainstorming: { source: 'obra/superpowers' },
+    'diagram-design': { source: 'cathrynlavery/diagram-design' },
+  })
+
+  await item(MULTI).uninstall({ root, dryRun: false, exec: recordingExec(true) })
+
+  assert.equal(existsSync(join(root, '.agents', 'skills', 'using-superpowers')), false)
+  assert.equal(existsSync(join(root, '.agents', 'skills', 'brainstorming')), false)
+  // 남의 스킬은 손대지 않는다 — 디렉터리도 잠금 항목도 그대로다.
+  assert.equal(existsSync(join(root, '.agents', 'skills', 'diagram-design')), true)
+  assert.deepEqual(Object.keys(readLockFile(root).skills), ['diagram-design'])
+})
+
+// 잠금 항목을 남기면 파일이 "설치돼 있다"고 거짓말한다 — 커밋해서 나누는
+// 파일이라 동료가 복원하면 지운 스킬이 되살아난다.
+test('레지스트리 스킬 uninstall: 마지막 스킬이면 잠금 파일째 지운다', async () => {
+  const root = makeTempRepo()
+  putSkill(root, 'design-taste-frontend', 'design-taste-frontend')
+  putLock(root, { 'design-taste-frontend': { source: 'o/r' } })
+
+  await item().uninstall({ root, dryRun: false, exec: recordingExec(true) })
+
+  assert.equal(readLockFile(root), null, '빈 껍데기가 남았다')
+})
+
+test('레지스트리 스킬 uninstall: dry-run은 잠금 파일도 건드리지 않는다', async () => {
+  const root = makeTempRepo()
+  putSkill(root, 'design-taste-frontend', 'design-taste-frontend')
+  putLock(root, { 'design-taste-frontend': { source: 'o/r' } })
+
+  await item().uninstall({ root, dryRun: true, exec: recordingExec(true) })
+
+  assert.deepEqual(Object.keys(readLockFile(root).skills), ['design-taste-frontend'])
+})
+
+test('레지스트리 스킬 uninstall: 잠금 파일이 깨져도 대표 스킬은 치운다', async () => {
+  const root = makeTempRepo()
+  const dir = putSkill(root, 'using-superpowers', 'using-superpowers')
+  writeFileSync(join(root, 'skills-lock.json'), '{ not json')
+
+  await item(MULTI).uninstall({ root, dryRun: false, exec: recordingExec(true) })
+
+  assert.equal(existsSync(dir), false)
 })

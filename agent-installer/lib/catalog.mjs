@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
@@ -140,12 +140,12 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
 // 배선은 Claude 한 곳이라도 미배선 "사유"는 CLI마다 다를 수 있다 — 상류가
 // 자체 경로로 지원하는 CLI에 일괄 "Claude 전용" 사유를 붙이면 거짓 정보가 된다.
 // 항목이 사유를 넘기면 그 CLI만 덮고, 나머지는 기본 사유로 채운다.
-export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, unsupported: reasons = {} }) {
+export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, exclusive = null, unsupported: reasons = {} }) {
   const unsupported = Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudePlugin')]),
   )
   return {
-    id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group,
+    id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group, exclusive,
     async detect({ root }) {
       return { status: isPluginEnabled(root, detectIds) ? 'installed' : 'absent' }
     },
@@ -207,28 +207,91 @@ function findSkillDir(root, skill) {
   return null
 }
 
+// 레지스트리가 저장소 루트에 남기는 잠금 파일. 스킬 이름마다 어느 출처에서
+// 왔는지를 적어 두므로, 한 상류가 여러 스킬을 깔았을 때 "우리가 넣은 것"만
+// 골라 지울 수 있는 유일한 근거다.
+const SKILLS_LOCK = 'skills-lock.json'
+
+// 잠금 파일의 source는 `owner/repo`로 정규화돼 있고 항목은 URL을 넘긴다.
+function sourceKey(source) {
+  return String(source).replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, '')
+}
+
+function readLock(root) {
+  const file = repoPath(root, SKILLS_LOCK)
+  if (!existsSync(file)) return null
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'))
+  } catch {
+    // 잠금 파일이 깨졌다고 제거를 막지는 않는다 — 디렉터리 스캔 폴백이 있다.
+    return null
+  }
+}
+
+function lockedSkills(root, source) {
+  const want = sourceKey(source)
+  return Object.entries(readLock(root)?.skills ?? {})
+    .filter(([, v]) => sourceKey(v?.source ?? '') === want)
+    .map(([name]) => name)
+}
+
+// 레지스트리의 remove는 디렉터리도, 잠금 파일의 항목도 남긴다(실측). 디렉터리는
+// 아래에서 우리가 지우는데 잠금 항목을 그대로 두면 파일이 "설치돼 있다"고
+// 거짓말한다 — 커밋해서 팀과 나누는 파일이라, 동료가 experimental_install로
+// 복원하면 지운 스킬이 되살아난다.
+function pruneLock(root, names) {
+  const parsed = readLock(root)
+  const skills = parsed?.skills
+  if (!skills) return
+  const gone = names.filter((n) => Object.hasOwn(skills, n))
+  if (gone.length === 0) return
+  for (const n of gone) delete skills[n]
+  const file = repoPathStrict(root, SKILLS_LOCK)
+  // 남은 스킬이 없으면 파일째 지운다. 이 파일은 레지스트리가 만든 산출물이라
+  // 빈 껍데기를 남기면 우리가 만든 흔적이 저장소에 계속 남는다.
+  if (Object.keys(skills).length === 0) rmSync(file, { force: true })
+  else writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`)
+}
+
 // vercel-labs/skills 레지스트리로 설치하는 스킬. `--agent universal`의 프로젝트
 // 경로가 .agents/skills라, 한 번 설치하면 10개 CLI가 함께 본다 — Claude·Kiro·
-// Grok은 부트스트랩이 만든 Junction으로, 나머지는 그 경로를 네이티브로 읽는다.
+// Grok은 부트스트랩이 만든 Junction으로, 나머지는 그 경로를 네이티브로 읽는다
+// (도구별 실측 근거는 bootstrap/manifest.mjs의 adapters 주석에 있다).
 // `--copy`로 실물을 남긴다: 커밋해서 팀과 나누는 자리라 링크는 클론 뒤 깨진다.
-export function defineRegistrySkill({ id, label, source, skill, note, group = null }) {
+//
+// skill에 `*`를 주면 그 상류의 스킬을 전부 넣는다. 그때 detect가 볼 대표
+// 스킬을 anchor로 지정해야 한다 — 디렉터리가 여럿이라 "무엇이 있으면 설치된
+// 것인가"를 이름 하나로 정해 두지 않으면 판정이 흔들린다.
+//
+// exclusive는 같은 상류를 플러그인으로도 넣을 수 있을 때 쓴다. 두 경로가 겹치면
+// 같은 스킬이 두 번 등록되므로 하나만 고르게 막는다.
+export function defineRegistrySkill({ id, label, source, skill, anchor = null, note, group = null, exclusive = null }) {
+  const probe = anchor ?? skill
+  if (skill === '*' && !anchor) throw new LocalizedError('error.registrySkillAnchor', { id })
   return {
-    id, category: 'skill', label, scope: 'project', supports: [...CLI_IDS], unsupported: {}, note, group,
+    id, category: 'skill', label, scope: 'project', supports: [...CLI_IDS], unsupported: {}, note, group, exclusive,
     async detect({ root }) {
-      return { status: findSkillDir(root, skill) ? 'installed' : 'absent' }
+      return { status: findSkillDir(root, probe) ? 'installed' : 'absent' }
     },
     async install({ root, exec }) {
       const r = await exec('npx', ['-y', 'skills@latest', 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy'], { cwd: root })
       if (!r.ok) throw new LocalizedError('error.registrySkillInstall', { skill, output: r.output })
     },
     async uninstall({ root, dryRun, exec }) {
-      // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리를
-      // 남긴다(실측). 그래서 성공/실패와 무관하게 남은 디렉터리를 우리가 지운다 —
-      // 남겨 두면 detect가 계속 installed로 읽어 제거가 안 된 채 성공으로 보인다.
-      await exec('npx', ['-y', 'skills@latest', 'remove', skill, '--agent', 'universal', '--yes'], { cwd: root })
-      if (dryRun) return
-      const dir = findSkillDir(root, skill)
-      if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
+      // 지울 이름을 먼저 정한다. 여러 스킬을 깐 항목은 잠금 파일이 알려 주고,
+      // 잠금 파일이 없거나 깨졌으면 대표 스킬 하나라도 치운다.
+      const names = skill === '*' ? lockedSkills(root, source) : [skill]
+      const targets = names.length > 0 ? names : [probe]
+      for (const name of targets) {
+        // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리를
+        // 남긴다(실측). 그래서 성공/실패와 무관하게 남은 디렉터리를 우리가 지운다 —
+        // 남겨 두면 detect가 계속 installed로 읽어 제거가 안 된 채 성공으로 보인다.
+        await exec('npx', ['-y', 'skills@latest', 'remove', name, '--agent', 'universal', '--yes'], { cwd: root })
+        if (dryRun) continue
+        const dir = findSkillDir(root, name)
+        if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
+      }
+      if (!dryRun) pruneLock(root, targets)
     },
   }
 }
