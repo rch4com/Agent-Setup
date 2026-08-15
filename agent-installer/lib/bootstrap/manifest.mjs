@@ -52,8 +52,20 @@ export const MANIFEST = {
     { path: '.vscode/settings.json', key: 'chat.useAgentsMdFile', value: true },
   ],
 
-  // .agents/skills 를 가리키는 도구별 어댑터
-  // 두 Copilot은 .agents/skills를 네이티브로 탐색하므로 여기에 없다.
+  // .agents/skills 를 가리키는 도구별 어댑터.
+  //
+  // 여기에 없는 도구는 그 경로를 네이티브로 읽는다 — 2026-08-15에 도구별로
+  // 실측했다. Codex는 `codex debug prompt-input`이 프로젝트 SKILL.md 경로를
+  // 그대로 찍고, OpenCode·Kilo Code는 `debug skill`이, Copilot CLI는
+  // `skill list`가 같은 것을 보여 준다. Kimi Code는 배포본에
+  // `PROJECT_GENERIC_DIRS = [".agents/skills"]`가 있고, VS Code Copilot 확장은
+  // 프로젝트 경로 표에 `.agents/skills/<name>/`를 싣는다. Antigravity 바이너리도
+  // `{workspace}/.agents/skills/{skill_name}/SKILL.md`를 갖고 있다.
+  //
+  // 네이티브로 읽는 도구에 어댑터를 더하면 같은 스킬이 두 경로에서 잡혀 중복
+  // 등록된다 — 목록을 늘리기 전에 반드시 그 도구가 못 읽는 것을 먼저 확인한다.
+  // Kiro가 그 증거다: 확장이 `~/.kiro/skills/`와 `<workspace>/.kiro/skills/`만
+  // 훑고 `.agents/skills`는 한 번도 참조하지 않아, 이 어댑터가 있어야만 닿는다.
   adapters: [
     { tool: 'Claude Code', path: '.claude/skills' },
     { tool: 'Kiro', path: '.kiro/skills' },
