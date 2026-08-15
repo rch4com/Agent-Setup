@@ -5,6 +5,63 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## superpowers can now be installed harness-globally too (2026-08-15, 1.13.0)
+
+**Some harnesses had no project-scope road at all.** Upstream supports 14
+harnesses via per-harness installs, but this repository only paved the Claude
+plugin edition and the shared-skills edition — for the upstream plugin edition
+on codex, copilot, gemini, and opencode the answer was "install it yourself."
+The new item `global.superpowers` takes those four seats: it checks whether the
+plugin is installed globally, and installs it with each harness's own official
+command when it is not.
+
+- **The first user-global (scope: user) item in this repository.** Every item so
+  far wrote inside the repository only. This one has to touch the home directory
+  by nature, so the screen labels it "user global" and it deliberately bypasses
+  the repoPath family of guards.
+- **Install, detect, and remove are all measurement-backed (2026-08-15).** codex
+  and copilot were actually installed, observed, and removed on the working
+  machine — the codex record is the `[plugins."superpowers@…"]` section of
+  `$CODEX_HOME/config.toml`, and environments that really redirect CODEX_HOME
+  exist, so the env var is honored. The copilot record is `installedPlugins[]`
+  in `~/.copilot/config.json` (JSONC with comments — the parser already copes).
+  gemini follows the official extensions documentation, and opencode follows
+  upstream's `.opencode/INSTALL.md` verbatim: one entry in the `plugin` array of
+  the global `opencode.json`.
+- **copilot commands are retried once.** With another copilot session running,
+  install and uninstall failed once with os error 5 and succeeded on retry —
+  measured, so the item retries exactly once.
+- **Status is judged against the CLIs present on this machine.** Counting a
+  missing gemini as a gap would leave the item partial forever and make every
+  apply spin — absent CLIs are excluded from the target set and reported in the
+  detail and the result message.
+- **codex removal deletes exactly the ids detection found.** Editions installed
+  through another marketplace really exist (`superpowers@openai-curated`) —
+  reassembling the id from scratch would miss them. The marketplace registration
+  stays: there is no guarantee we registered it, and other plugins from the same
+  marketplace may use it.
+- **grok and kimi are not wired, with reasons shown.** grok has an upstream
+  command (`superpowers@xai-official`) but no CLI here to verify the
+  detect/remove paths against; kimi installs only through the interactive
+  `/plugins` command.
+- **Not exclusive with `skill.superpowers`.** That edition acts on this
+  repository only, this one on the whole machine — different planes, and
+  "Claude as a project plugin plus everything else globally" is a legitimate
+  combination. The note records that overlapping CLIs see the same skills twice
+  when both are on.
+- **Omission from `--set` does not remove global items.** `--set` declares "the
+  state this repository should have" and removes items outside the list — but
+  carrying global items on that rule means one unrelated `--set` run strips a
+  machine-wide install. This was measured (a `--set` of two skills in a scratch
+  repository also removed copilot's global superpowers) and is now blocked:
+  removing a global item requires unchecking it explicitly in the TUI, through
+  the review screen.
+
+Because a global item's detect reads the home directory, the test harness now
+redirects the home to a temp directory so TUI tests driving real items stop
+depending on the developer machine's install state. One more item brings the
+published file count from 143 to 144.
+
 ## superpowers and Matt Pocock can now be installed as shared skills (2026-08-15, 1.12.0)
 
 **Both items reached Claude Code and nothing else.** 1.11.1 corrected the

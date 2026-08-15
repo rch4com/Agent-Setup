@@ -5,6 +5,54 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## superpowers를 하니스 전역으로도 설치할 수 있게 한다 (2026-08-15, 1.13.0)
+
+**프로젝트 스코프로 배선할 수 없는 하니스가 남아 있었다.** 상류는 14개
+하니스를 하니스별 설치로 지원하는데, 이 저장소가 내는 길은 Claude 플러그인
+판과 공유 스킬 판까지였다 — codex·copilot·gemini·opencode에 상류 플러그인
+판을 넣는 길은 "직접 설치하세요"뿐이었다. 새 항목 `global.superpowers`가
+그 네 자리를 맡는다: 전역 설치 여부를 확인하고, 없으면 하니스별 공식
+명령으로 설치한다.
+
+- **이 저장소의 첫 사용자 전역(scope: user) 항목이다.** 지금까지 모든 항목은
+  저장소 안에만 썼다. 이 항목은 성격상 홈을 만져야 하므로 화면에 "사용자
+  전역"을 표시하고, repoPath 계열 가드를 일부러 쓰지 않는다.
+- **설치·감지·제거 전부 실측 근거다(2026-08-15).** codex와 copilot은 작업
+  머신에서 실제로 설치하고 관찰하고 제거했다 — codex 기록은
+  `$CODEX_HOME/config.toml`의 `[plugins."superpowers@…"]` 섹션이고
+  CODEX_HOME 재지정을 실제로 쓰는 환경이 있어 환경변수를 따라간다. copilot
+  기록은 `~/.copilot/config.json`의 `installedPlugins[]`(주석이 있는
+  JSONC — 파서가 이미 감당한다). gemini는 공식 extensions 문서, opencode는
+  상류 `.opencode/INSTALL.md`가 안내하는 전역 `opencode.json`의 `plugin`
+  배열 그대로다.
+- **copilot 명령은 한 번 재시도한다.** 다른 copilot 세션이 떠 있으면
+  install·uninstall이 os error 5로 한 번 실패했다가 재시도에 성공하는 것을
+  실측했다.
+- **상태는 이 머신에 있는 CLI 기준이다.** gemini 없는 머신에서 gemini를
+  누락으로 세면 영원히 partial이라 apply가 매번 헛돈다 — 없는 CLI는
+  대상에서 빼고 그 사실을 detail과 결과 메시지로 알린다.
+- **codex 제거는 감지가 찾은 id를 그대로 지운다.** `superpowers@openai-curated`
+  처럼 다른 마켓플레이스로 설치된 판이 실제로 있었다 — id를 새로 조립하면
+  그 판을 놓친다. 마켓플레이스 등록은 남긴다: 우리가 등록했다는 보장이 없고
+  같은 마켓의 다른 플러그인이 쓸 수 있다.
+- **grok·kimi는 배선하지 않고 사유를 표시한다.** grok은 상류 명령
+  (`superpowers@xai-official`)이 있으나 감지·제거 경로를 실측할 CLI가 없고,
+  kimi는 설치가 대화형 `/plugins`뿐이다.
+- **`skill.superpowers`와 배타로 묶지 않았다.** 저쪽은 이 저장소에만, 이쪽은
+  머신 전체에 작용해 평면이 다르고 "claude는 프로젝트 플러그인 + 나머지는
+  전역" 조합이 정당하다. 함께 켜면 겹치는 CLI가 같은 스킬을 두 곳에서
+  본다는 것은 note에 적었다.
+- **`--set` 생략은 전역 항목을 제거하지 않는다.** `--set`은 목록 밖 항목을
+  제거하는 "저장소 상태 선언"인데, 전역 항목까지 그 규칙에 태우면 무관한
+  `--set` 실행 하나가 머신 전체 설치를 걷어 간다 — 스크래치 저장소에서 스킬
+  둘을 `--set` 하다가 copilot의 전역 superpowers가 함께 제거되는 것을
+  실측하고 막았다. 전역 항목의 제거는 TUI에서 명시적으로 해제해 검토 화면을
+  거친다.
+
+전역 항목의 detect는 홈을 읽으므로, 실제 항목으로 TUI를 모는 테스트가 개발
+머신의 설치 상태를 타지 않도록 테스트 하네스가 홈을 임시 디렉터리로 돌린다.
+항목이 하나 늘어 발행 파일은 143개에서 144개가 된다.
+
 ## superpowers와 Matt Pocock을 공유 스킬로도 넣을 수 있게 한다 (2026-08-15, 1.12.0)
 
 **두 항목은 Claude Code 하나에만 닿고 있었다.** 상류가 다른 CLI도 지원한다는
