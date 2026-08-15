@@ -13,6 +13,21 @@ export function makeTempRepo() {
   return dir
 }
 
+// 전역(scope: 'user') 항목의 detect는 저장소가 아니라 홈을 읽는다 — 실제
+// 항목으로 TUI를 모는 테스트는 개발 머신의 설치 상태에 따라 선선택이 갈린다
+// (installedIds가 absent 아닌 항목을 미리 체크한다). 홈을 빈 임시 디렉터리로
+// 돌려 전역 항목을 absent로 고정한다. PATH는 그대로 둔다 — makeTempRepo의
+// git이 필요하고, CLI 유무는 absent 판정에 영향이 없다. node:test는 파일마다
+// 프로세스가 분리되므로 이 변형이 다른 테스트 파일로 새지 않는다.
+export function isolateGlobalHome() {
+  const home = mkdtempSync(join(tmpdir(), 'isolated-home-'))
+  process.env.USERPROFILE = home // win32의 os.homedir()
+  process.env.HOME = home // POSIX의 os.homedir()
+  delete process.env.CODEX_HOME
+  delete process.env.XDG_CONFIG_HOME
+  return home
+}
+
 // install.mjs를 실제 프로세스로 돌린다.
 // timeout은 필수다 — 비TTY 폴백이 깨지면 설치기가 키 입력을 기다리며 영원히 멈추고,
 // 그 사실은 CI가 멈춰 죽을 때에야 드러난다. 시간 초과는 status=null로 나타난다.

@@ -7,7 +7,11 @@ import { runTui } from '../lib/tui/run.mjs'
 import { createT, msg, toText } from '../lib/i18n/index.mjs'
 import { readRecord } from '../lib/bootstrap/record.mjs'
 import { GITMESSAGE_KO } from '../lib/gitmessage.mjs'
-import { makeTempRepo, makeCapture, recordingOpener } from './helpers.mjs'
+import { makeTempRepo, makeCapture, recordingOpener, isolateGlobalHome } from './helpers.mjs'
+
+// 전역 항목(global.superpowers)이 진짜 홈을 읽으면 이 파일의 "변경 없음"류
+// 단언이 머신 상태에 따라 뒤집힌다.
+isolateGlobalHome()
 
 // 가짜 TTY로 키 루프를 돌린다. keyReader가 이벤트를 큐에 쌓으므로
 // 리스너가 붙은 뒤에는 한꺼번에 밀어 넣어도 순서대로 소비된다.

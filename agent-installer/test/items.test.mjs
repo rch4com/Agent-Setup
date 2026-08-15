@@ -8,12 +8,13 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 24개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 25개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 24)
+  assert.equal(items.length, 25)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
+  assert.ok(ids.includes('global.superpowers'))
   assert.ok(ids.includes('config.gitmessage.ko'))
   assert.ok(ids.includes('mcp.notion'))
   assert.ok(ids.includes('mcp.graphify'))
@@ -123,6 +124,23 @@ test('상류가 새로 지원한 CLI는 없다고 말하지 않는다', async ()
   assert.equal(why('plugin.ponytail', 'grok'), 'item.unsupported.ponytailUser')
   // GSD --kilo가 만든 .kilo/skills를 Kilo Code가 읽는 것을 실측
   assert.equal(why('skill.gsd', 'kilo'), 'item.unsupported.gsdFlag')
+})
+
+// 전역 판은 CLI가 넷뿐이고 나머지 여섯의 사유가 전부 다르다 — claude는 자리
+// 겹침, grok은 미실측, kimi는 대화형 전용, 셋은 상류 부재. 일괄 사유로
+// 뭉개지면 화면이 거짓을 말한다.
+test('superpowers 전역 판은 CLI별로 정확한 미배선 사유를 갖는다', async () => {
+  const items = await loadItems()
+  const item = items.find((i) => i.id === 'global.superpowers')
+  assert.deepEqual(item.supports, ['codex', 'gemini', 'opencode', 'copilot'])
+  assert.equal(item.scope, 'user')
+  const why = (cli) => item.unsupported[cli].key
+  assert.equal(why('claude'), 'item.unsupported.superpowersGlobalClaude')
+  assert.equal(why('grok'), 'item.unsupported.superpowersGlobalGrok')
+  assert.equal(why('kimi'), 'item.unsupported.superpowersGlobalKimi')
+  assert.equal(why('kilo'), 'item.unsupported.upstreamNone')
+  assert.equal(why('kiro'), 'item.unsupported.upstreamNone')
+  assert.equal(why('vscode'), 'item.unsupported.upstreamNone')
 })
 
 // 일괄 폴백이 붙어 "Claude Code 전용 플러그인"이라 말하던 세 항목. 셋 다
