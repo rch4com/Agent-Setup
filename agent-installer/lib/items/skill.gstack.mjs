@@ -12,8 +12,19 @@ const REL_DIR = '.claude/skills/gstack'
 // 인자 없이 실행하며 setup의 기본값이 claude 단독이다. README 표에 있는
 // --host cursor·slate는 setup의 case 문이 거부해 exit 1로 죽는다 —
 // 확장한다면 안전한 값은 claude·codex·kiro·factory·opencode·auto뿐이다
-// (2026-08-02 검증).
-const HOSTS = ['codex', 'kiro', 'opencode']
+// (2026-08-02 검증, 2026-08-15 재확인: case 문과 에러 문구 그대로).
+//
+// 그런데 --host를 늘릴 필요가 없다는 것이 2026-08-15 실측으로 드러났다.
+// 상류 --host 경로는 홈(~/.codex/skills 등)에 까는 사용자 스코프인데, 이
+// 항목이 clone하는 `.claude/skills/gstack`은 부트스트랩 저장소에서 Junction
+// 이라 실물이 공유 `.agents/skills/gstack`에 앉는다. 거기서부터는 CLI의 스킬
+// 스캔 깊이가 도달 범위를 정한다 — gstack은 클론 루트에 라우터 SKILL.md가
+// 있고 개별 스킬이 그 아래 한 단계 더 들어간 2단계 구조다.
+//   codex·opencode  재귀 스캔이라 개별 스킬까지 전부 인식(중첩 프로브로 실측).
+//   copilot         1단계만 훑어 라우터 스킬 하나만 보인다(같은 프로브).
+// 나머지 CLI의 스캔 깊이는 미실측이라 "상류 경로 없음"으로 남긴다 — Junction
+// 도달은 우리 부트스트랩의 부수 효과지 상류 지원이 아니다.
+const SHARED_RECURSIVE = ['codex', 'opencode']
 
 export default defineSkill({
   id: 'skill.gstack', label: 'gstack', group: '__flow', scope: 'project',
@@ -21,7 +32,10 @@ export default defineSkill({
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,
-      HOSTS.includes(c) ? msg('item.unsupported.gstackHost') : msg('item.unsupported.upstreamNone'),
+      SHARED_RECURSIVE.includes(c) ? msg('item.unsupported.gstackShared')
+        : c === 'copilot' ? msg('item.unsupported.gstackSharedShallow')
+          : c === 'kiro' ? msg('item.unsupported.gstackHost')
+            : msg('item.unsupported.upstreamNone'),
     ]),
   ),
   async detect({ root }) {

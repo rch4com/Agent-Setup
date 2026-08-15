@@ -242,7 +242,9 @@ export default {
   'item.unsupported.bkitPort': 'upstream ships separate ports (bkit-codex / bkit-gemini) installed apart from this plugin; the Gemini port is still a Gemini CLI extension and has had no update since the 2026-06-18 sunset',
   'item.unsupported.impeccableJunction': 'upstream supports it, but npx impeccable install breaks the shared .agents/skills link, so only the plugin route is wired',
   'item.unsupported.gstackHost': 'upstream supports it via ./setup --host — this item installs for Claude Code only',
-  'item.unsupported.gsdFlag': 'upstream supports it via a runtime flag — this item installs with --claude only',
+  'item.unsupported.gstackShared': 'the upstream --host route is user-scoped, so it is not used. In a bootstrapped repository the shared .agents/skills junction reaches this CLI instead, and it scans recursively, so it sees the individual skills too (measured 2026-08-15)',
+  'item.unsupported.gstackSharedShallow': 'in a bootstrapped repository the shared .agents/skills junction reaches this CLI, but it scans only one level, so just the router skill shows up (measured 2026-08-15)',
+  'item.unsupported.gsdKimiLocal': 'upstream still blocks project-scope installs — --kimi --local refuses with "Project-level Kimi install semantics remain deferred" (measured 2026-08-15)',
   'item.unsupported.gsdGemini': 'upstream dropped Gemini CLI (sunset 2026-06) — Antigravity succeeds it via --antigravity',
   'item.mcp.partial': 'registered: {present} / missing: {missing}',
   'item.plugin.partial': 'wired: {present} / missing: {missing}',
@@ -280,8 +282,8 @@ export default {
   'item.skill.mcp-builder.note': 'a guide for building MCP servers (Python FastMCP, Node MCP SDK). Its four reference/ documents and the Apache-2.0 LICENSE.txt are copied along inside the skill directory. Harness-neutral content shared by all 10 CLIs',
   'item.skill.mattpocock-skills.note': 'copies 35 skills into the shared .agents/skills so all 10 CLIs see them. Upstream documents this route itself, and with no hooks involved nothing is lost against the plugin edition. Only one of the two can be chosen',
   'item.skill.karpathy.note': 'behavioral guidelines that curb overbuilding and vague success criteria',
-  'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally.',
-  'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project. Upstream supports 18 runtimes (Codex, Antigravity, …); this item wires --claude only',
+  'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally. In a bootstrapped repository .claude/skills is a junction, so the files land in the shared .agents/skills — codex and opencode scan recursively and see the individual skills too',
+  'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project — wires five runtimes in one run: claude, codex, opencode, copilot, kilo (.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). Each runtime writes roughly 700 files. gemini was dropped upstream and kimi still blocks project installs',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고
   // 무엇이 설정되는가"를 대신 말한다(상세 패널에 배선표가 없다).
   'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository',

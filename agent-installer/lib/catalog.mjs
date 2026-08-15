@@ -166,11 +166,15 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
   }
 }
 
-export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, unsupported: reasons = {} }) {
+// supports는 이 항목이 실제로 배선하는 CLI다. 기본값이 claude 하나인 것은
+// 대부분의 스킬 상류가 Claude 경로만 주기 때문이고, 상류가 런타임별 설치를
+// 주는 항목(skill.gsd)은 목록을 직접 넘긴다 — 넘긴 CLI는 미배선 사유 대상에서
+// 빠진다.
+export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, supports = ['claude'], unsupported: reasons = {} }) {
   const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudeSkill')]),
+    CLI_IDS.filter((c) => !supports.includes(c)).map((c) => [c, reasons[c] ?? msg('item.unsupported.claudeSkill')]),
   )
-  return { id, category: 'skill', label, scope, supports: ['claude'], unsupported, note, group, detect, install, uninstall }
+  return { id, category: 'skill', label, scope, supports: [...supports], unsupported, note, group, detect, install, uninstall }
 }
 
 // 이 저장소가 공유 스킬 자리로 쓰는 디렉터리. vercel-labs/skills 레지스트리의

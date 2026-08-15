@@ -107,11 +107,12 @@ test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', as
   // impeccable: 상류가 지원하는 CLI는 Junction 파괴가 미배선 사유
   assert.equal(why('plugin.impeccable', 'grok'), 'item.unsupported.impeccableJunction')
   assert.equal(why('plugin.impeccable', 'kilo'), 'item.unsupported.upstreamNone')
-  // gstack: setup --host 대상만 상류 지원
-  assert.equal(why('skill.gstack', 'codex'), 'item.unsupported.gstackHost')
+  // gstack: 공유 Junction 도달 여부와 스캔 깊이가 사유를 가른다(2026-08-15 실측)
+  assert.equal(why('skill.gstack', 'codex'), 'item.unsupported.gstackShared')
+  assert.equal(why('skill.gstack', 'copilot'), 'item.unsupported.gstackSharedShallow')
+  assert.equal(why('skill.gstack', 'kiro'), 'item.unsupported.gstackHost')
   assert.equal(why('skill.gstack', 'gemini'), 'item.unsupported.upstreamNone')
-  // GSD: 런타임 플래그 지원 + gemini는 Antigravity 승계
-  assert.equal(why('skill.gsd', 'codex'), 'item.unsupported.gsdFlag')
+  // GSD: codex는 이제 배선 대상이라 사유가 없다
   assert.equal(why('skill.gsd', 'gemini'), 'item.unsupported.gsdGemini')
   assert.equal(why('skill.gsd', 'kiro'), 'item.unsupported.upstreamNone')
 })
@@ -126,8 +127,11 @@ test('상류가 새로 지원한 CLI는 없다고 말하지 않는다', async ()
   assert.equal(why('plugin.superpowers', 'grok'), 'item.unsupported.superpowersSeparate')
   // ponytail은 grok 플러그인 기구가 있다 — 사유는 "기구 없음"이 아니라 사용자 스코프
   assert.equal(why('plugin.ponytail', 'grok'), 'item.unsupported.ponytailUser')
-  // GSD --kilo가 만든 .kilo/skills를 Kilo Code가 읽는 것을 실측
-  assert.equal(why('skill.gsd', 'kilo'), 'item.unsupported.gsdFlag')
+  // GSD --kilo가 만든 .kilo/skills를 Kilo Code가 읽는 것을 실측했고(2026-08-15),
+  // 이제 배선 대상이라 사유 자체가 없다 — 다시 사유가 생기면 후퇴한 것이다.
+  const gsd = items.find((i) => i.id === 'skill.gsd')
+  assert.ok(gsd.supports.includes('kilo'), 'kilo가 배선 대상에서 빠졌다')
+  assert.ok(!('kilo' in gsd.unsupported))
 })
 
 // 전역 판은 CLI가 넷뿐이고 나머지 여섯의 사유가 전부 다르다 — claude는 자리
