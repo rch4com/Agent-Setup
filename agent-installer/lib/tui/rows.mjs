@@ -12,6 +12,7 @@ import { loadCatalog, buildItems, netFetch, CATALOG_PATH } from '../design-md/ca
 import { discoverSources, extraDirsFromEnv } from '../design-md/scan.mjs'
 import { refreshCatalog, updateInstalled, findStale, categoryLabel } from '../design-md/flow.mjs'
 import { unsupportedGroups } from './detail.mjs'
+import { scopedLabel } from '../labels.mjs'
 
 // 섹션은 탭 이름이자 정렬 키이자 state.tabs의 원소다. 표시 문자열을 그대로
 // 쓰면 번역하는 순간 정렬이 깨진다 — id를 두고 render.mjs가 표시할 때만
@@ -29,7 +30,7 @@ export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config'
 // __commit은 CONFIG 탭에만 나오지만 규칙은 같다 — 헤더가 "무엇을 고르는
 // 자리인가"를 말한다. 커밋 템플릿은 대상 파일이 하나뿐이라 헤더에 그 파일
 // 이름과 "하나만"이라는 규칙까지 실어, 라디오 표시와 함께 읽히게 한다.
-export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__commit', '__service']
+export const GROUP_ORDER = ['__scope-project', '__scope-user', '__token', '__context', '__style', '__flow', '__commit', '__service']
 
 function groupRank(group) {
   const i = GROUP_ORDER.indexOf(group)
@@ -109,7 +110,10 @@ export function designHint(state, multiProvider = false, t) {
 export function agentShortHint(item, state, t = createT('en')) {
   const parts = []
   if (state.status !== 'absent') parts.push(t(`status.${state.status}`))
-  if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
+  // plugin은 수 대신 이름을 나열한다 — 어느 CLI에 설치되는가가 이 탭에서
+  // 고르는 기준이고, 가장 긴 나열(codex·gemini·opencode·copilot)도 자리에 든다.
+  if (item.category === 'plugin' && item.supports?.length) parts.push(item.supports.join('·'))
+  else if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
   return parts.join(' · ')
 }
 
@@ -235,8 +239,13 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
       itemRow({
         id: s.item.id,
         section: s.item.category,
-        group: s.item.group ?? null,
-        label: s.item.label,
+        // plugin 탭은 성격이 아니라 설치 범위로 가른다 — 같은 상류의 두 판
+        // (저장소/전역)이 무엇을 건드리는지가 이 탭에서 고르는 기준이다.
+        // 표시 계층의 오버라이드다: 항목의 group 필드는 성격의 진실로 남는다.
+        group: s.item.category === 'plugin'
+          ? (s.item.scope === 'user' ? '__scope-user' : '__scope-project')
+          : s.item.group ?? null,
+        label: scopedLabel(s.item, t),
         hint: agentShortHint(s.item, s, t),
         fullHint: agentHint(s.item, s, t),
         statusDetail: toText(t, s.detail) ?? null,

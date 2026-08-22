@@ -386,6 +386,49 @@ test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async
   assert.equal(cap.text().includes('--list'), true)
 })
 
+// ── 플러그인 범위 그룹 ────────────────────────────────────────────
+
+// plugin 탭은 성격이 아니라 설치 범위로 가른다 — 같은 상류의 두 판이
+// 무엇을 건드리는지가 이 탭에서 고르는 기준이다. 항목의 group 필드(성격)는
+// 표시에서만 덮이고 데이터로는 남는다.
+test('plugin 행은 성격 그룹 대신 범위 그룹을 단다 — 저장소가 전역보다 앞', () => {
+  const states = [
+    { item: { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', group: '__flow', supports: ['codex'], unsupported: {} }, status: 'absent' },
+    { item: { id: 'plugin.sp', category: 'plugin', label: 'superpowers', scope: 'project', group: '__flow', supports: ['claude'], unsupported: {} }, status: 'absent' },
+  ]
+  const rows = buildRows({ agentStates: states })
+  assert.deepEqual(rows.map((r) => r.group), ['__scope-project', '__scope-user'])
+})
+
+test('plugin 행 라벨은 로케일 범위 접미사를 달고 그 접미사로 검색된다', () => {
+  const states = [
+    { item: { id: 'plugin.sp', category: 'plugin', label: 'superpowers', scope: 'project', supports: ['claude'], unsupported: {} }, status: 'absent' },
+    { item: { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', supports: ['codex'], unsupported: {} }, status: 'absent' },
+  ]
+  const rows = buildRows({ agentStates: states, t: createT('ko') })
+  assert.deepEqual(rows.map((r) => r.label), ['superpowers (저장소)', 'superpowers (전역)'])
+  assert.ok(rows[1].searchText.includes('전역'))
+})
+
+test('plugin 행 짧은 힌트는 커버리지 수 대신 CLI 이름을 나열한다', () => {
+  const item = { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', supports: ['codex', 'gemini', 'opencode', 'copilot'], unsupported: {} }
+  const hint = agentShortHint(item, { item, status: 'installed' }, createT('ko'))
+  assert.match(hint, /설치됨 · codex·gemini·opencode·copilot/)
+  assert.doesNotMatch(hint, /CLI 4\/10/)
+})
+
+test('범위 그룹 헤더는 로케일 라벨로 그려진다 — raw id가 새지 않는다', () => {
+  const states = [
+    { item: { id: 'plugin.sp', category: 'plugin', label: 'superpowers', scope: 'project', supports: ['claude'], unsupported: {} }, status: 'absent' },
+    { item: { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', supports: ['codex'], unsupported: {} }, status: 'absent' },
+  ]
+  const rows = buildRows({ agentStates: states, t: createT('ko') })
+  const ko = render(createState(rows), { width: 100, height: 24, t: createT('ko') }).join('\n')
+  assert.match(ko, /저장소 범위 — 이 저장소에만 적용/)
+  assert.match(ko, /머신 전역 — 이 컴퓨터 전체에 적용/)
+  assert.doesNotMatch(ko, /__scope/)
+})
+
 // ── 사유 그룹 분리와 짧은 힌트 ────────────────────────────────────
 
 const PONYTAIL = {
@@ -414,13 +457,14 @@ test('미배선이 없으면 빈 배열이다', () => {
   assert.deepEqual(unsupportedGroups({}, createT('en')), [])
 })
 
-// 목록 행에서 잘릴 것을 없애는 것이 이번 변경의 핵심이다. 사유·note·detail은
-// 상세 패널로 옮기고 행에는 상태와 커버리지만 남긴다.
+// 목록 행에서 잘릴 것을 없애는 것이 이 힌트의 취지다. 사유·note·detail은
+// 상세 패널로 옮기고 행에는 상태와 커버리지만 남긴다 — 단 plugin은 수 대신
+// 이름을 나열한다(어느 CLI에 설치되는가가 곧 고르는 기준이라서).
 test('짧은 힌트는 상태와 CLI 커버리지만 담는다', () => {
   const t = createT('en')
   const hint = agentShortHint(PONYTAIL, { item: PONYTAIL, status: 'installed' }, t)
   assert.match(hint, /Installed/)
-  assert.match(hint, /CLI 2\/10/)
+  assert.match(hint, /claude·opencode/)
   assert.doesNotMatch(hint, /upstream/)
 })
 

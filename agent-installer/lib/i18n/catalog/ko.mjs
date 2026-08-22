@@ -400,6 +400,9 @@ export default {
   // 헤더 하나가 무엇을 고르는 자리이고 규칙이 무엇인지 함께 말한다. en.mjs 쪽 주석 참고.
   'category.commit': '커밋 메시지 템플릿 · .gitmessage.txt · 하나만 고릅니다',
   'category.service': '외부 서비스',
+  // PLUGIN 탭 전용 범위 그룹 — 검토 화면(renderReview)의 소제목도 같은 키를 쓴다.
+  'category.scope-project': '저장소 범위 — 이 저장소에만 적용',
+  'category.scope-user': '머신 전역 — 이 컴퓨터 전체에 적용',
   'design.localSuffix': '{id} (로컬)',
   'design.localTag': '로컬',
   'design.unknownItem': '  알 수 없는 항목: {token}',
