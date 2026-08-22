@@ -230,7 +230,7 @@ export default {
   'item.unsupported.superpowersGlobalClaude': '저장소 범위 항목 superpowers (저장소)가 담당합니다',
   'item.unsupported.superpowersGlobalGrok': '상류 6.3.0에 grok plugin install superpowers@xai-official 명령이 있지만 감지·제거 경로를 실측하지 못해 아직 배선하지 않습니다',
   'item.unsupported.superpowersGlobalKimi': '상류 설치가 대화형 /plugins 명령뿐이라 헤드리스 경로가 없습니다',
-  'item.unsupported.globalProjectItem': '프로젝트 스코프 항목 {item}이 담당합니다',
+  'item.unsupported.globalProjectItem': '저장소 범위 항목 {item}이 담당합니다',
   'item.unsupported.ponytailGlobalGrok': '상류 명령(grok plugin install DietrichGebert/ponytail --trust)이 있지만 감지·제거 경로 미실측이라 배선하지 않습니다',
   'item.unsupported.bkitPort': '상류가 별도 배포판(bkit-codex·bkit-gemini)으로 지원합니다 — 이 플러그인과 별개 설치입니다. Gemini판은 Gemini CLI 확장 그대로이고 2026-06-18 종료 이후 갱신이 없습니다',
   'item.unsupported.impeccableJunction': '상류는 지원하지만 npx impeccable install이 공유 .agents/skills 연결을 끊어 플러그인 경로만 배선합니다',

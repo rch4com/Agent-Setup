@@ -237,7 +237,7 @@ export default {
   'item.unsupported.superpowersGlobalClaude': 'covered by the repo-scope item superpowers (repo)',
   'item.unsupported.superpowersGlobalGrok': 'upstream 6.3.0 ships grok plugin install superpowers@xai-official, but the detect/remove paths are unverified — not wired yet',
   'item.unsupported.superpowersGlobalKimi': 'upstream installs only via the interactive /plugins command — no headless path',
-  'item.unsupported.globalProjectItem': 'covered by the project-scope item {item}',
+  'item.unsupported.globalProjectItem': 'covered by the repo-scope item {item}',
   'item.unsupported.ponytailGlobalGrok': 'upstream ships grok plugin install DietrichGebert/ponytail --trust, but the detect/remove paths are unverified — not wired yet',
   'item.unsupported.bkitPort': 'upstream ships separate ports (bkit-codex / bkit-gemini) installed apart from this plugin; the Gemini port is still a Gemini CLI extension and has had no update since the 2026-06-18 sunset',
   'item.unsupported.impeccableJunction': 'upstream supports it, but npx impeccable install breaks the shared .agents/skills link, so only the plugin route is wired',

@@ -87,6 +87,19 @@ test('--list는 상태와 함께 목록을 내고 아무것도 바꾸지 않는�
   assert.deepEqual(untouched(root), [])
 })
 
+// scopedLabel이 plugin 카테고리 항목에만 범위 접미사를 붙인다(labels.test.mjs가
+// 단위로 덮는다) — 이 테스트는 그 접미사가 실제 --list 프로세스 출력까지
+// 살아남는지를 본다. plugin.*(저장소 스코프)와 global.*(전역 스코프) 둘 다
+// 걸어 두 접미사가 각각 나오는지 확인한다.
+test('--list 출력의 플러그인 행은 scopedLabel 범위 접미사를 단다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--list'], { env: KO })
+
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /plugin\.ponytail — Ponytail \(저장소\)/)
+  assert.match(r.stdout, /global\.superpowers — superpowers \(전역\)/)
+})
+
 test('design --list는 제공자별로 묶어 낸다', () => {
   const root = makeTempRepo()
   const r = runInstaller(root, ['design', '--list'])

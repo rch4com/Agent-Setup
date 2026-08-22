@@ -280,8 +280,11 @@ export function renderReview(changes, opts = {}) {
 
   let quota = room
   for (const g of groups) {
-    // 지면이 다해도 소제목은 낸다 — 전역 묶음이 통째로 잘리더라도 그 평면이
-    // 있다는 사실은 화면에 남아야 한다(경고 줄이 건수를 마저 말한다).
+    // 소제목 지면조차 없으면 위에서 이미 강등돼(showHeaders=false) 이
+    // 지점에 오지 않는다 — 여기 온다는 건 소제목 지면은 남았다는 뜻이고,
+    // 그때는 목록 지면(quota)이 다해도 소제목만은 낸다: 전역 묶음이
+    // 통째로 잘리더라도 그 평면이 있다는 사실은 화면에 남아야 한다
+    // (경고 줄이 건수를 마저 말한다).
     if (showHeaders && g.header !== null) lines.push(paint(DIM, cut(`  ${g.header}`, w)))
     for (const c of g.list) {
       if (quota <= 0) break
