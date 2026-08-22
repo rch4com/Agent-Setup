@@ -68,9 +68,15 @@ user 스코프 항목은 `global.superpowers`·`global.ponytail` 둘뿐이고 �
 - 항목 파일의 정적 라벨에서 수기 접미사를 제거한다:
   `plugin.superpowers` 'superpowers (plugin)' → 'superpowers',
   `global.superpowers` 'superpowers (global)' → 'superpowers',
-  `global.ponytail` 'Ponytail (global)' → 'Ponytail'
+  `global.ponytail` 'Ponytail (global)' → 'Ponytail',
+  `plugin.mattpocock-skills` 'Matt Pocock (plugin)' → 'Matt Pocock'
   (`plugin.ponytail`은 이미 'Ponytail'). `skill.superpowers`의
-  'superpowers (skills)'는 skill 카테고리라 헬퍼 대상이 아니고 그대로 둔다.
+  'superpowers (skills)'와 'Matt Pocock (skills)'는 skill 카테고리라 헬퍼
+  대상이 아니고 그대로 둔다.
+- 옛 라벨을 문장 안에 담은 기존 문구
+  `item.unsupported.superpowersGlobalClaude`("프로젝트 스코프 항목
+  superpowers (plugin)이 담당합니다")도 새 표기("superpowers (저장소)")로
+  갱신한다 — 화면 어디에도 옛 접미사가 남지 않아야 한다.
 - 헬퍼 적용 지점 (plugin 항목 라벨이 찍히는 모든 자리):
   - `lib/tui/rows.mjs` — 목록 행 라벨(itemRow에 넘기는 label). searchText도
     이 라벨로 구성되므로 "저장소"·"전역" 검색이 걸린다
@@ -143,8 +149,8 @@ user 스코프 항목은 `global.superpowers`·`global.ponytail` 둘뿐이고 �
 | `lib/tui/run.mjs` | user 스코프 켬 상태 메시지, notable 결과 라벨 헬퍼 |
 | `lib/tui/progress.mjs` | 진행·평문 라벨 헬퍼 |
 | `install.mjs` | `runClassic` 출력 라벨 헬퍼 |
-| `lib/items/plugin.superpowers.mjs` 외 2개 항목 | 라벨 접미사 제거 (superpowers 2판·global.ponytail) |
-| `lib/i18n/catalog/ko.mjs`·`en.mjs` | 새 키 6종 |
+| `lib/items/plugin.superpowers.mjs` 외 3개 항목 | 라벨 접미사 제거 (superpowers 2판·global.ponytail·plugin.mattpocock-skills) |
+| `lib/i18n/catalog/ko.mjs`·`en.mjs` | 새 키 6종 + `item.unsupported.superpowersGlobalClaude` 문구 갱신 |
 
 ## 테스트 계획
 
