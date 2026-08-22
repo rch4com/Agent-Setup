@@ -266,16 +266,23 @@ export function renderReview(changes, opts = {}) {
     : [{ header: null, list: changes }]
 
   // 소제목·경고 줄이 목록 지면을 갉아먹는다 — 그만큼 떼어 두지 않으면
-  // "…외 N건" 판정이 어긋나 화면이 넘친다.
+  // "…외 N건" 판정이 어긋나 화면이 넘친다. 지면이 소제목까지 감당 못 하면
+  // 소제목을 버리고 경고만 남긴다 — 경고가 범위 사실을 말하는 최후의 줄이고,
+  // 화면이 넘치면 alt 화면 전체가 밀린다.
   const body = reviewBodyHeight(height)
-  const overhead = split ? groups.length + 1 : 0
+  let overhead = split ? groups.length + 1 : 0
+  let showHeaders = split
+  if (split && body - 1 - overhead < 1) {
+    showHeaders = false
+    overhead = 1
+  }
   const room = Math.max(1, body - 1 - overhead)
 
   let quota = room
   for (const g of groups) {
     // 지면이 다해도 소제목은 낸다 — 전역 묶음이 통째로 잘리더라도 그 평면이
     // 있다는 사실은 화면에 남아야 한다(경고 줄이 건수를 마저 말한다).
-    if (g.header !== null) lines.push(paint(DIM, cut(`  ${g.header}`, w)))
+    if (showHeaders && g.header !== null) lines.push(paint(DIM, cut(`  ${g.header}`, w)))
     for (const c of g.list) {
       if (quota <= 0) break
       lines.push(changeLine(c))

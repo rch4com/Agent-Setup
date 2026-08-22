@@ -404,6 +404,20 @@ test('renderReview: 범위 분할 화면도 넘치면 잘라내고 남은 건수
   for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
 })
 
+// 계획의 원안은 저높이에서 소제목·경고가 room 하한과 겹쳐 화면을 넘겼다 —
+// 소제목을 버리는 강등이 있어도 높이 계약과 경고는 모든 높이에서 지켜져야 한다.
+test('renderReview: 지면이 좁으면 소제목을 버려도 높이 계약과 경고는 지킨다', () => {
+  const changes = [
+    { action: 'install', item: { category: 'plugin', label: 'bkit', scope: 'project', supports: [...CLI_IDS] } },
+    { action: 'install', item: { category: 'plugin', label: 'g', scope: 'user', supports: [...CLI_IDS] } },
+  ]
+  for (const height of [6, 8, 9, 10, 11, 24]) {
+    const lines = renderReview(changes, { width: 80, height, t: createT('ko') })
+    assert.equal(lines.length, reviewBodyHeight(height) + 4, `height=${height}`)
+    assert.match(lines.join('\n'), /머신 전역 변경 1건/, `height=${height}`)
+  }
+})
+
 // ── 비TTY 폴백 ────────────────────────────────────────────────────
 
 test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async () => {
