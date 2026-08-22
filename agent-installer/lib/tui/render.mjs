@@ -6,6 +6,7 @@ import { createT } from '../i18n/index.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
 import { cut, pad, width } from '../width.mjs'
 import { detailLines } from './detail.mjs'
+import { scopedLabel } from '../labels.mjs'
 
 // 폭 계산은 화면 전용이 아니다 — 비대화형 목록도 같은 열 맞춤이 필요해
 // lib/width.mjs에 있다. 여기서 다시 내보내는 것은 호출부(테스트 포함)가
@@ -244,23 +245,51 @@ export function renderReview(changes, opts = {}) {
   const title = `${t('tui.review.title', { count: changes.length })}${dryRun ? ' (dry-run)' : ''}`
   const lines = [color ? `${BOLD}${cut(title, w)}${RESET}` : cut(title, w), '']
 
-  const body = reviewBodyHeight(height)
-  const room = Math.max(1, body - 1)
-  const shown = changes.slice(0, room)
-  for (const c of shown) {
-    // 적용 직전 마지막 화면이다. 일부 CLI에만 들어가는 항목은 여기서도 그 사실을
-    // 밝힌다 — 목록에서 지나쳤더라도 되돌릴 수 있는 마지막 지점이다.
-    // 전부 지원하는 항목은 조용히 둔다: 경고가 흔해지면 아무도 읽지 않는다.
+  // 적용 직전 마지막 화면이다. 일부 CLI에만 들어가는 항목은 여기서도 그 사실을
+  // 밝힌다 — 목록에서 지나쳤더라도 되돌릴 수 있는 마지막 지점이다.
+  // 전부 지원하는 항목은 조용히 둔다: 경고가 흔해지면 아무도 읽지 않는다.
+  const changeLine = (c) => {
     const partial = c.item.supports && c.item.supports.length < CLI_IDS.length
     const cov = partial ? ` · ${t('item.cliCoverage', { covered: c.item.supports.length, total: CLI_IDS.length })}` : ''
-    lines.push(cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(t(`change.${c.action}`), 10)} ${c.item.label}${cov}`, w))
+    return cut(`  ${CHANGE_MARK[c.action] ?? '?'} ${pad(t(`change.${c.action}`), 10)} ${scopedLabel(c.item, t)}${cov}`, w)
   }
-  if (changes.length > shown.length) {
-    lines.push(paint(DIM, cut(t('tui.review.more', { count: changes.length - shown.length }), w)))
+
+  // 전역 변경이 있을 때만 범위로 가른다 — 전부 저장소 범위인 흔한 경우에
+  // 소제목은 잡음이다. 가를 때는 저장소 묶음이 먼저다(목록 화면과 같은 순서).
+  const globals = changes.filter((c) => c.item.scope === 'user')
+  const split = globals.length > 0
+  const groups = split
+    ? [
+      { header: t('category.scope-project'), list: changes.filter((c) => c.item.scope !== 'user') },
+      { header: t('category.scope-user'), list: globals },
+    ].filter((g) => g.list.length > 0)
+    : [{ header: null, list: changes }]
+
+  // 소제목·경고 줄이 목록 지면을 갉아먹는다 — 그만큼 떼어 두지 않으면
+  // "…외 N건" 판정이 어긋나 화면이 넘친다.
+  const body = reviewBodyHeight(height)
+  const overhead = split ? groups.length + 1 : 0
+  const room = Math.max(1, body - 1 - overhead)
+
+  let quota = room
+  for (const g of groups) {
+    // 지면이 다해도 소제목은 낸다 — 전역 묶음이 통째로 잘리더라도 그 평면이
+    // 있다는 사실은 화면에 남아야 한다(경고 줄이 건수를 마저 말한다).
+    if (g.header !== null) lines.push(paint(DIM, cut(`  ${g.header}`, w)))
+    for (const c of g.list) {
+      if (quota <= 0) break
+      lines.push(changeLine(c))
+      quota--
+    }
+  }
+  const shown = room - quota
+  if (changes.length > shown) {
+    lines.push(paint(DIM, cut(t('tui.review.more', { count: changes.length - shown }), w)))
   } else {
     lines.push('')
   }
-  for (let i = shown.length + 1; i < body; i++) lines.push('')
+  if (split) lines.push(paint(DIM, cut(t('tui.review.globalWarning', { count: globals.length }), w)))
+  while (lines.length < 2 + body) lines.push('')
 
   lines.push('')
   lines.push(paint(DIM, cut(t('tui.review.hint'), w)))

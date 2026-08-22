@@ -321,6 +321,7 @@ export default {
   'tui.review.title': '제출 검토 — 변경 {count}건',
   'tui.review.more': '  …외 {count}건',
   'tui.review.hint': 'Enter 적용   Esc 취소   Ctrl+Q 종료',
+  'tui.review.globalWarning': '머신 전역 변경 {count}건 — 이 저장소 밖 설정(~/.codex 등)이 바뀝니다',
   'tui.notItemRow': '이 행은 Enter로 실행합니다.',
   'tui.noPreview': '이 항목은 미리보기를 제공하지 않습니다.',
   'tui.opened': '열었습니다: {target}',

@@ -331,6 +331,7 @@ export default {
   'tui.review.title': 'Review — {count} change(s)',
   'tui.review.more': '  …and {count} more',
   'tui.review.hint': 'Enter apply   Esc cancel   Ctrl+Q quit',
+  'tui.review.globalWarning': '{count} machine-global change(s) — settings outside this repo (~/.codex etc.) will change',
   'tui.notItemRow': 'Press Enter to run this row.',
   'tui.noPreview': 'This item has no preview.',
   'tui.opened': 'Opened: {target}',

@@ -370,6 +370,40 @@ test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 
   for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
 })
 
+test('renderReview: 전역 변경이 있으면 범위별 소제목과 경고가 붙는다', () => {
+  const changes = [
+    { action: 'install', item: { category: 'plugin', label: 'bkit', scope: 'project', supports: ['claude'] } },
+    { action: 'install', item: { category: 'plugin', label: 'superpowers', scope: 'user', supports: ['codex', 'gemini'] } },
+  ]
+  const lines = renderReview(changes, { width: 90, height: 24, t: createT('ko') })
+  const text = lines.join('\n')
+  assert.match(text, /저장소 범위 — 이 저장소에만 적용/)
+  assert.match(text, /머신 전역 — 이 컴퓨터 전체에 적용/)
+  assert.match(text, /superpowers \(전역\)/)
+  assert.match(text, /머신 전역 변경 1건/)
+  // 저장소 묶음이 전역 묶음보다 먼저다 — 목록 화면과 같은 순서.
+  assert.ok(text.indexOf('저장소 범위 —') < text.indexOf('머신 전역 —'))
+  assert.equal(lines.length, reviewBodyHeight(24) + 4)
+})
+
+test('renderReview: 전역 변경이 없으면 소제목·경고 없이 기존 화면 그대로다', () => {
+  const text = renderReview(CHANGES, { width: 80, height: 24, t: createT('ko') }).join('\n')
+  assert.doesNotMatch(text, /저장소 범위 —/)
+  assert.doesNotMatch(text, /머신 전역/)
+})
+
+test('renderReview: 범위 분할 화면도 넘치면 잘라내고 남은 건수를 알린다', () => {
+  const many = [
+    ...Array.from({ length: 40 }, (_, i) => ({ action: 'install', item: { category: 'plugin', label: `p${i}`, scope: 'project', supports: [...CLI_IDS] } })),
+    { action: 'install', item: { category: 'plugin', label: 'g', scope: 'user', supports: [...CLI_IDS] } },
+  ]
+  const lines = renderReview(many, { width: 80, height: 12, t: createT('ko') })
+  assert.ok(lines.join('\n').includes('…외'), '남은 건수 안내 없음')
+  assert.match(lines.join('\n'), /머신 전역 변경 1건/)
+  assert.equal(lines.length, reviewBodyHeight(12) + 4)
+  for (const line of lines) assert.ok(width(line) <= 79, `너무 김: ${line}`)
+})
+
 // ── 비TTY 폴백 ────────────────────────────────────────────────────
 
 test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async () => {
