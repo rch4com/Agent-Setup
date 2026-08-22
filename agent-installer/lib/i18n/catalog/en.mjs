@@ -337,6 +337,7 @@ export default {
   'tui.opened': 'Opened: {target}',
   'tui.noChanges': 'Nothing to change.',
   'tui.submitCancelled': 'Submission cancelled.',
+  'tui.selectedGlobal': 'Machine-global item — applies to this whole computer',
   'tui.toggledAll': 'Selected every visible item in the {tab} tab.',
   'tui.toggledNone': 'Cleared every visible item in the {tab} tab.',
   // 배타 묶음에서 형제가 함께 꺼졌을 때. 조용히 뒤집히면 오조작으로 읽힌다.

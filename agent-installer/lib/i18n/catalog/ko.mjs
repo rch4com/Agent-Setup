@@ -327,6 +327,7 @@ export default {
   'tui.opened': '열었습니다: {target}',
   'tui.noChanges': '변경할 항목이 없습니다.',
   'tui.submitCancelled': '제출을 취소했습니다.',
+  'tui.selectedGlobal': '머신 전역 항목 — 이 컴퓨터 전체에 적용됩니다',
   'tui.toggledAll': '{tab} 탭의 보이는 항목을 모두 선택했습니다.',
   'tui.toggledNone': '{tab} 탭의 보이는 항목을 모두 해제했습니다.',
   // 배타 묶음에서 형제가 함께 꺼졌을 때. en.mjs 쪽 주석 참고.

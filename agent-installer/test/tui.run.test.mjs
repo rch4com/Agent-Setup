@@ -394,3 +394,12 @@ test('배타 항목을 바꾸면 무엇이 해제됐는지 알린다', async () 
   assert.match(screen, /한 자리를 두고 다투므로/, `배타 전환 안내가 없다`)
   assert.match(screen, /Korean commit template/)
 })
+
+// 전역 항목은 이 체크 하나가 저장소 밖(~/.codex 등)을 건드린다 — 켜는 순간
+// 상태줄이 그 사실을 말해야 한다. isolateGlobalHome()이 파일 상단에서 가짜
+// 홈을 깔아 두므로 global.superpowers는 항상 미설치로 시작한다.
+// 검색은 활성 탭 안으로만 걸리므로 TAB으로 PLUGIN 탭(작업 다음)에 먼저 간다.
+test('전역 플러그인을 켜면 상태줄이 머신 전역임을 알린다', async () => {
+  const { screen } = await drive([TAB, ...type('global.superpowers'), DOWN, SPACE, CC])
+  assert.ok(screen.includes('머신 전역 항목 — 이 컴퓨터 전체에 적용됩니다'), '전역 안내 없음')
+})

@@ -14,6 +14,7 @@ import {
 } from './state.mjs'
 import { render, renderReview, bodyHeight } from './render.mjs'
 import { createProgress, applyEvent, progressLines } from './progress.mjs'
+import { scopedLabel } from '../labels.mjs'
 
 const ESC = String.fromCharCode(27)
 const HIDE_CURSOR = `${ESC}[?25l`
@@ -183,6 +184,9 @@ export async function runTui(root, opts = {}) {
     // 화면 밖에 있을 때는 아예 무슨 일이 일어났는지 볼 수조차 없다.
     const dropped = state.rows.filter((r) => r.id !== row.id && before.has(r.id) && !state.selected.has(r.id))
     if (dropped.length > 0) return t('tui.exclusiveSwitched', { kept: row.label, dropped: dropped.map((r) => r.label).join(', ') })
+    // 전역 항목을 막 켰다면 알린다 — 이 체크 하나가 저장소 밖을 건드린다.
+    // 배타 전환 메시지가 우선한다: 상태줄은 한 줄뿐이고 선택이 뒤집힌 쪽이 급하다.
+    if (row.item?.scope === 'user' && state.selected.has(row.id) && !before.has(row.id)) return t('tui.selectedGlobal')
     return ''
   }
 
@@ -373,7 +377,7 @@ export async function runTui(root, opts = {}) {
             log('')
             for (const r of notable) {
               const message = toText(t, r.message)
-              log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${message ? ` — ${message}` : ''}`)
+              log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${message ? ` — ${message}` : ''}`)
             }
           }
           log(`\n${t('apply.seeGitDiff')}`)
