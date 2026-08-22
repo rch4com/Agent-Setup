@@ -211,3 +211,12 @@ test('unsupported 사유는 구조화 메시지다', async () => {
     }
   }
 })
+
+// 접미사는 scopedLabel이 로케일에 맞춰 붙인다 — 정적 라벨에 수기 접미사가
+// 남으면 화면에 'superpowers (plugin) (저장소)'처럼 이중으로 찍힌다.
+test('plugin 항목 라벨에 수기 범위 접미사가 없다', async () => {
+  const items = await loadItems()
+  for (const item of items.filter((i) => i.category === 'plugin')) {
+    assert.doesNotMatch(item.label, /\((plugin|global)\)/, `${item.id}: 라벨에 수기 접미사가 남았다`)
+  }
+})

@@ -227,7 +227,7 @@ export default {
   'item.unsupported.mattpocockRegistry': '상류가 npx skills add(공유 .agents/skills)도 안내하지만 이 항목은 Claude Code 플러그인만 배선합니다',
   'item.unsupported.upstreamNone': '상류에 공식 설치 경로가 없습니다',
   'item.unsupported.superpowersSeparate': '상류가 하니스별 별도 설치로 지원합니다 — 이 항목은 Claude Code 플러그인만 배선합니다',
-  'item.unsupported.superpowersGlobalClaude': '프로젝트 스코프 항목 superpowers (plugin)이 담당합니다',
+  'item.unsupported.superpowersGlobalClaude': '저장소 범위 항목 superpowers (저장소)가 담당합니다',
   'item.unsupported.superpowersGlobalGrok': '상류 6.3.0에 grok plugin install superpowers@xai-official 명령이 있지만 감지·제거 경로를 실측하지 못해 아직 배선하지 않습니다',
   'item.unsupported.superpowersGlobalKimi': '상류 설치가 대화형 /plugins 명령뿐이라 헤드리스 경로가 없습니다',
   'item.unsupported.globalProjectItem': '프로젝트 스코프 항목 {item}이 담당합니다',

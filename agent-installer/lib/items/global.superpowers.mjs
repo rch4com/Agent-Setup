@@ -26,7 +26,7 @@ import { msg } from '../i18n/index.mjs'
 const SUPPORTS = ['codex', 'gemini', 'opencode', 'copilot']
 
 const CONFIG = {
-  id: 'global.superpowers', label: 'superpowers (global)', group: '__flow',
+  id: 'global.superpowers', label: 'superpowers', group: '__flow',
   note: 'item.global.superpowers.note',
   pluginName: 'superpowers',
   marketplaceRepo: 'obra/superpowers-marketplace',

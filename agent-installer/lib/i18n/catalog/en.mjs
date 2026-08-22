@@ -234,7 +234,7 @@ export default {
   'item.unsupported.mattpocockRegistry': 'upstream also documents npx skills add (the shared .agents/skills), but this item wires the Claude Code plugin only',
   'item.unsupported.upstreamNone': 'no official install path upstream',
   'item.unsupported.superpowersSeparate': 'upstream supports it via a separate per-harness install — this item wires the Claude Code plugin only',
-  'item.unsupported.superpowersGlobalClaude': 'covered by the project-scope item superpowers (plugin)',
+  'item.unsupported.superpowersGlobalClaude': 'covered by the repo-scope item superpowers (repo)',
   'item.unsupported.superpowersGlobalGrok': 'upstream 6.3.0 ships grok plugin install superpowers@xai-official, but the detect/remove paths are unverified — not wired yet',
   'item.unsupported.superpowersGlobalKimi': 'upstream installs only via the interactive /plugins command — no headless path',
   'item.unsupported.globalProjectItem': 'covered by the project-scope item {item}',

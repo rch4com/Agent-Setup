@@ -28,7 +28,7 @@ import { msg } from '../i18n/index.mjs'
 const SUPPORTS = ['codex', 'gemini', 'copilot']
 
 const CONFIG = {
-  id: 'global.ponytail', label: 'Ponytail (global)', group: '__token',
+  id: 'global.ponytail', label: 'Ponytail', group: '__token',
   note: 'item.global.ponytail.note',
   pluginName: 'ponytail',
   marketplaceRepo: 'DietrichGebert/ponytail',
