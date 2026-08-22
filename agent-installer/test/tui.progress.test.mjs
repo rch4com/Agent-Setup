@@ -93,3 +93,21 @@ test('비TTY 평문은 항목마다 한 줄씩만 낸다', () => {
   assert.equal(plainLine({ index: 0, total: 3, phase: 'command', command: 'x' }, T), null)
   assert.match(plainLine({ index: 0, total: 3, phase: 'done', ok: true, ms: 21800 }, T), /21\.8초/)
 })
+
+// 진행·평문 화면에는 그룹 헤더가 없다 — 전역 판이 도는 중임을 라벨 접미사가
+// 말해야 한다.
+test('진행 줄은 플러그인 라벨에 범위 접미사를 단다', () => {
+  const changes = [{ action: 'install', item: { category: 'plugin', label: 'superpowers', scope: 'user' } }]
+  let p = createProgress(changes)
+  p = applyEvent(p, { index: 0, phase: 'start' }, 0)
+  const text = progressLines(p, { width: 90, height: 24, now: 0, t: createT('ko') }).join('\n')
+  assert.match(text, /superpowers \(전역\)/)
+})
+
+test('평문 진행 줄도 범위 접미사를 단다', () => {
+  const line = plainLine(
+    { phase: 'start', index: 0, total: 1, action: 'install', item: { category: 'plugin', label: 'superpowers', scope: 'user' } },
+    createT('ko'),
+  )
+  assert.match(line, /superpowers \(전역\)/)
+})

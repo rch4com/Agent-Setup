@@ -6,6 +6,7 @@ import { withDeps } from './lib/deps.mjs'
 import { LocalizedError, createT, isLocaleForced, resolveLocale, toText } from './lib/i18n/index.mjs'
 import { detectLocale } from './lib/i18n/detect.mjs'
 import { labelWidth, pad } from './lib/width.mjs'
+import { scopedLabel } from './lib/labels.mjs'
 import {
   bootstrapUsage, designUsage, rootUsage, statusUsage, updateUsage,
   parseBootstrapArgs, parseDesignArgs, parseRootArgs, parseStatusArgs, parseUpdateArgs, preScanLang,
@@ -60,7 +61,7 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   if (listOnly) {
     for (const s of states) {
       const detail = toText(t, s.detail)
-      console.log(`${pad(t(`status.${s.status}`), statusWidth)} ${s.item.id} — ${s.item.label}${detail ? ` (${detail})` : ''}`)
+      console.log(`${pad(t(`status.${s.status}`), statusWidth)} ${s.item.id} — ${scopedLabel(s.item, t)}${detail ? ` (${detail})` : ''}`)
     }
     return
   }
@@ -97,12 +98,12 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
     },
   })
   for (const r of results) {
-    console.log(`${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${r.item.label}${r.message ? ` — ${toText(t, r.message)}` : ''}`)
+    console.log(`${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${r.message ? ` — ${toText(t, r.message)}` : ''}`)
   }
 
   const after = await scan(root, items)
   console.log(`\n${t('apply.finalState')}`)
-  for (const s of after) console.log(`  ${pad(t(`status.${s.status}`), statusWidth)} ${s.item.label}`)
+  for (const s of after) console.log(`  ${pad(t(`status.${s.status}`), statusWidth)} ${scopedLabel(s.item, t)}`)
   console.log(`\n${t('apply.seeGitDiff')}`)
   if (results.some((r) => !r.ok)) process.exitCode = 1
 }

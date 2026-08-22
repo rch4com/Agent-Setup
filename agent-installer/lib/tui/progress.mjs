@@ -4,6 +4,7 @@
 // 실제 시간에 묶여 "14초 경과"를 검증할 방법이 없다.
 import { createT } from '../i18n/index.mjs'
 import { cut, labelWidth, pad, width } from '../width.mjs'
+import { scopedLabel } from '../labels.mjs'
 
 const ESC = String.fromCharCode(27)
 const DIM = `${ESC}[2m`
@@ -66,7 +67,7 @@ function entryLines(entry, w, actionWidth, now, t) {
     tail = `  ${t('progress.skipped')}`
   }
   const mark = MARK[entry.state] ?? ' '
-  const out = [cut(`${mark} ${pad(t(`change.${entry.action}`), actionWidth)} ${entry.item.label}${tail}`, w)]
+  const out = [cut(`${mark} ${pad(t(`change.${entry.action}`), actionWidth)} ${scopedLabel(entry.item, t)}${tail}`, w)]
   // 명령은 실행 중일 때만. 끝난 뒤에도 남기면 화면이 명령 목록이 된다.
   if (entry.state === 'running' && entry.command) out.push(cut(`      ${entry.command}`, w))
   return out
@@ -150,7 +151,7 @@ export function plainLine(event, t = createT('en')) {
       index: event.index + 1,
       total: event.total,
       action: t(`change.${event.action}`),
-      label: event.item.label,
+      label: scopedLabel(event.item, t),
     })
   }
   if (event.phase === 'done') {
