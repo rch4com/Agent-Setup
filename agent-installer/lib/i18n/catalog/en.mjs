@@ -373,6 +373,8 @@ export default {
   'tui.filter.empty': '  Nothing in this tab is wired for {cli}.',
 
   'item.location.user': 'installs to: user global',
+  'label.scope.project': '(repo)',
+  'label.scope.user': '(global)',
   'item.target': 'file: {path}',
   // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
   'item.cliCoverage': 'CLI {covered}/{total}',

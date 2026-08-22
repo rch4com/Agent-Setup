@@ -360,6 +360,8 @@ export default {
   'tui.filter.empty': '  이 탭에는 {cli}에 배선되는 항목이 없습니다.',
 
   'item.location.user': '설치 위치: 사용자 글로벌',
+  'label.scope.project': '(저장소)',
+  'label.scope.user': '(전역)',
   'item.target': '대상 파일: {path}',
   // en.mjs 쪽 주석 참고.
   'item.cliCoverage': 'CLI {covered}/{total}',
