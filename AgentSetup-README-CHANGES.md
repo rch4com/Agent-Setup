@@ -5,6 +5,44 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## The PLUGIN tab now splits by install scope (2026-08-24, 1.17.0)
+
+**"Does this one checkbox touch my whole machine, or just this repo?" was
+nowhere on screen.** superpowers shows up as two rows (plugin edition, global
+edition), but the distinction lived only in a label suffix and the detail-panel
+hint — you could pick the global edition and learn that settings outside the
+repo changed only after applying. This release changes the display layer only —
+the data model and install behavior are untouched — and surfaces the fact at
+three points.
+
+- **The PLUGIN tab splits into scope groups.** Two headers — "Repo scope —
+  this repository only" / "Machine global — applies to this whole computer" —
+  with `(repo)`/`(global)` suffixes on row labels and the target CLI names
+  (codex·gemini·opencode·copilot) listed in the hint. The suffix is uniform
+  across every plugin row: the review, progress, and result screens have no
+  group headers, so there the suffix is the only thing telling the two
+  editions apart.
+- **Turning a machine-global item on announces it in the status line** —
+  "Machine-global item — applies to this whole computer". The exclusive-switch
+  notice wins when both apply — the status line is one line, and a flipped
+  selection is the more urgent fact.
+- **The review screen splits global changes out and warns.** With at least one
+  global change, the list divides under scope subheaders and a warning line
+  counts the machine-global changes that will touch settings outside this repo
+  (`~/.codex` etc.). The common all-repo case renders exactly as before —
+  subheaders that appear every time get read never. On terminals too short for
+  the subheaders (height ≤ 10, measured), they are dropped and the warning
+  stays — the original design overflowed the frame at this boundary, and a
+  regression test now walks heights 6 through 24.
+- **Progress, results, and `--list` use the same suffixes.** Every label call
+  site goes through one shared helper (scopedLabel), a regression guard covers
+  the `--list` output, and the hand-written suffixes in item files
+  ('superpowers (plugin)' etc.) are gone.
+
+No new install paths — a Claude global edition and the like stayed out of
+scope. The per-CLI reality (only claude supports both scopes; codex and
+friends are global-only) is unchanged; it is merely visible now.
+
 ## GSD now wires five runtimes in one run (2026-08-16, 1.16.0)
 
 **This started as "GSD is a skill too — can't other harnesses use it?"** The

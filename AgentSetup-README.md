@@ -438,12 +438,21 @@ the filter would make it impossible to type `codex` as a query.
   External services, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
   "what installs it", which makes comparison hard when picking — the same tab
   mixes something that saves tokens with something that reviews your design.
+  **The PLUGIN tab alone is grouped by install scope** — split under "Repo
+  scope — this repository only" and "Machine global — applies to this whole
+  computer", with `(repo)`/`(global)` suffixes on row labels and the target
+  CLI names in the hint. What the two editions of the same upstream
+  (superpowers etc.) actually touch is the deciding question on that tab.
+  Turning a machine-global item on announces the fact in the status line.
 - Search and the CLI filter both apply within the active tab, but the **per-tab
   hit counts on the tab row** keep you from missing results in another tab
   (`DESIGN.MD 19/76`). Multiple words narrow with AND.
 - On submit, a **review screen shows what will be installed/completed/removed**
   just before applying, and `Enter` applies them all. Partially covered items
-  show their coverage once more on this screen. You can go back with `Esc`.
+  show their coverage once more on this screen. When machine-global changes
+  are in the mix they are split from the repo-scope ones, with a warning that
+  settings outside this repo (`~/.codex` etc.) will change. You can go back
+  with `Esc`.
 - **A progress bar runs in real time while applying** — the item and command
   currently running, elapsed time, and a `done/total` count, refreshed every
   100 ms. External command execution is asynchronous so the event loop is not
