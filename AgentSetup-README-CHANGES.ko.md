@@ -5,6 +5,28 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Strix·Prompt Master가 들어오고 bkit이 빠진다 (2026-09-02, 1.18.0)
+
+레지스트리 스킬 둘이 카탈로그에 들어오고 플러그인 항목 하나가 빠집니다.
+스크래치 저장소에서 두 항목의 설치·감지·제거 왕복을 실측했습니다.
+
+- **`skill.strix`** — [usestrix/strix](https://github.com/usestrix/strix)의
+  보안 테스트 스킬 9종(침투 테스트·OWASP Top 10·취약점 탐지와 수정 흐름)을
+  `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다. 제거 대상은
+  `skills-lock.json`의 출처 기록으로 고릅니다. 스킬이 Strix 에이전트를
+  구동하므로 PATH의 `strix` 바이너리가 전제입니다 — 자체 호스팅은
+  `pipx install strix-agent`에 Docker와 `STRIX_LLM`·`LLM_API_KEY`가 더
+  필요하고, 관리형은 `strix cloud login`으로 시작합니다. 승인된 대상에만
+  쓰세요.
+- **`skill.prompt-master`** —
+  [nidhinjs/prompt-master](https://github.com/nidhinjs/prompt-master).
+  AI 도구용 프롬프트를 만들고 다듬는 스킬로, 프롬프트 작성·수정을 명시적으로
+  요청할 때만 활성화됩니다. 본문이 하네스 중립이라 10개 CLI가 함께 씁니다.
+- **`plugin.bkit` 항목이 카탈로그에서 빠집니다.** 이미 설치된 저장소의
+  플러그인은 건드리지 않습니다 — 카탈로그에서 빠지면 `--set ""`도 더는
+  제거하지 않으므로, 지우려면 `claude plugin uninstall bkit@bkit-marketplace`를
+  직접 실행하세요.
+
 ## PLUGIN 탭이 설치 범위를 갈라 보여 준다 (2026-08-24, 1.17.0)
 
 **"이 체크 하나가 내 컴퓨터 전체를 건드리나, 이 저장소만 건드리나"가 화면에

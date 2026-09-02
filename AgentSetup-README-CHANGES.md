@@ -5,6 +5,33 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Strix and Prompt Master come in; bkit goes out (2026-09-02, 1.18.0)
+
+Two registry skills join the catalog and one plugin item is retired. The
+install/detect/removal round trip of both new items was measured in a
+scratch repository.
+
+- **`skill.strix`** — copies the nine security-testing skills from
+  [usestrix/strix](https://github.com/usestrix/strix) (pentesting, OWASP
+  Top 10, vulnerability discovery and fix flows) into the shared
+  `.agents/skills` in one go via `--skill '*'`; removal picks its targets
+  from the source records in `skills-lock.json`. The skills drive the
+  Strix agent, so the `strix` binary on PATH is presumed — self-hosted
+  runs additionally need `pipx install strix-agent` plus Docker and
+  `STRIX_LLM`/`LLM_API_KEY`; the managed service starts with
+  `strix cloud login`. Use only against targets you are authorized to
+  test.
+- **`skill.prompt-master`** —
+  [nidhinjs/prompt-master](https://github.com/nidhinjs/prompt-master).
+  A skill that writes and refines prompts for AI tools, activating only
+  when explicitly asked to write or fix a prompt. Harness-neutral body
+  shared by all 10 CLIs.
+- **`plugin.bkit` leaves the catalog.** Repositories that already
+  installed the plugin are untouched — once out of the catalog even
+  `--set ""` no longer removes it, so run
+  `claude plugin uninstall bkit@bkit-marketplace` yourself if you want it
+  gone.
+
 ## The PLUGIN tab now splits by install scope (2026-08-24, 1.17.0)
 
 **"Does this one checkbox touch my whole machine, or just this repo?" was
