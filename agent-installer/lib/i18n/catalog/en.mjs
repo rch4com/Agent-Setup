@@ -239,7 +239,6 @@ export default {
   'item.unsupported.superpowersGlobalKimi': 'upstream installs only via the interactive /plugins command — no headless path',
   'item.unsupported.globalProjectItem': 'covered by the repo-scope item {item}',
   'item.unsupported.ponytailGlobalGrok': 'upstream ships grok plugin install DietrichGebert/ponytail --trust, but the detect/remove paths are unverified — not wired yet',
-  'item.unsupported.bkitPort': 'upstream ships separate ports (bkit-codex / bkit-gemini) installed apart from this plugin; the Gemini port is still a Gemini CLI extension and has had no update since the 2026-06-18 sunset',
   'item.unsupported.impeccableJunction': 'upstream supports it, but npx impeccable install breaks the shared .agents/skills link, so only the plugin route is wired',
   'item.unsupported.gstackHost': 'upstream supports it via ./setup --host — this item installs for Claude Code only',
   'item.unsupported.gstackShared': 'the upstream --host route is user-scoped, so it is not used. In a bootstrapped repository the shared .agents/skills junction reaches this CLI instead, and it scans recursively, so it sees the individual skills too (measured 2026-08-15)',
@@ -282,6 +281,8 @@ export default {
   'item.skill.mcp-builder.note': 'a guide for building MCP servers (Python FastMCP, Node MCP SDK). Its four reference/ documents and the Apache-2.0 LICENSE.txt are copied along inside the skill directory. Harness-neutral content shared by all 10 CLIs',
   'item.skill.mattpocock-skills.note': 'copies 35 skills into the shared .agents/skills so all 10 CLIs see them. Upstream documents this route itself, and with no hooks involved nothing is lost against the plugin edition. Only one of the two can be chosen',
   'item.skill.karpathy.note': 'behavioral guidelines that curb overbuilding and vague success criteria',
+  'item.skill.prompt-master.note': 'a skill that writes and refines prompts for AI tools. Activates only when explicitly asked to write or fix a prompt. Harness-neutral body shared by all 10 CLIs',
+  'item.skill.strix.note': 'copies 9 security-testing skills (pentesting, OWASP Top 10, vulnerability discovery and fix flows) into the shared .agents/skills. The skills drive the Strix agent, so the strix binary is required on PATH — self-hosted needs pipx install strix-agent plus Docker and STRIX_LLM/LLM_API_KEY, managed needs strix cloud login. Use only against targets you are authorized to test',
   'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally. In a bootstrapped repository .claude/skills is a junction, so the files land in the shared .agents/skills — codex and opencode scan recursively and see the individual skills too',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project — wires five runtimes in one run: claude, codex, opencode, copilot, kilo (.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). Each runtime writes roughly 700 files. gemini was dropped upstream and kimi still blocks project installs',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고

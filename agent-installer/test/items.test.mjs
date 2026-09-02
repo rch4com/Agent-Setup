@@ -8,9 +8,9 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 29개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 30개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 29)
+  assert.equal(items.length, 30)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -33,6 +33,8 @@ test('loadItems는 29개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('skill.diagram-design'))
   assert.ok(ids.includes('skill.superpowers'))
   assert.ok(ids.includes('skill.mattpocock-skills'))
+  assert.ok(ids.includes('skill.prompt-master'))
+  assert.ok(ids.includes('skill.strix'))
 })
 
 // 같은 상류를 플러그인과 공유 스킬 양쪽으로 넣으면 같은 스킬이 두 경로에서
@@ -100,10 +102,6 @@ test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', as
   // superpowers: 상류가 하니스별 설치로 지원하는 CLI / 경로 없는 CLI
   assert.equal(why('plugin.superpowers', 'codex'), 'item.unsupported.superpowersSeparate')
   assert.equal(why('plugin.superpowers', 'kiro'), 'item.unsupported.upstreamNone')
-  // bkit: Codex·Gemini는 별도 배포판
-  assert.equal(why('plugin.bkit', 'codex'), 'item.unsupported.bkitPort')
-  assert.equal(why('plugin.bkit', 'gemini'), 'item.unsupported.bkitPort')
-  assert.equal(why('plugin.bkit', 'opencode'), 'item.unsupported.upstreamNone')
   // impeccable: 상류가 지원하는 CLI는 Junction 파괴가 미배선 사유
   assert.equal(why('plugin.impeccable', 'grok'), 'item.unsupported.impeccableJunction')
   assert.equal(why('plugin.impeccable', 'kilo'), 'item.unsupported.upstreamNone')

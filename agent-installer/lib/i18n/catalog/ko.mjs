@@ -232,7 +232,6 @@ export default {
   'item.unsupported.superpowersGlobalKimi': '상류 설치가 대화형 /plugins 명령뿐이라 헤드리스 경로가 없습니다',
   'item.unsupported.globalProjectItem': '저장소 범위 항목 {item}이 담당합니다',
   'item.unsupported.ponytailGlobalGrok': '상류 명령(grok plugin install DietrichGebert/ponytail --trust)이 있지만 감지·제거 경로 미실측이라 배선하지 않습니다',
-  'item.unsupported.bkitPort': '상류가 별도 배포판(bkit-codex·bkit-gemini)으로 지원합니다 — 이 플러그인과 별개 설치입니다. Gemini판은 Gemini CLI 확장 그대로이고 2026-06-18 종료 이후 갱신이 없습니다',
   'item.unsupported.impeccableJunction': '상류는 지원하지만 npx impeccable install이 공유 .agents/skills 연결을 끊어 플러그인 경로만 배선합니다',
   'item.unsupported.gstackHost': '상류는 ./setup --host로 지원합니다 — 이 항목은 Claude Code에만 설치합니다',
   'item.unsupported.gstackShared': '상류 --host 경로는 사용자 스코프라 쓰지 않습니다. 대신 부트스트랩 저장소에서는 공유 .agents/skills Junction으로 닿고, 이 CLI는 재귀 스캔이라 개별 스킬까지 봅니다(2026-08-15 실측)',
@@ -275,6 +274,8 @@ export default {
   'item.skill.mcp-builder.note': 'MCP 서버 제작 가이드(Python FastMCP·Node MCP SDK). reference/ 문서 4종과 Apache-2.0 LICENSE.txt가 스킬 디렉터리에 함께 복사됩니다. 내용이 하네스 중립이라 10개 CLI가 함께 씁니다',
   'item.skill.mattpocock-skills.note': '공유 .agents/skills에 스킬 35종을 복사해 10개 CLI가 함께 봅니다. 상류가 직접 안내하는 경로이며 훅이 없어 플러그인 판에 견줘 잃는 것이 없습니다. 둘 중 하나만 고를 수 있습니다',
   'item.skill.karpathy.note': '과설계와 모호한 완료 기준을 줄이는 행동 지침',
+  'item.skill.prompt-master.note': 'AI 도구용 프롬프트를 만들고 다듬는 스킬. 프롬프트 작성·수정을 명시적으로 요청할 때만 활성화됩니다. 본문이 하네스 중립이라 10개 CLI가 함께 씁니다',
+  'item.skill.strix.note': '보안 테스트 스킬 9종(침투 테스트·OWASP Top 10·취약점 탐지와 수정 흐름)을 공유 .agents/skills에 복사합니다. 스킬이 Strix 에이전트를 구동하므로 PATH에 strix 바이너리가 필요합니다 — 자체 호스팅은 pipx install strix-agent에 Docker와 STRIX_LLM·LLM_API_KEY, 관리형은 strix cloud login. 승인된 대상에만 쓰세요',
   'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음. 부트스트랩 저장소에서는 .claude/skills가 Junction이라 실물이 공유 .agents/skills에 앉습니다 — codex·opencode는 재귀 스캔이라 개별 스킬까지 함께 봅니다',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치 — claude·codex·opencode·copilot·kilo 다섯 런타임을 한 번에 배선합니다(.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). 런타임마다 700개 안팎의 파일이 생깁니다. gemini는 상류가 제거했고 kimi는 프로젝트 설치를 아직 막습니다',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — en.mjs 쪽 주석 참고.
