@@ -5,6 +5,53 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## A moved repository heals its skill link, and the screen survives a failing action (2026-09-06, 1.21.0)
+
+**A second and third pass over the source looked at the layers the first one
+only skimmed — the TUI, the templates, the docs against the code — and at
+what happens when the environment shifts under the tool.** Every fix again
+carries a test that runs the real thing; the moved-repository case was
+reproduced end to end on Windows before and after.
+
+- **A dangling skill link is recreated, not preserved.** A Windows junction
+  stores the absolute path it was created with, so renaming or moving the
+  repository leaves `.claude/skills` pointing at a path that no longer
+  exists. That used to count as "a link pointing elsewhere" and was left
+  alone forever — a warning on every run, and Claude Code saw no shared
+  skills. A link whose target is gone has nothing to preserve; it is removed
+  and rebuilt, with the parent directory strict-checked in its place (the
+  link itself cannot be resolved).
+- **An action row that throws no longer takes the screen down.** Bootstrap
+  on a corrupt install record, or catalog sync on a read-only install
+  location, used to crash the TUI and lose the selection. The error now
+  prints below the screen as "The action failed: …" and the list returns,
+  the same isolation the apply step already had.
+- **Names from the upstream README are filtered before they reach a path.**
+  The README parser accepts `..` and backslashes; the install path was
+  already guarded, but the catalog file kept the raw names and the bundle
+  script joined them into `cache/<provider>/<name>`. Catalog sync now drops
+  unsafe names before saving, and the bundle script checks again.
+- **Broken TOML is refused like broken JSON.** A parse failure used to read
+  as "section absent", so adding an MCP to a `config.toml` missing a closing
+  bracket appended a duplicate section to the still-broken file. Read and
+  write paths now stop with "invalid TOML: … (file)" and write nothing.
+- **Column widths count emoji as two cells and combining marks as zero.**
+  A DESIGN.md label with an emoji pushed that row right; an accented letter
+  written as base + combining mark pushed it left.
+- **Smaller cleanups.** Removing gstack takes back the two `.gitignore`
+  lines it added. The description shortener cuts at code points, so it can
+  no longer split an emoji. The `status` help says it asks the npm registry
+  (5-second limit; offline leaves the field blank).
+- **The README's "what the installer runs" table is complete.** It listed
+  five kinds and said "all three run third-party code"; the eleven registry
+  skills (`npx -y skills@latest add …`) and the two `global.*` items
+  (`codex`/`copilot`/`gemini`/`grok` plugin installs plus a direct edit of
+  the user-global `opencode.json`) now have rows of their own, marked as
+  writing outside the repository.
+- **Tests run on every push and pull request.** A new `ci.yml` runs the
+  suite on Node 20 and 22 and syntax-checks the shell launcher; before, tests
+  ran only when a release tag was pushed.
+
 ## Large installs no longer fail on output size, and update reports its failures (2026-09-05, 1.20.0)
 
 **A whole-source review turned up three bugs that hid behind "success" and a
