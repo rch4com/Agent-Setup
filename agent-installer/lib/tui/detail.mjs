@@ -47,27 +47,60 @@ function headLine(row, w, t) {
   return cut(`${item.label}   ${bits.filter(Boolean).join(' · ')}`, w)
 }
 
+// CLI 이름 나열(a·b·c)을 이름 경계에서만 접는다. width.wrap은 공백에서만
+// 끊어, 공백 없는 나열은 낱말 중간(`ant` / `igravity`)에서 갈라졌다.
+function wrapNames(names, limit) {
+  const lines = []
+  let cur = ''
+  for (const name of names) {
+    const next = cur ? `${cur}·${name}` : name
+    if (cur && width(next) > limit) {
+      lines.push(cur)
+      cur = name
+    } else {
+      cur = next
+    }
+  }
+  if (cur) lines.push(cur)
+  return lines
+}
+
 function wiredLines(item, w, lead, t) {
   const supports = item.supports ?? []
   if (supports.length === 0) return []
   // 경로는 MCP에서만 붙인다. 그때만 clis.mjs 어댑터가 경로의 유일한 진실이다 —
   // plugin·skill은 설치 자리가 항목마다 달라 어댑터가 알지 못한다.
   const showFile = item.category === 'mcp'
-  const nameWidth = Math.max(...supports.map((c) => width(c)))
-  return supports.map((cli, i) => {
-    const head = i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)
-    const file = showFile && CLIS[cli]?.file ? `  ${CLIS[cli].file}` : ''
-    // 이름 뒤에 열이 없으면 맞출 대상도 없다 — 경로가 붙는 mcp에서만 이름을 편다.
-    const name = showFile ? pad(cli, nameWidth) : cli
-    return cut(`${head}✔ ${name}${file}`, w)
-  })
+  // 경로가 없으면 세로로 늘어놓을 이유가 없다 — CLI 열한 개를 한 줄에 하나씩
+  // 놓으면 80×24에서 `배선 ✔ claude` 뒤가 `…외 9줄`로 잘려 정작 "어디에
+  // 되나"를 펼쳐야만 읽을 수 있었다. 이름을 ·로 이어 접는다(미배선과 같은 꼴).
+  if (!showFile) {
+    return wrapNames(supports, Math.max(1, w - lead - 2)).map((line, i) =>
+      cut(`${i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)}${i === 0 ? '✔ ' : '  '}${line}`, w))
+  }
+  // MCP는 "CLI 경로" 쌍을 한 줄에 들어가는 만큼 채운다. 한 줄에 하나씩 놓으면
+  // 열 개가 열 줄이라 80×24 패널에서 절반이 `…외 N줄`로 접혔다. 폭이 좁으면
+  // 한 줄에 하나로 자연히 돌아간다.
+  const pairs = supports.map((cli) => (CLIS[cli]?.file ? `${cli} ${CLIS[cli].file}` : cli))
+  const colW = Math.max(...pairs.map((p) => width(p))) + 3
+  const room = Math.max(1, w - lead - 2)
+  const perLine = Math.max(1, Math.floor(room / colW))
+  const rows = []
+  for (let i = 0; i < pairs.length; i += perLine) {
+    const chunk = pairs.slice(i, i + perLine)
+    rows.push(chunk.map((p, j) => (j < chunk.length - 1 ? pad(p, colW) : p)).join(''))
+  }
+  return rows.map((line, i) => cut(`${i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)}${i === 0 ? '✔ ' : '  '}${line}`, w))
 }
 
 function unwiredLines(item, w, lead, t) {
   const out = []
   unsupportedGroups(item, t).forEach((group, i) => {
     const head = i === 0 ? pad(t('detail.unwired'), lead) : ' '.repeat(lead)
-    out.push(cut(`${head}✖ ${group.clis.join('·')}`, w))
+    // 미배선 CLI 이름도 같은 규칙으로 접는다 — 11개를 한 줄에 두면 뒤가 잘린다.
+    wrapNames(group.clis, Math.max(1, w - lead - 2)).forEach((line, j) => {
+      out.push(cut(`${j === 0 ? head : ' '.repeat(lead)}${j === 0 ? '✖ ' : '  '}${line}`, w))
+    })
     // 사유는 한 칸 더 들여 이어 붙인다. 첫 줄만 └를 달아 어느 CLI 묶음의
     // 사유인지 눈으로 잇는다.
     wrap(group.why, Math.max(1, w - lead - 3)).forEach((line, j) => {

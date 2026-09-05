@@ -15,13 +15,14 @@ import { msg } from '../i18n/index.mjs'
 // 상류 공식 프로바이더는 3.6.0 기준 16개(.agent=antigravity·.hermes가 새로
 // 들어옴 — README는 아직 수동 복사만 안내해 코드가 앞선다). 이 저장소의 CLI와
 // 겹치는 것은 아래 UPSTREAM 그대로다.
-const UPSTREAM = ['codex', 'gemini', 'opencode', 'kiro', 'grok', 'copilot']
+const UPSTREAM = ['codex', 'gemini', 'opencode', 'kiro', 'grok', 'copilot', 'antigravity']
 export default definePlugin({
   id: 'plugin.impeccable', label: 'impeccable', group: '__style',
   installId: 'impeccable@impeccable',
   detectIds: ['impeccable@impeccable'],
   marketplace: { name: 'impeccable', repo: 'pbakaus/impeccable' },
   note: 'item.plugin.impeccable.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync, mkdtempSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CLIS, CLI_IDS } from '../lib/clis.mjs'
+import { CLIS, CLI_IDS, MCP_CLI_IDS } from '../lib/clis.mjs'
 import { readJson } from '../lib/jsonfile.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
@@ -28,7 +28,8 @@ const ESCAPE_POINT = {
   vscode: { path: '.vscode' },
 }
 
-for (const id of CLI_IDS) {
+// 어댑터가 있는 CLI만 돈다 — Antigravity는 프로젝트 MCP 파일이 없어 어댑터가 없다.
+for (const id of MCP_CLI_IDS) {
   test(`${id}: add→has→remove roundtrip (http, stdio)`, () => {
     const repo = makeTempRepo()
     for (const server of [HTTP, STDIO]) {
@@ -43,8 +44,8 @@ for (const id of CLI_IDS) {
 
 // 어휘적 검사만으로는 저장소 안 `.codex`·`.claude`가 홈을 가리키는 Junction일 때를
 // 막지 못한다. MCP 등록 한 번으로 글로벌 설정이 생성·수정되면 "홈 디렉터리의
-// 글로벌 설정을 읽거나 수정하지 않는다"는 약속이 깨진다. 10개 CLI 전부 검사한다.
-for (const id of CLI_IDS) {
+// 글로벌 설정을 읽거나 수정하지 않는다"는 약속이 깨진다. 어댑터가 있는 CLI 전부 검사한다.
+for (const id of MCP_CLI_IDS) {
   test(`${id}: 설정 파일 자리가 저장소 밖 링크면 add·remove가 거부한다`, () => {
     const root = makeTempRepo()
     const outside = mkdtempSync(join(tmpdir(), 'outside-mcp-'))
@@ -120,8 +121,8 @@ test('vscode는 .vscode/mcp.json에 servers 키 + type:stdio를 쓴다', () => {
 
 // 상세 패널이 "이 항목이 어디에 쓰이나"를 보여 주는 근거다. 경로를 어댑터와
 // 따로 적으면 갈릴 수 있으므로, 실제로 쓴 파일이 그 자리에 생기는지 본다.
-test('모든 CLI가 자기 설정 파일 경로를 밝힌다', () => {
-  for (const cli of CLI_IDS) {
+test('어댑터가 있는 모든 CLI가 자기 설정 파일 경로를 밝힌다', () => {
+  for (const cli of MCP_CLI_IDS) {
     assert.equal(typeof CLIS[cli].file, 'string', `${cli}: file이 없다`)
     assert.ok(CLIS[cli].file.length > 0, `${cli}: file이 비었다`)
   }
@@ -130,8 +131,19 @@ test('모든 CLI가 자기 설정 파일 경로를 밝힌다', () => {
 test('밝힌 경로가 실제로 쓰이는 파일이다', () => {
   const root = makeTempRepo()
   const server = { kind: 'http', url: 'https://example.test/mcp' }
-  for (const cli of CLI_IDS) {
+  for (const cli of MCP_CLI_IDS) {
     CLIS[cli].add(root, 'probe', server)
     assert.ok(existsSync(join(root, CLIS[cli].file)), `${cli}: ${CLIS[cli].file}가 없다`)
   }
+})
+
+// 부트스트랩이 지원하는 11개 도구와 화면의 CLI 수가 어긋나면 안 된다 —
+// Antigravity는 목록에 있되 프로젝트 MCP 파일이 없어 어댑터가 없다.
+test('antigravity는 CLI 목록에 있지만 MCP 어댑터가 없다', () => {
+  assert.ok(CLI_IDS.includes('antigravity'))
+  assert.ok(!MCP_CLI_IDS.includes('antigravity'))
+  assert.equal(CLIS.antigravity.label, 'Antigravity')
+  assert.equal(CLIS.antigravity.add, undefined)
+  assert.equal(CLI_IDS.length, 11)
+  assert.equal(MCP_CLI_IDS.length, 10)
 })

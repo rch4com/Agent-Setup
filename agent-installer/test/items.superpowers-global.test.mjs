@@ -38,7 +38,7 @@ test('아무 하니스에도 없으면 absent이고 없는 CLI를 detail로 알�
   const r = await item.detect()
   assert.equal(r.status, 'absent')
   assert.equal(r.detail.key, 'item.global.noCli')
-  assert.equal(r.detail.params.list, 'codex, gemini, opencode, copilot')
+  assert.equal(r.detail.params.list, 'codex, gemini, opencode, copilot, grok')
 })
 
 test('머신에 있는 CLI가 전부 배선되면 installed다 — 없는 CLI는 누락으로 세지 않는다', async () => {
@@ -51,7 +51,7 @@ test('머신에 있는 CLI가 전부 배선되면 installed다 — 없는 CLI는
   const item = createItem({ home, env: {}, hasBinary: bins('copilot') })
   const r = await item.detect()
   assert.equal(r.status, 'installed')
-  assert.equal(r.detail.params.list, 'codex, gemini, opencode')
+  assert.equal(r.detail.params.list, 'codex, gemini, opencode, grok')
 })
 
 test('CODEX_HOME 재지정을 따라간다', async () => {
@@ -67,7 +67,7 @@ test('CODEX_HOME 재지정을 따라간다', async () => {
 test('install은 하니스별 공식 명령을 부르고 opencode는 전역 설정을 만든다', async () => {
   const home = makeHome()
   const { calls, exec } = fakeExec()
-  const item = createItem({ home, env: {}, hasBinary: bins('codex', 'gemini', 'opencode', 'copilot') })
+  const item = createItem({ home, env: {}, hasBinary: bins('codex', 'gemini', 'opencode', 'copilot', 'grok') })
   const r = await item.install({ dryRun: false, exec, t })
   assert.equal(r, undefined)
   assert.deepEqual(calls, [
@@ -76,6 +76,7 @@ test('install은 하니스별 공식 명령을 부르고 opencode는 전역 설�
     'gemini extensions install https://github.com/obra/superpowers',
     'copilot plugin marketplace add obra/superpowers-marketplace',
     'copilot plugin install superpowers@superpowers-marketplace',
+    'grok plugin install superpowers@xai-official --trust',
   ])
   const config = JSON.parse(readFileSync(join(home, '.config', 'opencode', 'opencode.json'), 'utf8'))
   assert.deepEqual(config.plugin, ['superpowers@git+https://github.com/obra/superpowers.git'])
@@ -97,7 +98,7 @@ test('CLI 없는 하니스는 건너뛰고 message로 알린다', async () => {
   const r = await item.install({ dryRun: false, exec, t })
   assert.deepEqual(calls, ['gemini extensions install https://github.com/obra/superpowers'])
   assert.equal(r.message.key, 'item.global.skipped')
-  assert.equal(r.message.params.list, 'codex, opencode, copilot')
+  assert.equal(r.message.params.list, 'codex, opencode, copilot, grok')
 })
 
 test('전역 opencode.json의 plugin 키가 배열이 아니면 아무것도 만지기 전에 거절한다', async () => {
@@ -167,4 +168,41 @@ test('깨진 codex config.toml은 미설치로 읽는다', async () => {
   const item = createItem({ home, env: {}, hasBinary: bins('codex') })
   const r = await item.detect()
   assert.equal(r.status, 'absent')
+})
+
+// ── grok (2026-09-05 grok 1.0.5 실측) ─────────────────────────────────
+//
+// 설치는 ~/.grok/installed-plugins/registry.json의 repos[*].plugins에 이름을
+// 기록하고, 제거는 그 항목과 디렉터리를 지우되 config.toml [plugins].enabled의
+// 이름은 남긴다. 그래서 감지는 registry만 본다.
+
+function grokRegistry(home, names) {
+  mkdirSync(join(home, '.grok', 'installed-plugins'), { recursive: true })
+  const repos = Object.fromEntries(names.map((n) => [`${n}-3d1ab158`, { path: 'x', plugins: { [n]: {} } }]))
+  writeFileSync(join(home, '.grok', 'installed-plugins', 'registry.json'), JSON.stringify({ version: 1, repos }))
+}
+
+test('grok: registry.json에 이름이 있으면 배선된 것으로 읽는다 — enabled는 근거가 아니다', async () => {
+  const home = makeHome()
+  grokRegistry(home, ['superpowers'])
+  const item = createItem({ home, env: {}, hasBinary: bins('grok') })
+  assert.equal((await item.detect()).status, 'installed')
+
+  // 제거 뒤 상류가 남기는 상태: enabled에는 이름이 있어도 registry는 비어 있다.
+  grokRegistry(home, [])
+  writeFileSync(join(home, '.grok', 'config.toml'), '[plugins]\nenabled = ["superpowers"]\n')
+  assert.equal((await createItem({ home, env: {}, hasBinary: bins('grok') }).detect()).status, 'absent')
+})
+
+test('grok: install은 --trust로, uninstall은 --confirm으로 상류 명령을 부른다', async () => {
+  const home = makeHome()
+  const { calls, exec } = fakeExec()
+  const item = createItem({ home, env: {}, hasBinary: bins('grok') })
+  await item.install({ dryRun: false, exec, t })
+  assert.deepEqual(calls, ['grok plugin install superpowers@xai-official --trust'])
+
+  grokRegistry(home, ['superpowers'])
+  calls.length = 0
+  await createItem({ home, env: {}, hasBinary: bins('grok') }).uninstall({ dryRun: false, exec, t })
+  assert.deepEqual(calls, ['grok plugin uninstall superpowers --confirm'])
 })

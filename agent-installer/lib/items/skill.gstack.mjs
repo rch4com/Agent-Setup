@@ -29,6 +29,7 @@ const SHARED_RECURSIVE = ['codex', 'opencode']
 export default defineSkill({
   id: 'skill.gstack', label: 'gstack', group: '__flow', scope: 'project',
   note: 'item.skill.gstack.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,

@@ -73,13 +73,17 @@ export function activeTab(state) {
 // 탭별 적중 수 — 검색·필터 중에도 어느 탭에 결과가 있는지 한눈에 보이게 한다.
 // total은 필터를 타지 않는다: 분모가 함께 줄면 "이 탭에서 몇 개가 걸러졌나"를
 // 알 수 없다.
+//
+// 항목이 있는 탭은 항목만 센다 — DESIGN.MD 탭 맨 위의 작업 행 셋까지 세면
+// 항목 76개인 탭이 79로 찍혀 머리글의 "전체"와 어긋난다. 작업만 있는 탭은
+// 작업을 센다(0으로 두면 탭이 비어 보인다).
 export function tabCounts(state) {
   const hits = filterRows(state.rows, state.query).filter((r) => matchesCli(r, state.cliFilter))
-  return state.tabs.map((tab) => ({
-    tab,
-    shown: hits.filter((r) => r.section === tab).length,
-    total: state.rows.filter((r) => r.section === tab).length,
-  }))
+  return state.tabs.map((tab) => {
+    const hasItems = state.rows.some((r) => r.section === tab && r.kind === 'item')
+    const pick = (rows) => rows.filter((r) => r.section === tab && (!hasItems || r.kind === 'item'))
+    return { tab, shown: pick(hits).length, total: pick(state.rows).length }
+  })
 }
 
 export function currentRow(state) {

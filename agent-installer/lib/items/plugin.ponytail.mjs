@@ -50,6 +50,7 @@ export default {
     ]),
   ),
   note: 'item.plugin.ponytail.note',
+  verified: '2026-08-15',
 
   async detect({ root }) {
     const present = []

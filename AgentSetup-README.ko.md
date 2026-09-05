@@ -7,6 +7,20 @@ Grok Build(xAI grok CLI), Antigravity(Google 에이전트 IDE/CLI),
 GitHub Copilot CLI, VS Code Copilot을 한 저장소에서 함께 사용할 때 공통
 지침과 공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
 
+## 5분 안에 써 보기
+
+```bash
+cd <git 저장소>
+npx @rch4com/agent-setup bootstrap --dry-run   # 무엇이 생길지 본다
+npx @rch4com/agent-setup bootstrap             # 공통 지침·스킬·도구별 설정 파일 생성
+npx @rch4com/agent-setup                       # 플러그인·MCP·스킬을 고르는 화면
+```
+
+화면에서는 `Tab`으로 탭을 옮기고 `Space`로 고른 뒤 `Enter`로 제출합니다.
+`[+]`는 설치 예정, `[-]`는 제거 예정이고, 머리글의 `변경 예정 N건`이 Enter가
+할 일을 요약합니다. 막히면 `F1`, 나가려면 `Ctrl+Q`입니다. 아래는 그 뒤에
+필요할 때 읽는 참고 문서입니다.
+
 ## 생성되는 구조
 
 ```text
@@ -85,13 +99,24 @@ repository/
   차이가 없지만, **stdio 서버는 형식이 다릅니다** — `.mcp.json`에는 Claude
   Code 형식인 `type: "stdio"`가, `.github/mcp.json`에는 Copilot 형식인
   `type: "local"`이 기록됩니다. 우선순위 때문에 Copilot CLI가 보는 것은
-  `.mcp.json` 쪽이므로, stdio MCP(`mcp.codebase-memory`)가 Copilot CLI에서
-  붙지 않으면 `.mcp.json`의 해당 항목을 `type: "local"`로 바꾸거나 지우고
-  `.github/mcp.json`만 남기세요.
+  `.mcp.json` 쪽인데, Copilot CLI 1.0.82의 소스를 읽어 확인한 바로는 로컬 서버
+  판정이 `type`이 없거나 `"local"`이거나 `"stdio"`일 때 전부 참이라 그 형식도
+  붙습니다(2026-09-05). 그래서 설치기는 stdio MCP도 copilot에 그대로
+  배선합니다. 붙지 않는 버전을 만나면 `.mcp.json`의 해당 항목을
+  `type: "local"`로 바꾸거나 지우고 `.github/mcp.json`만 남기세요.
 - **VS Code Copilot:** `.agents/skills`를 네이티브로 읽고, 루트 `AGENTS.md`는
   `.vscode/settings.json`의 `chat.useAgentsMdFile` 키로 켭니다(키가 없을 때만
   추가하고 기존 값은 보존합니다). 프로젝트 MCP는 `.vscode/mcp.json`이며,
   최상위 키가 `servers`로 Copilot CLI와 형식이 다릅니다.
+
+### 다루지 않는 도구
+
+Cursor, Windsurf, Cline/Roo Code, Amp, Factory Droid, Qwen Code는 지원 목록에
+없습니다. 이 저장소는 도구마다 실제 CLI로 "무엇을 읽고 어디에 쓰는지"를
+실측한 것만 배선하는데, 위 도구들은 이 머신에서 실측할 수 없었습니다.
+구조상 추가는 `agent-installer/lib/clis.mjs`(MCP 파일 어댑터)와
+`agent-installer/lib/bootstrap/manifest.mjs`(생성 파일)에 각각 한 항목이고,
+항목마다 미배선 사유를 붙이는 검사가 빠진 도구를 잡아 줍니다.
 
 ## 부트스트랩 실행 방법
 
@@ -168,6 +193,10 @@ npx @rch4com/agent-setup@latest status             # 의도 / 실제 / 버전 �
 
 해시는 줄바꿈을 LF로 정규화한 내용에 대해 계산합니다 — Windows에서 CRLF로
 체크아웃해도 드리프트로 오판하지 않습니다.
+
+`status`는 미배선 사유의 실측 날짜(`verified`)가 90일을 넘긴 항목도 `실측
+오래됨`으로 알립니다 — 사유는 상류를 실측한 날의 사실이라, 오래되면 화면에
+낡은 채 남기 때문입니다.
 
 ### 이미 쓰던 저장소 끌어오기
 
@@ -360,19 +389,22 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
 | `↑` / `↓` / `PgUp` `PgDn` (목록) | 커서 이동. 맨 위에서 `↑`는 검색칸으로 복귀 |
 | `Space` (목록) | 커서 항목 선택/해제 |
 | `Tab` / `Shift+Tab` / `←` `→` | 탭 이동 (선택은 탭을 넘나들며 누적됩니다) |
-| `Enter` (목록) | 작업 탭에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
+| `Enter` (목록) | `[▶]` 작업 행(작업 탭의 언어·부트스트랩, DESIGN.MD 탭 맨 위의 동기화 셋)에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
 | `Ctrl+A` | 지금 탭에서 보이는 항목 전체 선택/해제 |
 | `Ctrl+O` | 커서 항목 미리보기 (design.md는 브라우저) |
-| `Ctrl+F` / `Ctrl+B` | CLI 필터를 앞 / 뒤로 돌리기 (전체 → CLI 하나씩 순환) |
+| `Ctrl+F` / `Ctrl+B` | CLI 필터를 앞 / 뒤로 돌리기 (전체 → CLI 하나씩 순환, 검색줄 오른쪽에 `CLI › codex (2/11)`처럼 위치 표시) |
 | `Ctrl+D` | 상세 패널을 전체 화면으로 펼치기/접기 |
+| `Home` / `End` | 목록 처음 / 끝으로 |
+| `F1` | 키 안내 화면 (아무 키나 누르면 닫힙니다) |
 | `Ctrl+Q` | **종료** — 어느 포커스에서도, 검토 화면에서도 한 번에 나갑니다 |
 | `Esc` | 검색어 지우기 → 목록으로 → 한 번 더 누르면 종료 |
 
 **나가는 키는 `Ctrl+Q`입니다.** `Ctrl+C`는 "중단"이고 `Esc`는 검색어와
 포커스를 먼저 되돌리느라 최대 세 번을 눌러야 나갑니다 — 어느 쪽도 "나가는
 키"로 배우기 어려웠습니다. `Ctrl+Q`는 상태와 무관하게 한 번에 통하며, 화면
-오른쪽 아래 끝에 **항상 표시됩니다**. 다른 힌트는 터미널이 좁으면 뒤쪽부터
-잘려 나가지만 이 자리는 남습니다 — 하필 그때 가장 절실한 안내이기 때문입니다.
+오른쪽 아래 끝에 **항상 표시됩니다**. 다른 힌트는 터미널이 좁으면 두 줄로
+접히고(80칸 한국어 화면이 그렇습니다), 그래도 모자라면 뒤쪽부터 잘려 나가지만
+이 자리는 남습니다 — 하필 그때 가장 절실한 안내이기 때문입니다.
 글자 `q`를 쓰지 않은 것은 `c`·`d`와 같은 이유입니다(목록에서 아무 글자나
 누르면 검색칸으로 올라갑니다). 터미널의 흐름 제어(`Ctrl+S`/`Ctrl+Q`)는 raw
 모드가 꺼 두므로 가로채이지 않습니다.
@@ -383,11 +415,26 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
 누르면 검색칸으로 올라가므로, `c`를 필터에 배정하면 `codex`를 검색어로 칠
 수 없게 됩니다.
 
-- **항목마다 `CLI n/10`이 상태 바로 뒤에 붙습니다** — 그 항목이 지원 도구 10개
-  가운데 몇 개에 실제로 배선되는지입니다. 전부 되는 항목도 `CLI 10/10`을
-  찍습니다 — 표시가 없는 것과 "전부 된다"는 뜻이 다르기 때문입니다. CONFIG
-  탭의 항목은 CLI 배선이 아니라 저장소 규약이라 이 표시가 없고, CLI 필터에도
+- **체크 표식은 "지금 체크됐나"가 아니라 "Enter를 누르면 무슨 일이 나나"를
+  말합니다** — `[×]` 설치돼 있고 그대로 둠, `[+]` 이번에 설치(또는 보완 설치)
+  예정, `[-]` 설치돼 있는데 풀어서 제거 예정, `[ ]` 없고 안 고름. 머리글에는
+  `변경 예정 3건 (+2 -1)`처럼 건수와 내역이 늘 붙습니다 — `선택 3 / 전체 106`은
+  설치 상태의 합계라 Enter를 누르면 무슨 일이 날지 말해 주지 않기 때문입니다.
+- **항목마다 CLI 커버리지가 상태 바로 뒤에 붙습니다** — 지원 CLI가 넷 이하면
+  이름을(`claude·opencode`), 그보다 많으면 `CLI n/11`을 찍습니다. 탭과 무관하게
+  한 규칙입니다. 분모 11은 부트스트랩이 지원하는 도구 수와 같습니다 —
+  Antigravity는 프로젝트 스코프 MCP 파일이 없어 MCP 항목에는 `CLI 10/11`로
+  빠지고 그 사유가 상세에 적히지만, 공유 `.agents/skills`는 네이티브로 읽으므로
+  스킬 항목에는 `CLI 11/11`로 들어갑니다. 전부 되는 항목도 커버리지를 찍습니다
+  — 표시가 없는 것과 "전부 된다"는 뜻이 다르기 때문입니다. 전역 항목은 이
+  머신에 없는 CLI를 나열에서 빼고 `gemini 없음`처럼 따로 적습니다. CONFIG 탭의
+  항목은 CLI 배선이 아니라 저장소 규약이라 이 표시가 없고, CLI 필터에도
   걸러지지 않습니다.
+- **`--list`도 같은 정보를 냅니다** — 상태·id·이름 뒤에 커버리지, 대상 파일,
+  설치 위치가 붙습니다. CI가 읽는 경로라 화면과 어긋나면 안 됩니다.
+- **`F1`이 키 안내를 띄웁니다** — 바닥글 두 줄에 담기지 않는 키의 뜻까지 한
+  화면에 폅니다. `Home`·`End`로 목록 처음·끝으로 갑니다. 터미널 크기를 바꾸면
+  키를 누르지 않아도 새 크기로 다시 그립니다.
 - **한 파일을 두고 다투는 항목은 라디오로 그려지고 하나만 켜집니다** — 커밋
   템플릿의 영어판·한국어판이 그렇습니다. 체크박스 `[ ]` 대신 라디오 `( )`로
   그려 "여러 개 고를 수 있다"는 오해를 애초에 막고, 그룹 헤더가 대상 파일과
@@ -399,7 +446,7 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   (커밋 템플릿)은 `대상 파일  .gitmessage.txt`가 설명보다 앞에 옵니다. 파이프·
   CI처럼 화면을 열 수 없는 곳에서 인자 없이 실행하면 나오는 평평한 목록에도
   같은 정보가 실립니다 — 거기엔 그룹 헤더가 없어 달리 알 길이 없기
-  때문입니다(`--list`는 상태·항목 이름만 내는 더 짧은 형식이라 제외).
+  때문입니다(`--list`에도 커버리지·대상 파일·설치 위치가 붙습니다).
 - **목록 아래 상세 패널이 커서 항목의 전문을 폅니다** — 어느 CLI에 실제로
   배선됐는지(MCP는 설정 파일 경로까지), 안 된 CLI는 무엇이고 왜인지(같은
   사유끼리 묶어서 `미배선 9곳: codex·gemini·… — 사유`처럼), 항목의 note·
@@ -475,15 +522,15 @@ node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 �
 |---|---|---|
 | 플러그인 | `plugin.superpowers`, `plugin.mattpocock-skills` | Claude Code 플러그인 기구로 `--scope project` 설치. superpowers는 상류가 Codex·Grok Build 등 14개 하니스를 하니스별 설치로, Matt Pocock은 `npx skills add`(공유 `.agents/skills`)로도 지원하지만 이 항목이 배선하는 것은 Claude 판뿐입니다 — CLI별 사유는 상세 패널에 표시. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
 | 플러그인 | `plugin.ponytail` | Claude Code 플러그인과 OpenCode `opencode.jsonc`의 `plugin` 배열에 동시 배선(둘 다 프로젝트 스코프). 기존 `plugin` 항목은 보존하고 끝에만 덧붙입니다. 나머지 CLI는 상류 설치가 사용자 스코프이거나(Codex·Copilot·Gemini) 플러그인 기구가 없어 항목 note에 사유를 표시합니다 |
-| 플러그인 | `global.superpowers` | **사용자 전역** 항목 — PLUGIN 탭의 '머신 전역' 그룹에 `global.ponytail`과 함께 앉습니다. superpowers를 프로젝트 스코프로 배선할 수 없는 하니스에 각자의 공식 명령으로 설치합니다 — codex·copilot은 `obra/superpowers-marketplace` 마켓플레이스, gemini는 `gemini extensions install`, opencode는 전역 `opencode.json`의 `plugin` 배열. 감지는 각 CLI의 전역 기록(`$CODEX_HOME/config.toml`, `~/.copilot/config.json`, `~/.gemini/extensions/`, 전역 `opencode.json`)을 읽고, 이 머신에 없는 CLI는 대상에서 빼고 그 사실을 표시합니다. grok은 상류 명령(`superpowers@xai-official`)이 있으나 감지·제거 경로 미실측이라, kimi는 설치가 대화형 `/plugins`뿐이라 배선하지 않습니다. `skill.superpowers`와 배타가 아니므로 함께 켜면 겹치는 CLI는 같은 스킬을 두 곳에서 봅니다. `--set` 생략만으로는 제거되지 않습니다 — 제거는 TUI에서 명시적으로 해제합니다 |
-| 플러그인 | `global.ponytail` | Ponytail의 사용자 전역 판 — codex·copilot은 `DietrichGebert/ponytail` 마켓플레이스, gemini는 `gemini extensions install`. claude·opencode는 프로젝트 항목(`plugin.ponytail`)의 자리라 여기서 다루지 않습니다. codex는 설치 후 `/hooks`에서 훅 등록을 한 번 확인해야 하고, 상류는 제거 전 `scripts/uninstall.js`로 `~/.config/ponytail` 정리를 안내합니다(이 항목은 플러그인만 제거). 감지·건너뜀·`--set` 보호 규칙은 `global.superpowers`와 같습니다 |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
+| 플러그인 | `global.superpowers` | **사용자 전역** 항목 — PLUGIN 탭의 '머신 전역' 그룹에 `global.ponytail`과 함께 앉습니다. superpowers를 프로젝트 스코프로 배선할 수 없는 하니스에 각자의 공식 명령으로 설치합니다 — codex·copilot은 `obra/superpowers-marketplace` 마켓플레이스, gemini는 `gemini extensions install`, opencode는 전역 `opencode.json`의 `plugin` 배열, grok은 `grok plugin install superpowers@xai-official --trust`. 감지는 각 CLI의 전역 기록(`$CODEX_HOME/config.toml`, `~/.copilot/config.json`, `~/.gemini/extensions/`, 전역 `opencode.json`, `~/.grok/installed-plugins/registry.json`)을 읽고, 이 머신에 없는 CLI는 대상에서 빼고 그 사실을 표시합니다. grok 제거(`grok plugin uninstall … --confirm`)는 registry와 디렉터리만 지우고 `~/.grok/config.toml`의 `[plugins].enabled` 이름은 남깁니다(상류 동작, 2026-09-05 grok 1.0.5 실측) — 감지가 registry를 보는 이유입니다. kimi는 설치가 대화형 `/plugins`뿐이라 배선하지 않습니다. `skill.superpowers`와 배타가 아니므로 함께 켜면 겹치는 CLI는 같은 스킬을 두 곳에서 봅니다. `--set` 생략만으로는 제거되지 않습니다 — 제거는 TUI에서 명시적으로 해제합니다 |
+| 플러그인 | `global.ponytail` | Ponytail의 사용자 전역 판 — codex·copilot은 `DietrichGebert/ponytail` 마켓플레이스, gemini는 `gemini extensions install`, grok은 `grok plugin install DietrichGebert/ponytail --trust`(2026-09-05 실측). claude·opencode는 프로젝트 항목(`plugin.ponytail`)의 자리라 여기서 다루지 않습니다. codex는 설치 후 `/hooks`에서 훅 등록을 한 번 확인해야 하고, 상류는 제거 전 `scripts/uninstall.js`로 `~/.config/ponytail` 정리를 안내합니다(이 항목은 플러그인만 제거). 감지·건너뜀·`--set` 보호 규칙은 `global.superpowers`와 같습니다 |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록(Antigravity는 프로젝트 MCP 파일이 없어 제외). 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
 | MCP | `mcp.graphify` | stdio 방식 — PATH에 `graphify-mcp`가 필요합니다 (`uv tool install "graphifyy[mcp]"`). 인자 없이 실행 디렉터리의 `graphify-out/graph.json`을 읽으므로 그래프도 저장소 안에 남습니다 |
 | MCP | `mcp.headroom` | stdio 방식 — PATH에 `headroom`이 필요합니다 (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`). 상류 `server.json`과 같은 `headroom mcp serve` 계약으로 등록합니다 |
 | 플러그인 | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code 마켓플레이스 플러그인, `--scope project`. 세 도구 모두 다른 CLI용 설치 경로가 있지만 쓰지 않는 까닭이 각기 다릅니다 — ECC는 스킬이 284개라 공유 디렉터리를 덮고(Codex만 따로, 활성 `CODEX_HOME` 하나에만 설치돼 프로젝트 스코프가 없습니다), Understand Anything은 사용자 스코프이며, impeccable은 이 저장소의 `.agents/skills` 연결을 끊습니다 — 항목 note와 상세 패널에 사유가 나옵니다 |
-| 스킬 | `skill.superpowers`, `skill.mattpocock-skills` | 같은 상류의 **플러그인 판과 하나만** 고를 수 있습니다 — 두 경로를 함께 켜면 같은 스킬이 플러그인 캐시와 공유 디렉터리 양쪽에서 잡혀 중복 등록됩니다(TUI는 형제를 자동으로 끄고, `--set`에 둘 다 주면 오류로 거절합니다). 스킬 판은 10개 CLI가 함께 보는 대신 상류 훅을 잃습니다 — superpowers는 session-start 자동 주입이 빠지고, Matt Pocock은 훅이 없어 잃는 것이 없습니다. 제거할 때 지울 대상은 `skills-lock.json`의 출처 기록으로 고릅니다 |
-| 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 10개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다. 상류 Hallmark는 Cursor·Codex용 경로도, Diagram Design은 Claude·Codex 플러그인 매니페스트도 따로 두지만 모두 CLI별 디렉터리라, 공유 경로 하나가 10개를 함께 덮습니다. agent-browser는 PATH의 `agent-browser` 바이너리(`npm i -g agent-browser` 후 최초 1회 `agent-browser install`)가 전제이고, mcp-builder는 reference/ 문서와 Apache-2.0 LICENSE.txt가 스킬 디렉터리에 함께 복사됩니다 |
+| 스킬 | `skill.superpowers`, `skill.mattpocock-skills` | 같은 상류의 **플러그인 판과 하나만** 고를 수 있습니다 — 두 경로를 함께 켜면 같은 스킬이 플러그인 캐시와 공유 디렉터리 양쪽에서 잡혀 중복 등록됩니다(TUI는 형제를 자동으로 끄고, `--set`에 둘 다 주면 오류로 거절합니다). 스킬 판은 11개 CLI가 함께 보는 대신 상류 훅을 잃습니다 — superpowers는 session-start 자동 주입이 빠지고, Matt Pocock은 훅이 없어 잃는 것이 없습니다. 제거할 때 지울 대상은 `skills-lock.json`의 출처 기록으로 고릅니다 |
+| 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 11개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다. 상류 Hallmark는 Cursor·Codex용 경로도, Diagram Design은 Claude·Codex 플러그인 매니페스트도 따로 두지만 모두 CLI별 디렉터리라, 공유 경로 하나가 11개를 함께 덮습니다. agent-browser는 PATH의 `agent-browser` 바이너리(`npm i -g agent-browser` 후 최초 1회 `agent-browser install`)가 전제이고, mcp-builder는 reference/ 문서와 Apache-2.0 LICENSE.txt가 스킬 디렉터리에 함께 복사됩니다 |
 | 스킬 | `skill.strix` | 보안 테스트 스킬 9종(침투 테스트·OWASP Top 10·취약점 탐지와 수정 흐름)을 `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다(제거 대상은 `skills-lock.json`의 출처 기록으로 고릅니다). 스킬이 Strix 에이전트를 구동하므로 PATH의 `strix` 바이너리가 전제입니다 — 자체 호스팅은 `pipx install strix-agent`에 Docker와 `STRIX_LLM`·`LLM_API_KEY`가 더 필요하고, 관리형은 `strix cloud login`으로 시작합니다. 승인된 대상에만 쓰세요 |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --local` 프로젝트 로컬 설치 — **런타임 다섯을 한 번에** 배선합니다(claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`, copilot→`.github/skills`, kilo→`.kilo/skills`). 상류가 플래그 동시 지정을 받아 호출 한 번으로 끝나고, 이미 설치된 런타임은 빼고 부릅니다. 런타임마다 700개 안팎(합계 3,500여 개)의 파일이 생기는 점에 유의하세요. 나머지 넷은 사유가 각기 다릅니다 — gemini는 상류가 제거, kimi는 `--local`을 아직 거부, kiro·grok·vscode는 상류 런타임 목록에 없음. 제거는 설치된 런타임 플래그를 전부 넘겨 지우지만, 상류가 `gsd-install-state.json`과 훅 파일 몇 개를 남깁니다(스킬은 남지 않아 상태 판정은 정확합니다) |
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리). 부트스트랩 저장소에서는 그 경로가 Junction이라 실물이 공유 `.agents/skills/gstack`에 앉습니다 — 거기서부터는 CLI의 스킬 스캔 깊이가 도달 범위를 정하며, gstack은 라우터 SKILL.md 아래 개별 스킬이 한 단계 더 들어간 2단계 구조입니다. Codex·OpenCode는 재귀 스캔이라 개별 스킬까지, Copilot CLI는 1단계만 훑어 라우터 스킬만 봅니다(실측). 상류 `--host` 경로는 사용자 스코프라 쓰지 않습니다 |
@@ -532,7 +579,8 @@ AI 에이전트가 읽어 일관된 UI를 생성하는 DESIGN.md 문서를
 `agent-installer/lib/design-md/cache/awesome-design-md/LICENSE.md`에 두었고,
 발행물에서 빠지지 않도록 pack 검사가 파일 존재와 내용을 함께 확인합니다.
 
-동기화·카탈로그 갱신은 **작업 탭**의 항목을 `Enter`로 실행합니다.
+동기화·카탈로그 갱신은 **DESIGN.MD 탭 맨 위**의 `[▶]` 행을 `Enter`로 실행합니다
+— design.md에만 관계있는 작업이라 작업 탭이 아니라 그 탭에 둡니다.
 
 ```bash
 node agent-installer/install.mjs design --list        # 카탈로그 + 설치 상태

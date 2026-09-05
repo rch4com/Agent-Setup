@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { render, renderReview, bodyHeight, panelHeight } from '../lib/tui/render.mjs'
+import { render, renderReview, bodyHeight, panelHeight, footerHeight } from '../lib/tui/render.mjs'
 import { createState, move, setCliFilter, setFocus, setQuery } from '../lib/tui/state.mjs'
 import { createT, msg } from '../lib/i18n/index.mjs'
 import { width } from '../lib/width.mjs'
@@ -101,12 +101,14 @@ test('제출 검토는 패널 자리를 빼앗기지 않는다', () => {
   assert.ok(!text.includes('…외'), '자를 이유가 없다')
 })
 
-// 순환 목록은 [null, ...CLI_IDS]다 — codex는 세 번째(전체·claude 다음)다.
+// 순환 목록은 [null, ...CLI_IDS]지만 위치는 CLI 사이에서만 센다 — "전체"까지
+// 세면 CLI가 열한 개인데 열두 번째가 있다고 읽힌다. codex는 두 번째 CLI다.
 test('필터가 걸리면 검색줄 오른쪽에 CLI와 위치가 보인다', () => {
   const s = setCliFilter(createState(ROWS), 'codex')
   const text = render(s, { width: 80, height: 30, t: T, cliOptions: [null, ...CLI_IDS] }).join('\n')
   assert.match(text, /CLI › codex/)
-  assert.ok(text.includes(`3/${CLI_IDS.length + 1}`), '순환 위치가 보여야 한다')
+  assert.ok(text.includes(`(2/${CLI_IDS.length})`), '순환 위치가 보여야 한다')
+  assert.ok(!text.includes(`/${CLI_IDS.length + 1})`), '"전체"는 CLI 수에 들어가면 안 된다')
 })
 
 // 검색칸 반전이 줄 끝까지 칠하면 오른쪽 필터 표시가 반전에 먹힌다.
@@ -198,10 +200,12 @@ const X_ROWS = [
   { ...row('mcp.a', 'Alpha', ['claude']), section: 'config' },
 ]
 
+// X_ROWS는 전부 미설치라 켜면 '설치 예정'(+)이다 — 표식은 상태가 아니라
+// 변경 예정을 말한다(changeMark).
 test('배타 항목은 라디오로, 나머지는 체크박스로 그린다', () => {
   const on = render(createState(X_ROWS, { selectedIds: ['config.gitmessage.en', 'mcp.a'] }), { width: 80, height: 30, t: T }).join('\n')
-  assert.ok(on.includes('(×) English commit template'), `라디오 켜짐이 아니다:\n${on}`)
-  assert.ok(on.includes('[×] Alpha'), '일반 항목은 체크박스여야 한다')
+  assert.ok(on.includes('(+) English commit template'), `라디오 켜짐이 아니다:\n${on}`)
+  assert.ok(on.includes('[+] Alpha'), '일반 항목은 체크박스여야 한다')
 
   const off = render(createState(X_ROWS), { width: 80, height: 30, t: T }).join('\n')
   assert.ok(off.includes('( ) English commit template'), `라디오 꺼짐이 아니다:\n${off}`)
@@ -239,4 +243,103 @@ test('검토 화면도 종료 키를 안내한다', () => {
   const changes = [{ action: 'install', item: { label: 'Alpha' } }]
   const text = renderReview(changes, { width: 80, height: 24, t: T }).join('\n')
   assert.ok(text.includes('Ctrl+Q 종료'))
+})
+
+// ── 변경 예정 표식과 머리글 건수 ──────────────────────────────────
+//
+// 예전에는 ×가 "설치됨(유지)"과 "새로 고름"에 똑같이 쓰였고, 설치된 항목의
+// 체크를 풀면 빈 칸이 돼 힌트의 '설치됨'과 조합해야 제거 예정임을 알 수 있었다.
+
+function statusRow(id, label, status) {
+  return { ...row(id, label, ['claude']), status }
+}
+
+const S_ROWS = [
+  statusRow('mcp.keep', 'Keep', 'installed'),
+  statusRow('mcp.drop', 'Drop', 'installed'),
+  statusRow('mcp.add', 'Add', 'absent'),
+  statusRow('mcp.none', 'None', 'absent'),
+  statusRow('mcp.fill', 'Fill', 'partial'),
+]
+
+test('체크 표식은 상태가 아니라 변경 예정을 말한다', () => {
+  // keep·add·fill 켜짐, drop·none 꺼짐.
+  const text = render(createState(S_ROWS, { selectedIds: ['mcp.keep', 'mcp.add', 'mcp.fill'] }), { width: 80, height: 30, t: T }).join('\n')
+  assert.ok(text.includes('[×] Keep'), '설치돼 있고 그대로 두면 ×')
+  assert.ok(text.includes('[-] Drop'), '설치돼 있는데 풀었으면 - (제거 예정)')
+  assert.ok(text.includes('[+] Add'), '없는데 골랐으면 + (설치 예정)')
+  assert.ok(text.includes('[ ] None'), '없고 안 골랐으면 빈 칸')
+  assert.ok(text.includes('[+] Fill'), '일부 설치를 골랐으면 + (보완 설치 예정)')
+})
+
+test('머리글에 변경 예정 건수가 보인다', () => {
+  // 일부 설치(fill)는 켜면 보완, 끄면 제거라 어느 쪽이든 변경이다 — 0건
+  // 사례에서는 뺀다. keep·drop을 그대로 켜 두면 바뀔 것이 없다.
+  const steady = S_ROWS.filter((r) => r.id !== 'mcp.fill')
+  const none = render(createState(steady, { selectedIds: ['mcp.keep', 'mcp.drop'] }), { width: 100, height: 30, t: T })[0]
+  assert.match(none, /변경 예정 0건/)
+  assert.doesNotMatch(none, /\(\+/, '0건이면 +·- 내역을 붙이지 않는다')
+  const three = render(createState(S_ROWS, { selectedIds: ['mcp.keep', 'mcp.add', 'mcp.fill'] }), { width: 100, height: 30, t: T })[0]
+  // drop 제거 + add 설치 + fill 보완 = 3건. engine.planChanges와 같은 판정이다.
+  // 괄호 안에 +·- 내역을 붙여 행의 표식과 같은 글자로 읽히게 한다.
+  assert.match(three, /변경 예정 3건 \(\+2 -1\)/)
+})
+
+// ── 바닥글이 두 줄로 접힌다 ────────────────────────────────────────
+//
+// 80칸 한국어 화면에서 힌트가 `Ctrl+A 전체   C…`에서 끊겨 CLI 필터(Ctrl+F)·
+// 상세(Ctrl+D)를 발견할 길이 없었다.
+
+test('80칸에서도 Ctrl+F·Ctrl+D 안내가 보인다 — 힌트가 두 줄로 접힌다', () => {
+  const lines = render(createState(ROWS), { width: 80, height: 30, t: T })
+  assert.equal(lines.length, 30)
+  const tail = lines.slice(-2).join('\n')
+  assert.ok(tail.includes('Ctrl+F'), `Ctrl+F가 없다:\n${tail}`)
+  assert.ok(tail.includes('Ctrl+D'), `Ctrl+D가 없다:\n${tail}`)
+  assert.ok(lines.at(-1).trimEnd().endsWith('Ctrl+Q 종료'), '종료 키는 마지막 줄 오른쪽 끝')
+  for (const line of lines) assert.ok(width(line) <= 80, `넘침: ${line}`)
+})
+
+test('넓은 화면에서는 바닥글이 한 줄이고 목록이 그만큼 넓다', () => {
+  assert.equal(footerHeight(200, T), 1)
+  assert.equal(footerHeight(80, T), 2)
+  // 목록 지면은 바닥글 줄 수만큼 준다.
+  assert.equal(bodyHeight(30, false, 2) + panelHeight(30, false, 2), 30 - 7)
+})
+
+test('포커스를 옮겨도 바닥글 줄 수가 변하지 않는다 — 목록이 출렁이면 안 된다', () => {
+  const list = render(createState(ROWS), { width: 80, height: 30, t: T })
+  const search = render(setFocus(createState(ROWS), 'search'), { width: 80, height: 30, t: T })
+  const sep = (ls) => ls.findIndex((l) => l.startsWith('─'))
+  assert.equal(sep(list), sep(search))
+})
+
+// ── 라벨 열·머리글 경로·도움말 ─────────────────────────────────────────
+import { labelColumn, renderHelp, LABEL_WIDTH } from '../lib/tui/render.mjs'
+
+test('라벨 열은 넓은 화면에서 긴 라벨만큼 늘고 좁은 화면에서는 24칸이다', () => {
+  const long = { ...row('mcp.l', 'Understand Anything (저장소)', ['claude']) }
+  assert.equal(labelColumn([long], 79), LABEL_WIDTH, '80칸에서는 힌트 자리(50칸)를 지켜 24칸에 머문다')
+  assert.equal(labelColumn([long], 119), width(long.label), '120칸에서는 라벨만큼 늘어난다')
+  assert.ok(labelColumn([long], 119) >= width(long.label), '120칸에서는 라벨이 다 들어간다')
+  const text = render(createState([long]), { width: 120, height: 24, t: T }).join('\n')
+  assert.ok(text.includes('Understand Anything (저장소)'), `라벨이 잘렸다:\n${text}`)
+})
+
+test('머리글은 자리가 없으면 저장소의 마지막 디렉터리 이름만 쓴다', () => {
+  const repo = 'D:/Sources/github/Agent-Setup'
+  const wide = render(createState(ROWS), { width: 140, height: 24, t: T, repo })[0]
+  assert.ok(wide.includes(repo), '넓으면 전체 경로')
+  const narrow = render(createState(ROWS), { width: 80, height: 24, t: T, repo })[0]
+  assert.ok(narrow.includes('Agent-Setup'), `좁으면 마지막 이름: ${narrow}`)
+  assert.ok(!narrow.includes('…'), `잘린 경로가 남았다: ${narrow}`)
+})
+
+test('도움말 화면은 모든 키를 담고 화면을 넘지 않는다', () => {
+  const lines = renderHelp({ width: 80, height: 24, t: T })
+  assert.ok(lines.length <= 24)
+  const text = lines.join('\n')
+  for (const key of ['Home', 'Ctrl+F', 'Ctrl+D', 'Ctrl+Q', 'F1'].filter((k) => k !== 'F1')) assert.ok(text.includes(key), `${key} 안내가 없다`)
+  assert.match(text, /아무 키나/)
+  for (const line of lines) assert.ok(width(line) <= 80, `넘침: ${line}`)
 })

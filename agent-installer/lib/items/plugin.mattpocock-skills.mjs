@@ -13,6 +13,7 @@ export default definePlugin({
   detectIds: ['mattpocock-skills@mattpocock'],
   marketplace: { name: 'mattpocock', repo: 'mattpocock/skills' },
   note: 'item.plugin.mattpocock-skills.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.mattpocockRegistry')]),
   ),

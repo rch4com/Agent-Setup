@@ -6,7 +6,9 @@ export async function scan(root, items) {
   for (const item of items) {
     try {
       const r = await item.detect({ root })
-      states.push({ item, status: r.status, detail: r.detail })
+      // excluded는 전역 항목이 "이 머신에 없는 CLI"를 알리는 자리다 — 행 힌트가
+      // supports를 나열할 때 그 CLI를 빼고 따로 표시한다.
+      states.push({ item, status: r.status, detail: r.detail, excluded: r.excluded ?? [] })
     } catch (err) {
       states.push({ item, status: 'absent', detail: msg('item.scanFailed', { message: err.message }) })
     }
@@ -41,7 +43,7 @@ export function planChanges(states, selectedIds) {
 }
 
 export async function apply(root, changes, { dryRun = false, log = console.log, t = createT('en'), onProgress = null, shouldStop = null } = {}) {
-  const baseExec = makeExec(dryRun, log)
+  const baseExec = makeExec(dryRun, log, t)
   const results = []
   const total = changes.length
 

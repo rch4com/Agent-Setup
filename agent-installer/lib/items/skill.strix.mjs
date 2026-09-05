@@ -9,4 +9,5 @@ export default defineRegistrySkill({
   skill: '*',
   anchor: 'penetration-testing-with-strix',
   note: 'item.skill.strix.note',
+  verified: '2026-09-02',
 })

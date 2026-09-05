@@ -54,14 +54,21 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   const { loadItems } = await withDeps(() => import('./lib/catalog.mjs'), t)
   const { scan, planChanges, apply, assertExclusive } = await withDeps(() => import('./lib/engine.mjs'), t)
   const { plainLine } = await withDeps(() => import('./lib/tui/progress.mjs'), t)
+  const { coverageText } = await withDeps(() => import('./lib/tui/rows.mjs'), t)
   const items = await loadItems()
   const states = await scan(root, items)
   const statusWidth = labelWidth(t, STATUS_KEYS)
 
   if (listOnly) {
+    // CI가 읽는 경로다 — 화면의 힌트와 같은 정보(커버리지·대상 파일·설치 위치)를
+    // 싣는다. 상태·이름만으로는 "내 CLI에서 되나"를 여기서 알 수 없었다.
     for (const s of states) {
       const detail = toText(t, s.detail)
-      console.log(`${pad(t(`status.${s.status}`), statusWidth)} ${s.item.id} — ${scopedLabel(s.item, t)}${detail ? ` (${detail})` : ''}`)
+      const extras = [coverageText(s.item, s, t)]
+      if (s.item.target) extras.push(t('item.target', { path: s.item.target }))
+      if (s.item.scope === 'user') extras.push(t('item.location.user'))
+      const tail = extras.filter(Boolean).map((x) => ` · ${x}`).join('')
+      console.log(`${pad(t(`status.${s.status}`), statusWidth)} ${s.item.id} — ${scopedLabel(s.item, t)}${tail}${detail ? ` (${detail})` : ''}`)
     }
     return
   }

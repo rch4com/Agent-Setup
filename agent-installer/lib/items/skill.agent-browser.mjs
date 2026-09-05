@@ -13,4 +13,5 @@ export default defineRegistrySkill({
   source: 'https://github.com/vercel-labs/agent-browser',
   skill: 'agent-browser',
   note: 'item.skill.agent-browser.note',
+  verified: '2026-08-15',
 })

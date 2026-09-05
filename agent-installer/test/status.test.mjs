@@ -129,3 +129,20 @@ test('status 표의 값이 두 로케일 모두에서 같은 열에서 시작한
     }
   }
 })
+
+// ── 실측 오래됨 ────────────────────────────────────────────────────────
+import { STALE_DAYS } from '../lib/status.mjs'
+
+// 미배선 사유는 실측한 날의 사실이다 — 날짜가 오래되면 status가 알린다.
+test('verified가 STALE_DAYS를 넘긴 항목을 실측 오래됨으로 센다', async () => {
+  const root = makeTempRepo()
+  runInstaller(root, ['bootstrap'])
+  const item = { id: 'skill.x', verified: '2026-01-01', detect: async () => ({ status: 'absent' }), install() {}, uninstall() {} }
+  const fresh = await collectStatus(root, { items: [item], now: Date.parse('2026-01-10T00:00:00Z') })
+  assert.deepEqual(fresh.items.stale, [])
+  const later = await collectStatus(root, { items: [item], now: Date.parse('2026-01-01T00:00:00Z') + (STALE_DAYS + 1) * 86_400_000 })
+  assert.deepEqual(later.items.stale, [{ id: 'skill.x', verified: '2026-01-01' }])
+  const text = formatStatus(later, KO_T)
+  assert.match(text, /실측 오래됨\s+skill\.x \(2026-01-01\)/)
+  assert.match(text, new RegExp(`${STALE_DAYS}일`))
+})

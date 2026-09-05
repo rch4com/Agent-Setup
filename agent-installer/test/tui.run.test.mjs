@@ -30,7 +30,9 @@ async function drive(keys, opts = {}) {
   stdin.pause = () => {}
 
   const frames = []
-  const stdout = { columns, rows: 24, isTTY: true, write: (s) => frames.push(s) }
+  // EventEmitter다 — 리사이즈 감시(stdout.on('resize'))가 붙을 자리다.
+  const stdout = Object.assign(new EventEmitter(), { columns, rows: 24, isTTY: true, frames, write: (s) => frames.push(s) })
+  if (opts.beforeKeys) await opts.beforeKeys(stdout)
 
   const cap = makeCapture()
   const done = runTui(rest.root ?? makeTempRepo(), {
@@ -38,6 +40,7 @@ async function drive(keys, opts = {}) {
   })
 
   while (stdin.listenerCount('keypress') === 0) await new Promise((r) => setImmediate(r))
+  if (rest.onReady) await rest.onReady(stdout)
   for (const k of keys) stdin.emit('keypress', k.str, k)
 
   let timer
@@ -402,4 +405,43 @@ test('배타 항목을 바꾸면 무엇이 해제됐는지 알린다', async () 
 test('전역 플러그인을 켜면 상태줄이 머신 전역임을 알린다', async () => {
   const { screen } = await drive([TAB, ...type('global.superpowers'), DOWN, SPACE, CC])
   assert.ok(screen.includes('머신 전역 항목 — 이 컴퓨터 전체에 적용됩니다'), '전역 안내 없음')
+})
+
+// ── F1 도움말·Home/End·리사이즈 ────────────────────────────────────────
+
+const F1 = { name: 'f1' }
+const HOME = { name: 'home' }
+const END = { name: 'end' }
+
+test('F1은 도움말을 띄우고, 닫는 키는 명령으로 해석하지 않는다', async () => {
+  // 도움말을 닫으려 누른 Space가 항목을 고르면 안 된다 — MCP 탭 첫 항목에서 확인.
+  const { screen, lastListFrame } = await drive([...TO_MCP, F1, SPACE, CC])
+  assert.ok(screen.includes('키 안내'), '도움말 화면이 없다')
+  assert.ok(screen.includes('Home · End'), '도움말에 키 목록이 없다')
+  assert.ok(!lastListFrame.includes('[+]'), `도움말을 닫은 Space가 항목을 골랐다:\n${lastListFrame}`)
+})
+
+test('End는 목록 끝으로, Home은 처음으로 간다', async () => {
+  const { lastListFrame: atEnd } = await drive([...TO_MCP, END, CC])
+  const { lastListFrame: atHome } = await drive([...TO_MCP, END, HOME, CC])
+  const cursorLine = (f) => f.split('\n').find((l) => l.includes('❯')) ?? ''
+  assert.ok(cursorLine(atEnd).includes('Vercel MCP'), `End가 끝으로 가지 않았다: ${cursorLine(atEnd)}`)
+  assert.ok(cursorLine(atHome).includes('Headroom MCP'), `Home이 처음으로 가지 않았다: ${cursorLine(atHome)}`)
+})
+
+test('터미널 크기가 바뀌면 키를 누르지 않아도 새 폭으로 다시 그린다', async () => {
+  const { frames } = await drive([CC], {
+    columns: 120,
+    onReady: async (stdout) => {
+      await new Promise((r) => setImmediate(r))
+      const before = stdout.frames.length
+      stdout.columns = 60
+      stdout.emit('resize')
+      assert.ok(stdout.frames.length > before, '리사이즈 뒤 새 프레임이 없다')
+    },
+  })
+  // 마지막 목록 프레임은 60칸 폭으로 그려졌어야 한다 — 머리글이 60칸 안에 든다.
+  const last = frames.filter((f) => f.includes('검색 ›')).pop() ?? ''
+  const head = last.split('\n')[0].replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+  assert.ok(head.length <= 60, `머리글이 60칸을 넘는다(${head.length}): ${head}`)
 })

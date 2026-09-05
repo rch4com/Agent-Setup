@@ -106,6 +106,17 @@ export const CLIS = {
         ? { type: 'http', url: s.url }
         : { type: 'stdio', command: s.command, args: s.args }),
   },
+  // Antigravity는 프로젝트 스코프 MCP 파일이 없다 — MCP는 홈 글로벌
+  // (~/.gemini/config/mcp_config.json)에서만 설정한다(bootstrap/manifest.mjs
+  // 주석·README). 그래서 어댑터(file·has·add·remove)가 없다. 그래도 목록에
+  // 두는 이유는 부트스트랩이 지원하는 11개 도구와 화면의 CLI 수가 어긋나면
+  // 안 되기 때문이다 — 공유 .agents/skills를 네이티브로 읽으므로 레지스트리
+  // 스킬은 실제로 닿고, MCP 항목은 "왜 안 닿는지"를 사유로 밝힌다.
+  antigravity: {
+    label: 'Antigravity',
+  },
 }
 
 export const CLI_IDS = Object.keys(CLIS)
+// 프로젝트 설정 파일에 MCP를 쓸 수 있는 CLI — 어댑터가 있는 것만.
+export const MCP_CLI_IDS = CLI_IDS.filter((id) => typeof CLIS[id].add === 'function')

@@ -17,6 +17,7 @@ export default definePlugin({
   detectIds: ['ecc@ecc'],
   marketplace: { name: 'ecc', repo: 'affaan-m/ECC' },
   note: 'item.plugin.ecc.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,

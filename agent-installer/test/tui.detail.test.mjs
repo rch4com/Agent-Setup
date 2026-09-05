@@ -149,3 +149,17 @@ test('대상 파일이 있는 항목은 상세 패널이 그 경로를 먼저 �
   const lines = detailLines(row, { width: 90, height: 12, t: createT('ko') })
   assert.ok(lines[1].includes('.gitmessage.txt'), `대상 파일 줄이 note보다 앞이 아니다: ${lines[1]}`)
 })
+
+// ── MCP 배선표는 가로로 채운다 ─────────────────────────────────────────
+import { CLIS, MCP_CLI_IDS } from '../lib/clis.mjs'
+
+// 한 줄에 하나씩이면 열 개가 열 줄이라 80×24 패널에서 절반이 접혔다.
+test('MCP 배선표는 넓은 화면에서 한 줄에 여러 CLI를 놓고 경로를 함께 적는다', () => {
+  const row = itemRow({ id: 'mcp.all', category: 'mcp', label: 'All', scope: 'project', supports: [...MCP_CLI_IDS], unsupported: {} }, 'absent')
+  const lines = detailLines(row, { width: 120, height: 40, t: T })
+  const wired = lines.filter((l) => l.includes('✔') || /^\s{6,}\S/.test(l))
+  assert.ok(wired.length < MCP_CLI_IDS.length, `줄 수가 줄지 않았다: ${wired.length}`)
+  const text = lines.join('\n')
+  for (const cli of MCP_CLI_IDS) assert.ok(text.includes(`${cli} ${CLIS[cli].file}`), `${cli} 경로가 없다`)
+  for (const line of lines) assert.ok(width(line) <= 120, `넘침: ${line}`)
+})

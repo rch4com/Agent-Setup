@@ -323,3 +323,19 @@ test('행을 갈아끼워도 필터가 유지된다', () => {
   const s = setCliFilter(createState(CLI_ROWS), 'codex')
   assert.equal(replaceRows(s, CLI_ROWS, []).cliFilter, 'codex')
 })
+
+// ── 탭 건수는 항목만 센다 ──────────────────────────────────────────────
+
+// DESIGN.MD 탭 맨 위의 작업 행 셋까지 세면 항목 76개인 탭이 79로 찍혀
+// 머리글의 "전체"와 어긋난다. 작업만 있는 탭은 작업을 센다.
+test('tabCounts: 항목이 있는 탭은 항목만, 작업만 있는 탭은 작업을 센다', () => {
+  const rows = [
+    { kind: 'action', id: 'a1', section: 'action', group: null, label: 'A', hint: '', status: 'absent', searchText: 'a' },
+    { kind: 'action', id: 'a2', section: 'design', group: null, label: 'S', hint: '', status: 'absent', searchText: 's' },
+    { kind: 'item', id: 'd1', section: 'design', group: 'Web', label: 'X', hint: '', status: 'absent', searchText: 'x', item: {} },
+    { kind: 'item', id: 'd2', section: 'design', group: 'Web', label: 'Y', hint: '', status: 'absent', searchText: 'y', item: {} },
+  ]
+  const counts = Object.fromEntries(tabCounts(createState(rows)).map((c) => [c.tab, c]))
+  assert.deepEqual(counts.action, { tab: 'action', shown: 1, total: 1 })
+  assert.deepEqual(counts.design, { tab: 'design', shown: 2, total: 2 })
+})

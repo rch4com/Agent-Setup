@@ -104,16 +104,38 @@ export function designHint(state, multiProvider = false, t) {
   return parts.filter(Boolean).join(' · ')
 }
 
+// 이름을 나열할 수 있는 최대 CLI 수. 넷까지는 이름(codex·gemini·opencode·copilot)이
+// 80칸 힌트 자리에 들고, 그보다 많으면 "몇 개나 되나"가 더 유용하다.
+const NAME_LIMIT = 4
+
 // 목록 행에 실제로 찍히는 힌트. 80칸 터미널이면 힌트 자리는 49칸(한글 24자)뿐이라,
 // 예전처럼 사유까지 이어 붙이면 뒤쪽이 통째로 잘렸다. 사유·note·detail은
 // 상세 패널이 여러 줄로 편다 — 여기 남는 것은 잘릴 일이 없는 두 가지뿐이다.
+//
+// 커버리지 표기는 탭과 무관하게 한 규칙이다 — 예전에는 plugin 탭만 이름을,
+// 나머지는 수를 찍어 한 화면 안에서 규칙이 바뀌었다. 이제 지원 CLI가 넷
+// 이하면 이름을, 그보다 많으면 `CLI n/N`을 찍는다. 이름을 나열할 때는 이
+// 머신에 없는 CLI(state.excluded — 전역 항목이 detect에서 알린다)를 빼고
+// 따로 적는다: 상세에는 "CLI 없음"이라 하면서 행에는 그 이름이 그대로
+// 찍히면 어느 쪽이 참인지 알 수 없다.
+export function coverageText(item, state, t = createT('en')) {
+  if (!item.supports) return ''
+  if (item.supports.length > NAME_LIMIT || item.supports.length === 0) {
+    return t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length })
+  }
+  const excluded = state?.excluded ?? []
+  const here = item.supports.filter((c) => !excluded.includes(c))
+  const parts = []
+  if (here.length > 0) parts.push(here.join('·'))
+  if (excluded.length > 0) parts.push(t('item.cliMissing', { list: excluded.join('·') }))
+  return parts.join(' · ')
+}
+
 export function agentShortHint(item, state, t = createT('en')) {
   const parts = []
   if (state.status !== 'absent') parts.push(t(`status.${state.status}`))
-  // plugin은 수 대신 이름을 나열한다 — 어느 CLI에 설치되는가가 이 탭에서
-  // 고르는 기준이고, 가장 긴 나열(codex·gemini·opencode·copilot)도 자리에 든다.
-  if (item.category === 'plugin' && item.supports?.length) parts.push(item.supports.join('·'))
-  else if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
+  const cov = coverageText(item, state, t)
+  if (cov) parts.push(cov)
   return parts.join(' · ')
 }
 
@@ -151,11 +173,14 @@ function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = nul
   }
 }
 
-function actionRow({ id, label, hint, run = null, t = createT('en') }) {
+// section 기본값은 작업 탭이다. design.md 동기화처럼 한 탭에만 관계있는
+// 작업은 그 탭을 넘겨 그 자리 맨 위에 놓는다 — 첫 화면의 작업 탭에 design.md
+// 전용 작업이 섞여 있으면 무엇을 위한 화면인지부터 흐려진다.
+function actionRow({ id, label, hint, run = null, section = ACTION_SECTION, t = createT('en') }) {
   return {
     kind: 'action',
     id,
-    section: ACTION_SECTION,
+    section,
     group: null,
     exclusive: null,
     label,
@@ -165,7 +190,7 @@ function actionRow({ id, label, hint, run = null, t = createT('en') }) {
     status: 'absent',
     previewTarget: null,
     run,
-    searchText: `${label} ${hint} ${sectionTerms(t, ACTION_SECTION)}`.toLowerCase(),
+    searchText: `${label} ${hint} ${sectionTerms(t, section)}`.toLowerCase(),
   }
 }
 
@@ -192,8 +217,10 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
       run: ({ dryRun, skillMode, log, t: rt }) => runBootstrap(root, { dryRun, skillMode, log, t: rt }),
       t,
     }),
+    // design.md 전용 세 작업은 DESIGN.MD 탭 맨 위에 놓는다.
     actionRow({
       id: 'action.sync.installed',
+      section: 'design',
       label: t('action.sync.installed.label'),
       hint: t('action.sync.installed.hint'),
       run: ({ dryRun, log, t: rt }) => updateInstalled(root, designItems, { dryRun, log, t: rt }),
@@ -201,6 +228,7 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
     }),
     actionRow({
       id: 'action.sync.catalog',
+      section: 'design',
       label: t('action.sync.catalog.label'),
       hint: t('action.sync.catalog.hint'),
       run: ({ dryRun, fetchImpl, log, catalogFile, t: rt }) => refreshCatalog({ dryRun, fetchImpl, log, catalogFile, t: rt }),
@@ -208,6 +236,7 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
     }),
     actionRow({
       id: 'action.sync.stale',
+      section: 'design',
       label: t('action.sync.stale.label'),
       hint: t('action.sync.stale.hint'),
       run: async ({ dryRun, log, confirm, t: rt }) => {

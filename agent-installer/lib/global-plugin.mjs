@@ -12,6 +12,13 @@
 //   copilot  ~/.copilot/config.json의 installedPlugins[] (주석 있는 JSONC).
 //   gemini   ~/.gemini/extensions/<이름>/ (공식 extensions 문서).
 //   opencode 전역 opencode.json의 plugin 배열 (XDG_CONFIG_HOME 존중).
+//   grok     ~/.grok/installed-plugins/registry.json의 repos[*].plugins 키
+//            (2026-09-05 grok 1.0.5로 설치·제거 왕복 실측). 설치는
+//            `grok plugin install <소스> --trust`가 registry와 디렉터리를 만들고
+//            config.toml [plugins].enabled에도 이름을 넣는다. 제거
+//            (`grok plugin uninstall <이름> --confirm`)는 디렉터리·registry만
+//            지우고 enabled 항목은 남기므로, 감지의 근거는 registry여야 한다 —
+//            enabled를 보면 제거한 뒤에도 영원히 설치됨으로 읽힌다.
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
@@ -67,13 +74,14 @@ function opencodePlugins(file) {
 //   installId       마켓플레이스 설치 id (<이름>@<마켓>)
 //   gemini          gemini extensions install에 줄 git URL, 없으면 null
 //   opencode        전역 opencode.json plugin 배열에 넣을 항목, 없으면 null
-// supports는 어댑터 유무로 정해진다 — codex·copilot은 항상, gemini·opencode는
+//   grok            grok plugin install에 줄 소스(마켓 id 또는 owner/repo), 없으면 null
+// supports는 어댑터 유무로 정해진다 — codex·copilot은 항상, gemini·opencode·grok은
 // 좌표가 있을 때만.
 export function defineGlobalPlugin(
-  { id, label, group, note, exclusive = null, unsupported = {}, pluginName, marketplaceRepo, installId, gemini = null, opencode = null },
+  { id, label, group, note, exclusive = null, unsupported = {}, pluginName, marketplaceRepo, installId, gemini = null, opencode = null, grok = null, verified = null },
   { home = null, env = process.env, hasBinary = defaultHasBinary } = {},
 ) {
-  const supports = ['codex', ...(gemini ? ['gemini'] : []), ...(opencode ? ['opencode'] : []), 'copilot']
+  const supports = ['codex', ...(gemini ? ['gemini'] : []), ...(opencode ? ['opencode'] : []), 'copilot', ...(grok ? ['grok'] : [])]
 
   const files = () => {
     const base = home ?? homedir()
@@ -82,7 +90,16 @@ export function defineGlobalPlugin(
       copilot: join(base, '.copilot', 'config.json'),
       gemini: join(base, '.gemini', 'extensions', pluginName),
       opencode: join(env.XDG_CONFIG_HOME || join(base, '.config'), 'opencode', 'opencode.json'),
+      grok: join(base, '.grok', 'installed-plugins', 'registry.json'),
     }
+  }
+
+  // registry.json: { repos: { "<이름>-<해시>": { plugins: { "<이름>": {...} } } } }.
+  // 이름은 repos 키(해시가 붙는다)가 아니라 plugins 키에서 본다.
+  const grokInstalled = (file) => {
+    const repos = readJson(file)?.repos
+    if (!repos || typeof repos !== 'object') return false
+    return Object.values(repos).some((r) => Object.hasOwn(r?.plugins ?? {}, pluginName))
   }
 
   const isOurEntry = (p) => String(p).startsWith(`${pluginName}@`)
@@ -91,10 +108,11 @@ export function defineGlobalPlugin(
     copilot: (f) => copilotInstalled(f.copilot, pluginName),
     gemini: (f) => existsSync(f.gemini),
     opencode: (f) => (opencodePlugins(f.opencode) ?? []).some(isOurEntry),
+    grok: (f) => grokInstalled(f.grok),
   }
 
   return {
-    id, category: 'plugin', label, scope: 'user', group, exclusive,
+    id, category: 'plugin', label, scope: 'user', group, exclusive, verified,
     supports: [...supports],
     unsupported,
     note,
@@ -108,11 +126,14 @@ export function defineGlobalPlugin(
       const noCli = supports.filter((c) => !machine.includes(c))
       const missing = machine.filter((c) => !present.includes(c))
       const detail = noCli.length > 0 ? msg('item.global.noCli', { list: noCli.join(', ') }) : undefined
-      if (present.length === 0) return { status: 'absent', detail }
-      if (missing.length === 0) return { status: 'installed', detail }
+      // excluded는 detail과 별도로 구조체로 넘긴다 — 행 힌트가 CLI 이름을
+      // 나열할 때 이 머신에 없는 것을 빼고 따로 적으려면 문장이 아니라 목록이 필요하다.
+      if (present.length === 0) return { status: 'absent', detail, excluded: noCli }
+      if (missing.length === 0) return { status: 'installed', detail, excluded: noCli }
       return {
         status: 'partial',
         detail: msg('item.plugin.partial', { present: present.join(', '), missing: missing.join(', ') }),
+        excluded: noCli,
       }
     },
 
@@ -147,6 +168,11 @@ export function defineGlobalPlugin(
           if (!r.ok) fail(cli, r.output)
         } else if (cli === 'gemini') {
           const r = await exec('gemini', ['extensions', 'install', gemini])
+          if (!r.ok) fail(cli, r.output)
+        } else if (cli === 'grok') {
+          // --trust는 확인 프롬프트를 건너뛴다 — stdin이 닫힌 채 도는 실행이라
+          // 프롬프트가 뜨면 영원히 멈춘다.
+          const r = await exec('grok', ['plugin', 'install', grok, '--trust'])
           if (!r.ok) fail(cli, r.output)
         } else {
           if (dryRun) {
@@ -194,6 +220,12 @@ export function defineGlobalPlugin(
         } else if (cli === 'copilot') {
           let r = await exec('copilot', ['plugin', 'uninstall', pluginName])
           if (!r.ok) r = await exec('copilot', ['plugin', 'uninstall', pluginName])
+          if (!r.ok) fail(cli, r.output)
+        } else if (cli === 'grok') {
+          // --confirm은 한 저장소에 플러그인이 여럿일 때의 확인을 건너뛴다.
+          // config.toml [plugins].enabled의 이름은 상류가 남긴다 — 우리가
+          // 등록한 줄이라는 보장이 없어 건드리지 않는다(note에 적는다).
+          const r = await exec('grok', ['plugin', 'uninstall', pluginName, '--confirm'])
           if (!r.ok) fail(cli, r.output)
         } else {
           const r = await exec('gemini', ['extensions', 'uninstall', pluginName])

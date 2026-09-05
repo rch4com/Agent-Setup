@@ -18,27 +18,31 @@ import { msg } from '../i18n/index.mjs'
 //
 // opencode는 프로젝트 항목(plugin.ponytail)이 opencode.jsonc의 plugin 배열로
 // 이미 배선한다 — 전역 판에서 겹치면 같은 플러그인이 두 번 등록된다. claude도
-// 같은 이유로 프로젝트 항목의 자리다. grok은 상류 명령이 있으나 감지·제거
-// 경로를 실측할 CLI가 없어 superpowers 전역 판과 같은 기준으로 제외한다.
+// 같은 이유로 프로젝트 항목의 자리다.
+//   grok    — `grok plugin install DietrichGebert/ponytail --trust`. 2026-09-05
+//             이 머신(grok 1.0.5)에서 설치·감지·제거 왕복을 실측했다. 상류
+//             README는 "기본 꺼짐이라 /plugins에서 켜라"고 적지만 1.0.5는
+//             --trust 설치 직후 config.toml [plugins].enabled에 이름을 넣었다.
 // kiro·vscode는 상류가 룰 파일 수동 배치만 안내하고, kilo·kimi는 경로가 없다.
 //
 // 상류는 플러그인 제거 전에 node scripts/uninstall.js로 ~/.config/ponytail
 // 설정과 statusLine 항목을 정리하라고 안내한다 — 하니스마다 스크립트 위치가
 // 달라 자동화하지 않고 note로 알린다. 이 항목은 플러그인만 제거한다.
-const SUPPORTS = ['codex', 'gemini', 'copilot']
+const SUPPORTS = ['codex', 'gemini', 'copilot', 'grok']
 
 const CONFIG = {
   id: 'global.ponytail', label: 'Ponytail', group: '__token',
   note: 'item.global.ponytail.note',
+  verified: '2026-09-05',
   pluginName: 'ponytail',
   marketplaceRepo: 'DietrichGebert/ponytail',
   installId: 'ponytail@ponytail',
   gemini: 'https://github.com/DietrichGebert/ponytail',
+  grok: 'DietrichGebert/ponytail',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => !SUPPORTS.includes(c)).map((c) => [
       c,
       ['claude', 'opencode'].includes(c) ? msg('item.unsupported.globalProjectItem', { item: 'Ponytail' })
-      : c === 'grok' ? msg('item.unsupported.ponytailGlobalGrok')
       : ['kiro', 'vscode'].includes(c) ? msg('item.unsupported.ponytailRules')
       : msg('item.unsupported.upstreamNone'),
     ]),

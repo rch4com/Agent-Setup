@@ -26,6 +26,7 @@ import { LocalizedError, msg } from '../i18n/index.mjs'
 //   kimi    `--kimi --local`이 "Project-level Kimi install semantics remain
 //           deferred"를 찍고 거부한다 — 전역 설치만 가능하다.
 //   kiro·grok·vscode  상류 런타임 목록에 없다.
+//   antigravity  --antigravity 플래그가 있지만 설치 경로를 실측하지 못했다.
 const RUNTIMES = [
   { cli: 'claude', dirs: ['.claude/commands', '.claude/skills'] },
   { cli: 'codex', dirs: ['.codex/skills'] },
@@ -56,11 +57,15 @@ export default defineSkill({
   id: 'skill.gsd', label: 'GSD (Get Shit Done)', group: '__flow', scope: 'project',
   note: 'item.skill.gsd.note',
   supports: SUPPORTS,
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => !SUPPORTS.includes(c)).map((c) => [
       c,
       c === 'gemini' ? msg('item.unsupported.gsdGemini')
         : c === 'kimi' ? msg('item.unsupported.gsdKimiLocal')
+          // --antigravity 플래그가 있지만 어느 경로에 무엇을 쓰는지 실측하지
+          // 못했다 — 실측 전에는 배선하지 않는다.
+          : c === 'antigravity' ? msg('item.unsupported.unmeasuredUpstream')
           : msg('item.unsupported.upstreamNone'),
     ]),
   ),

@@ -15,6 +15,7 @@ export default definePlugin({
   detectIds: ['understand-anything@understand-anything'],
   marketplace: { name: 'understand-anything', repo: 'Egonex-AI/Understand-Anything' },
   note: 'item.plugin.understand-anything.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, msg('item.unsupported.uaUser')]),
   ),

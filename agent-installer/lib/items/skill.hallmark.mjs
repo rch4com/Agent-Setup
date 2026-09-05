@@ -7,4 +7,5 @@ export default defineRegistrySkill({
   source: 'https://github.com/nutlope/hallmark',
   skill: 'hallmark',
   note: 'item.skill.hallmark.note',
+  verified: '2026-08-10',
 })

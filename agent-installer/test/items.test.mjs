@@ -133,16 +133,16 @@ test('상류가 새로 지원한 CLI는 없다고 말하지 않는다', async ()
 })
 
 // 전역 판은 CLI가 넷뿐이고 나머지 여섯의 사유가 전부 다르다 — claude는 자리
-// 겹침, grok은 미실측, kimi는 대화형 전용, 셋은 상류 부재. 일괄 사유로
+// 겹침, kimi는 대화형 전용, 셋은 상류 부재(grok은 2026-09-05 실측 후 배선). 일괄 사유로
 // 뭉개지면 화면이 거짓을 말한다.
 test('superpowers 전역 판은 CLI별로 정확한 미배선 사유를 갖는다', async () => {
   const items = await loadItems()
   const item = items.find((i) => i.id === 'global.superpowers')
-  assert.deepEqual(item.supports, ['codex', 'gemini', 'opencode', 'copilot'])
+  assert.deepEqual(item.supports, ['codex', 'gemini', 'opencode', 'copilot', 'grok'])
   assert.equal(item.scope, 'user')
   const why = (cli) => item.unsupported[cli].key
   assert.equal(why('claude'), 'item.unsupported.superpowersGlobalClaude')
-  assert.equal(why('grok'), 'item.unsupported.superpowersGlobalGrok')
+  assert.equal(item.unsupported.grok, undefined, 'grok은 실측 후 배선 대상이다')
   assert.equal(why('kimi'), 'item.unsupported.superpowersGlobalKimi')
   assert.equal(why('kilo'), 'item.unsupported.upstreamNone')
   assert.equal(why('kiro'), 'item.unsupported.upstreamNone')
@@ -154,12 +154,12 @@ test('superpowers 전역 판은 CLI별로 정확한 미배선 사유를 갖는�
 test('ponytail 전역 판은 CLI별로 정확한 미배선 사유를 갖는다', async () => {
   const items = await loadItems()
   const item = items.find((i) => i.id === 'global.ponytail')
-  assert.deepEqual(item.supports, ['codex', 'gemini', 'copilot'])
+  assert.deepEqual(item.supports, ['codex', 'gemini', 'copilot', 'grok'])
   assert.equal(item.scope, 'user')
   const why = (cli) => item.unsupported[cli].key
   assert.equal(why('claude'), 'item.unsupported.globalProjectItem')
   assert.equal(why('opencode'), 'item.unsupported.globalProjectItem')
-  assert.equal(why('grok'), 'item.unsupported.ponytailGlobalGrok')
+  assert.equal(item.unsupported.grok, undefined, 'grok은 실측 후 배선 대상이다')
   assert.equal(why('kiro'), 'item.unsupported.ponytailRules')
   assert.equal(why('vscode'), 'item.unsupported.ponytailRules')
   assert.equal(why('kilo'), 'item.unsupported.upstreamNone')

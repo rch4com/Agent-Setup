@@ -189,3 +189,33 @@ test('exec 호출은 전부 await한다', async () => {
     })
   }
 })
+
+// Copilot CLI 1.0.82의 app.js 실측(2026-09-05): 로컬 서버 판정이
+// `type === undefined || "local" || "stdio"`라 루트 .mcp.json의 Claude 형식
+// type:"stdio"도 받는다. 한때 README가 stdio는 안 붙는다고 적어 copilot을 뺐던
+// 회귀를 막는다 — 두 전송 방식 모두 copilot에 배선한다.
+test('defineMcp: stdio 서버도 copilot에 배선한다', () => {
+  for (const server of [{ kind: 'stdio', command: 'x', args: [] }, { kind: 'http', url: 'https://x' }]) {
+    const item = defineMcp({ id: 'mcp.s', label: 'S', server })
+    assert.ok(item.supports.includes('copilot'), `${server.kind}: copilot이 빠졌다`)
+    assert.equal(item.unsupported.copilot, undefined)
+  }
+})
+
+// 멈춘 네트워크 명령이 설치를 영원히 붙들지 않는다 — 시간이 지나면 실패로
+// 돌아오고, 왜 실패했는지가 출력에 남는다.
+test('makeExec: 시간 제한을 넘긴 명령은 사유와 함께 실패한다', async () => {
+  const exec = makeExec(false, () => {}, createT('ko'))
+  const r = await exec('node', ['-e', 'setTimeout(function(){},4000)'], { timeout: 300 })
+  assert.equal(r.ok, false)
+  assert.match(r.output, /초 안에 끝나지 않아 중단했습니다: node/)
+})
+
+// Antigravity는 CLI 목록에 있지만 프로젝트 MCP 파일이 없다 — MCP 항목은
+// 기본으로 그 사유를 달고 빠지고, 레지스트리 스킬은 공유 디렉터리라 들어간다.
+test('defineMcp: antigravity는 프로젝트 MCP 파일이 없어 기본 사유로 빠진다', () => {
+  const item = defineMcp({ id: 'mcp.a', label: 'A', server: { kind: 'http', url: 'https://x' } })
+  assert.ok(!item.supports.includes('antigravity'))
+  assert.equal(item.unsupported.antigravity.key, 'item.unsupported.noProjectMcp')
+  assert.equal(item.supports.length, CLI_IDS.length - 1)
+})

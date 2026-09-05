@@ -72,7 +72,7 @@ test('gemini 확장 디렉터리 이름은 ponytail이다', async () => {
 
 test('supports에 opencode가 없고 사유는 프로젝트 항목을 가리킨다', async () => {
   const item = createItem({ home: makeHome(), env: {}, hasBinary: bins() })
-  assert.deepEqual(item.supports, ['codex', 'gemini', 'copilot'])
+  assert.deepEqual(item.supports, ['codex', 'gemini', 'copilot', 'grok'])
   assert.equal(item.unsupported.opencode.key, 'item.unsupported.globalProjectItem')
   assert.equal(item.unsupported.opencode.params.item, 'Ponytail')
 })

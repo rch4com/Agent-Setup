@@ -213,6 +213,8 @@ export default {
   'status.row.items': 'items       installed   {list}',
   'status.row.recordOnly': '            record only {list}',
   'status.row.repoOnly': '            repo only   {list}',
+  'status.row.stale': '            stale check {list}',
+  'status.hint.stale': '                       → verified more than {days} days ago. Re-check upstream and update verified',
   'status.none': '(none)',
   'update.versionMove': 'pinned {pinned} → running {running}',
   'update.summary': '{updated} updated · {created} created · {drift} drifted',
@@ -232,13 +234,13 @@ export default {
   'item.unsupported.eccScale': 'upstream also supports OpenCode, Gemini and Kimi project-locally, but its skills/ holds 284 entries that would swamp the shared directory — only the plugin route is wired',
   'item.unsupported.uaUser': 'upstream install.sh clones into ~/.understand-anything and links from the home directory (user scope); the copilot plugin install offers no scope choice either',
   'item.unsupported.mattpocockRegistry': 'upstream also documents npx skills add (the shared .agents/skills), but this item wires the Claude Code plugin only',
+  'item.unsupported.unmeasuredUpstream': 'upstream has an install command, but the detect/remove path has not been verified, so it is not wired yet — you can install it by hand with the command in the upstream README',
+  'item.unsupported.noProjectMcp': 'no project-scoped MCP file — MCP is configured only in the home global (~/.gemini/config/mcp_config.json), so register it there by hand if needed',
   'item.unsupported.upstreamNone': 'no official install path upstream',
   'item.unsupported.superpowersSeparate': 'upstream supports it via a separate per-harness install — this item wires the Claude Code plugin only',
   'item.unsupported.superpowersGlobalClaude': 'covered by the repo-scope item superpowers (repo)',
-  'item.unsupported.superpowersGlobalGrok': 'upstream 6.3.0 ships grok plugin install superpowers@xai-official, but the detect/remove paths are unverified — not wired yet',
   'item.unsupported.superpowersGlobalKimi': 'upstream installs only via the interactive /plugins command — no headless path',
   'item.unsupported.globalProjectItem': 'covered by the repo-scope item {item}',
-  'item.unsupported.ponytailGlobalGrok': 'upstream ships grok plugin install DietrichGebert/ponytail --trust, but the detect/remove paths are unverified — not wired yet',
   'item.unsupported.impeccableJunction': 'upstream supports it, but npx impeccable install breaks the shared .agents/skills link, so only the plugin route is wired',
   'item.unsupported.gstackHost': 'upstream supports it via ./setup --host — this item installs for Claude Code only',
   'item.unsupported.gstackShared': 'the upstream --host route is user-scoped, so it is not used. In a bootstrapped repository the shared .agents/skills junction reaches this CLI instead, and it scans recursively, so it sees the individual skills too (measured 2026-08-15)',
@@ -264,8 +266,8 @@ export default {
   'item.mcp.graphify.note': 'needs the graphify-mcp binary on PATH. Install: uv tool install "graphifyy[mcp]". Reads graphify-out/graph.json — build it first with /graphify .',
   'item.mcp.headroom.note': 'needs the headroom binary on PATH. Install: uv tool install --python 3.13 "headroom-ai[proxy,mcp]". The proxy (headroom wrap) is a way of launching, not repo config',
   'item.plugin.superpowers.note': 'official marketplace plugin. Upstream supports 14 harnesses (Codex, Grok Build, …) via per-harness installs',
-  'item.global.superpowers.note': 'installs superpowers user-globally with each harness\'s official command — marketplace for codex/copilot, extensions for gemini, the global opencode.json for OpenCode. CLIs missing from this machine are skipped. With skill.superpowers also on, overlapping CLIs see the same skills twice',
-  'item.global.ponytail.note': 'installs Ponytail user-globally with each harness\'s official command — the DietrichGebert/ponytail marketplace for codex/copilot, extensions for gemini. After the codex install, check hook registration once via /hooks. Upstream recommends scripts/uninstall.js to clean ~/.config/ponytail before removal — this item removes the plugin only',
+  'item.global.superpowers.note': 'installs superpowers user-globally with each harness\'s official command — marketplace for codex/copilot, extensions for gemini, the global opencode.json for OpenCode, grok plugin install superpowers@xai-official for grok. CLIs missing from this machine are skipped. Removing from grok leaves the name in ~/.grok/config.toml [plugins].enabled (upstream behavior). With skill.superpowers also on, overlapping CLIs see the same skills twice',
+  'item.global.ponytail.note': 'installs Ponytail user-globally with each harness\'s official command — the DietrichGebert/ponytail marketplace for codex/copilot, extensions for gemini, grok plugin install DietrichGebert/ponytail for grok. After the codex install, check hook registration once via /hooks. Upstream recommends scripts/uninstall.js to clean ~/.config/ponytail before removal — this item removes the plugin only',
   'item.plugin.mattpocock-skills.note': '35 engineering and productivity skills (code-review, diagnosing-bugs, domain-modeling, …)',
   'item.plugin.ponytail.note': 'lean-code ruleset. Wires the Claude Code plugin and the OpenCode plugin entry, both repo-scoped',
   'item.plugin.ecc.note': 'skills, instincts, memory and security for agent harnesses. Installed as a plugin — its skills/ holds 284 entries, too many to copy into the shared skills directory',
@@ -273,15 +275,15 @@ export default {
   'item.plugin.understand-anything.note': 'turns the codebase into an explorable knowledge graph. The script for other CLIs clones into ~/.understand-anything (user scope), so only the plugin is wired',
   'item.skill.caveman.note': 'cuts output tokens by answering in caveman-speak; code and errors stay byte-exact. Toggle with /caveman',
   'item.skill.taste.note': 'anti-slop frontend skill for landing pages, portfolios and redesigns (skill name: design-taste-frontend)',
-  'item.skill.hallmark.note': 'anti-AI-slop design skill with four verbs (build, audit, redesign, study). 21 themes and 57 slop-test gates. Upstream also documents Cursor and Codex paths; the shared skills directory covers all 10 CLIs at once',
+  'item.skill.hallmark.note': 'anti-AI-slop design skill with four verbs (build, audit, redesign, study). 21 themes and 57 slop-test gates. Upstream also documents Cursor and Codex paths; the shared skills directory covers all 11 CLIs at once',
   'item.skill.diagram-design.note': 'draws 27 diagram types in HTML/SVG using your brand colors and fonts; also redraws Mermaid and draw.io sources. The default fonts (Instrument Serif, Geist) carry no CJK glyphs — swap them in style-guide.md — and PNG export needs Playwright and Chromium separately. The three upstream slash commands are left out, but the references/ they delegate to come along',
-  'item.skill.superpowers.note': 'copies 14 skills into the shared .agents/skills so all 10 CLIs see them. Only one of this and the plugin edition can be chosen — this route has no session-start hook, so nothing is injected at the start of a conversation and skills are invoked on demand',
-  'item.skill.agent-browser.note': 'a skill that drives the browser-automation CLI. Requires the agent-browser binary on PATH — npm i -g agent-browser, then agent-browser install once (downloads Chrome for Testing). The SKILL.md is a discovery stub; the real workflow guidance is served by the installed CLI. The body is harness-neutral, so all 10 CLIs share it (only the allowed-tools line is Claude syntax)',
-  'item.skill.find-skills.note': 'a skill that searches the public skills registry and guides installs. It only instructs npx skills commands — harness-neutral, shared by all 10 CLIs',
-  'item.skill.mcp-builder.note': 'a guide for building MCP servers (Python FastMCP, Node MCP SDK). Its four reference/ documents and the Apache-2.0 LICENSE.txt are copied along inside the skill directory. Harness-neutral content shared by all 10 CLIs',
-  'item.skill.mattpocock-skills.note': 'copies 35 skills into the shared .agents/skills so all 10 CLIs see them. Upstream documents this route itself, and with no hooks involved nothing is lost against the plugin edition. Only one of the two can be chosen',
+  'item.skill.superpowers.note': 'copies 14 skills into the shared .agents/skills so all 11 CLIs see them. Only one of this and the plugin edition can be chosen — this route has no session-start hook, so nothing is injected at the start of a conversation and skills are invoked on demand',
+  'item.skill.agent-browser.note': 'a skill that drives the browser-automation CLI. Requires the agent-browser binary on PATH — npm i -g agent-browser, then agent-browser install once (downloads Chrome for Testing). The SKILL.md is a discovery stub; the real workflow guidance is served by the installed CLI. The body is harness-neutral, so all 11 CLIs share it (only the allowed-tools line is Claude syntax)',
+  'item.skill.find-skills.note': 'a skill that searches the public skills registry and guides installs. It only instructs npx skills commands — harness-neutral, shared by all 11 CLIs',
+  'item.skill.mcp-builder.note': 'a guide for building MCP servers (Python FastMCP, Node MCP SDK). Its four reference/ documents and the Apache-2.0 LICENSE.txt are copied along inside the skill directory. Harness-neutral content shared by all 11 CLIs',
+  'item.skill.mattpocock-skills.note': 'copies 35 skills into the shared .agents/skills so all 11 CLIs see them. Upstream documents this route itself, and with no hooks involved nothing is lost against the plugin edition. Only one of the two can be chosen',
   'item.skill.karpathy.note': 'behavioral guidelines that curb overbuilding and vague success criteria',
-  'item.skill.prompt-master.note': 'a skill that writes and refines prompts for AI tools. Activates only when explicitly asked to write or fix a prompt. Harness-neutral body shared by all 10 CLIs',
+  'item.skill.prompt-master.note': 'a skill that writes and refines prompts for AI tools. Activates only when explicitly asked to write or fix a prompt. Harness-neutral body shared by all 11 CLIs',
   'item.skill.strix.note': 'copies 9 security-testing skills (pentesting, OWASP Top 10, vulnerability discovery and fix flows) into the shared .agents/skills. The skills drive the Strix agent, so the strix binary is required on PATH — self-hosted needs pipx install strix-agent plus Docker and STRIX_LLM/LLM_API_KEY, managed needs strix cloud login. Use only against targets you are authorized to test',
   'item.skill.gstack.note': 'repo-local clone + setup (needs bash; Git Bash on Windows). Runtime state (~/.gstack) may be created globally. In a bootstrapped repository .claude/skills is a junction, so the files land in the shared .agents/skills — codex and opencode scan recursively and see the individual skills too',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project — wires five runtimes in one run: claude, codex, opencode, copilot, kilo (.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). Each runtime writes roughly 700 files. gemini was dropped upstream and kimi still blocks project installs',
@@ -307,6 +309,7 @@ export default {
   'error.itemFieldMissing': '{file}: {field} missing',
   'error.itemReasonMissing': '{id}: needs a reason for unsupported CLI \'{cli}\' (unsupported.{cli})',
   'error.shellQuote': 'The argument contains a double quote that cannot be passed to the shell: {value}',
+  'error.commandTimeout': 'stopped after {seconds}s without finishing: {command}',
 
   // TUI 탭 이름. rows.mjs의 SECTION_ORDER id(action·plugin·mcp·skill·design)를
   // 그대로 따른다 — 탭 순서·검색 스코프는 id로 갈리고, 여기서는 표시만 맡는다.
@@ -321,12 +324,16 @@ export default {
   // buildActions가 쓴다. action.*.label과 section.*는 LABEL_WIDTH(24) 안에
   // 들어야 한다 — i18n.test.mjs가 검사한다.
   'tui.counts': 'selected {picked} / {total}',
+  // 머리글의 변경 예정 건수 — Enter 전에 무슨 일이 일어날지 알린다.
+  'tui.pending': '{count} pending change(s){marks}',
+  // 0건이 아닐 때 붙는 내역. 행의 [+]·[-] 표식과 같은 글자다.
+  'tui.pendingMarks': ' (+{add} -{remove})',
   'tui.search.prefix': 'Search › ',
   'tui.search.placeholder': 'type to search · ↓ for the list',
   'tui.empty.filtered': '  Nothing matches in this tab. Press Tab to try another.',
   'tui.empty.none': '  Nothing here.',
-  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab tab   Esc clear   Ctrl+F CLI   Ctrl+D detail',
-  'tui.hint.list': 'Space select   ↑↓ move (↑ at top = search)   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview   Ctrl+F CLI   Ctrl+D detail',
+  'tui.hint.search': 'type to search (spaces included)   ↓ to list   Tab tab   Esc clear   Ctrl+F CLI   Ctrl+D detail   F1 help',
+  'tui.hint.list': 'Space select   ↑↓ move   Tab tab   Enter run/submit   Ctrl+A all   Ctrl+O preview   Ctrl+F CLI   Ctrl+D detail   F1 help',
   // 힌트 줄 오른쪽 끝의 고정 자리. 나머지 힌트가 다 잘려 나가도 이 자리는 남는다.
   'tui.hint.quit': 'Ctrl+Q quit',
   'tui.review.title': 'Review — {count} change(s)',
@@ -346,6 +353,25 @@ export default {
   'tui.nonInteractive': 'The interactive screen only opens in a terminal. --list and --set work too.',
   'tui.pressAnyKey': 'Press any key to continue…',
   'tui.confirmSuffix': ' [y/N] ',
+
+  // 도움말 화면(F1). 키마다 한 줄 — 바닥글에 담기지 않는 뜻까지 적는다.
+  'help.title': 'Keys',
+  'help.lines': [
+    '  any character · /    move up to the search box (Space is part of the query there)',
+    '  ↓ · Enter (search)   go down to the list',
+    '  ↑↓ · PgUp PgDn       move the cursor · ↑ at the top returns to the search box',
+    '  Home · End           first · last row',
+    '  Space                select/deselect — [+] to install · [-] to remove · [×] installed',
+    '  Tab · Shift+Tab · ←→  switch tabs (selections accumulate across tabs)',
+    '  Enter                run a [▶] action row; otherwise submit (review → apply all)',
+    '  Ctrl+A               select/deselect every visible item in this tab',
+    '  Ctrl+O               preview the item under the cursor (design.md opens a browser)',
+    '  Ctrl+F · Ctrl+B      cycle the CLI filter forward / backward (All → one CLI)',
+    '  Ctrl+D               expand/collapse the detail panel to full screen',
+    '  Esc                  clear the query → to the list → press again to quit',
+    '  Ctrl+Q               quit (from any screen, in one press)',
+  ],
+  'help.close': 'Press any key to go back',
 
   // 진행 화면(tui/progress.mjs) 문구. Task 9의 이벤트(start·command·done)를
   // 사람이 읽는 줄로 바꾼다. plain*은 비TTY(CI·파이프)용 한 줄 출력이다.
@@ -381,6 +407,8 @@ export default {
   'item.target': 'file: {path}',
   // 커버리지는 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
   'item.cliCoverage': 'CLI {covered}/{total}',
+  // 전역 항목의 짧은 힌트 — 이 머신에 없는 CLI를 나열에서 빼고 따로 적는다.
+  'item.cliMissing': '{list} missing',
   'item.unsupportedList': 'not wired for {count}: {groups}',
   'item.unsupportedGroup': '{clis} — {why}',
   'detail.wired': 'wired',

@@ -8,7 +8,17 @@ import { updateBlocks, updateFiles } from './bootstrap/apply.mjs'
 import { readRecord, toolVersion } from './bootstrap/record.mjs'
 import { createT } from './i18n/index.mjs'
 
-export async function collectStatus(root, { manifest = MANIFEST, items = [], latest } = {}) {
+// 미배선 사유는 상류를 실측한 날의 사실이다. 그 날짜(item.verified)가 이보다
+// 오래되면 status가 알린다 — 사유 문장이 화면에 낡은 채 남는 것을 막는 유일한
+// 장치다. 90일은 상류 하니스들의 릴리스 간격을 넉넉히 덮는 값이다.
+export const STALE_DAYS = 90
+
+function daysSince(iso, now) {
+  const ms = now - Date.parse(`${iso}T00:00:00Z`)
+  return Number.isFinite(ms) ? Math.floor(ms / 86_400_000) : 0
+}
+
+export async function collectStatus(root, { manifest = MANIFEST, items = [], latest, now = Date.now() } = {}) {
   const record = readRecord(root)
 
   // dry-run으로 갱신 판정만 얻는다 — 판정 로직을 두 벌 두면 status와 update가
@@ -35,6 +45,9 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
   }
   const installed = states.filter((s) => s.status !== 'absent').map((s) => s.id)
   const intended = new Set(record?.items ?? [])
+  const stale = items
+    .filter((i) => i.verified && daysSince(i.verified, now) > STALE_DAYS)
+    .map((i) => ({ id: i.id, verified: i.verified }))
 
   return {
     hasRecord: Boolean(record),
@@ -53,6 +66,7 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
       installed,
       recordOnly: [...intended].filter((id) => !installed.includes(id)),
       repoOnly: installed.filter((id) => !intended.has(id)),
+      stale,
     },
   }
 }
@@ -81,6 +95,10 @@ export function formatStatus(report, t = createT('en')) {
   lines.push(t('status.row.items', { list: items.installed.join(', ') || t('status.none') }))
   if (items.recordOnly.length) lines.push(t('status.row.recordOnly', { list: items.recordOnly.join(', ') }))
   if (items.repoOnly.length) lines.push(t('status.row.repoOnly', { list: items.repoOnly.join(', ') }))
+  if (items.stale?.length) {
+    lines.push(t('status.row.stale', { list: items.stale.map((s) => `${s.id} (${s.verified})`).join(', ') }))
+    lines.push(t('status.hint.stale', { days: STALE_DAYS }))
+  }
 
   return lines.join('\n')
 }

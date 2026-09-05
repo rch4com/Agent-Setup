@@ -10,7 +10,7 @@ import { msg } from '../i18n/index.mjs'
 // Grok은 6.2.0에는 없다가 6.3.0에서 들어왔다 — `### Grok Build CLI`의
 // `grok plugin install superpowers@xai-official --trust`다. Devin·Hermes도 같이
 // 늘었지만 둘 다 이 저장소가 다루는 CLI가 아니다.
-const SEPARATE = ['codex', 'gemini', 'opencode', 'kimi', 'copilot', 'grok']
+const SEPARATE = ['codex', 'gemini', 'opencode', 'kimi', 'copilot', 'grok', 'antigravity']
 
 export default definePlugin({
   id: 'plugin.superpowers', label: 'superpowers', group: '__flow',
@@ -18,6 +18,7 @@ export default definePlugin({
   installId: 'superpowers@claude-plugins-official',
   detectIds: ['superpowers@claude-plugins-official', 'superpowers@superpowers-marketplace'],
   note: 'item.plugin.superpowers.note',
+  verified: '2026-08-15',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,

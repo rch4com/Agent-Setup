@@ -137,7 +137,7 @@ test('에이전트 항목은 이름으로도 검색된다 — 라벨과 id가 �
 test('agentHint: 상태와 커버리지와 미지원 사유를 함께 담는다', () => {
   const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1], createT('ko'))
   assert.equal(hint.includes('설치됨'), true)
-  assert.match(hint, /CLI 1\/10/)
+  assert.match(hint, /CLI 1\/11/)
   assert.equal(hint.includes('전용'), true)
 })
 
@@ -149,16 +149,16 @@ test('agentHint: CLI 커버리지가 상태 바로 뒤에 온다', () => {
     status: 'partial',
     detail: msg('item.mcp.partial', { present: 'claude', missing: 'codex' }),
   }
-  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/10 · registered: claude/)
-  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/10 · 등록됨: claude/)
+  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/11 · registered: claude/)
+  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/11 · 등록됨: claude/)
 })
 
-// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
+// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "11/11"은 뜻이 다르다.
 // 없으면 "빠뜨린 것"과 "전부 되는 것"을 화면에서 가를 수 없다.
-test('agentHint: 10개 전부 지원하면 그 사실도 명시한다', () => {
+test('agentHint: 11개 전부 지원하면 그 사실도 명시한다', () => {
   const item = { id: 'skill.all', category: 'skill', label: 'All', scope: 'project', supports: [...CLI_IDS], unsupported: {} }
   const hint = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(hint, /CLI 10\/10/)
+  assert.match(hint, /CLI 11\/11/)
   assert.ok(!hint.includes('미배선'), '미지원이 없는데 미배선 문구가 나왔다')
 })
 
@@ -171,7 +171,7 @@ test('agentHint: 플러그인·스킬도 미지원 CLI를 밝힌다', () => {
     unsupported: { codex: msg('item.unsupported.ponytailUser'), kilo: msg('item.unsupported.ponytailRules') },
   }
   const ko = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(ko, /CLI 2\/10/)
+  assert.match(ko, /CLI 2\/11/)
   assert.match(ko, /미배선 2곳/)
   assert.match(ko, /codex/)
   assert.match(ko, /kilo/)
@@ -352,14 +352,18 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
 // 적용 직전 마지막 화면이다. 목록에서 커버리지를 지나쳤더라도 여기서 한 번 더
 // 보여야 되돌릴 수 있다. 다만 전부 지원하는 항목까지 표시하면 경고가 흔해져
 // 아무도 읽지 않게 되므로, 일부만 들어가는 항목에만 붙인다.
+// 목록과 같은 규칙 — 넷 이하면 이름, 그보다 많으면 수. 숫자만 있으면 어느
+// CLI인지 알려고 Esc로 되돌아가야 했다.
 test('renderReview: 일부 CLI에만 들어가는 항목은 커버리지를 함께 보인다', () => {
   const changes = [
     { action: 'install', item: { label: '일부', supports: ['claude', 'opencode'] } },
+    { action: 'install', item: { label: '다섯', supports: ['claude', 'codex', 'opencode', 'copilot', 'kilo'] } },
     { action: 'install', item: { label: '전부', supports: [...CLI_IDS] } },
   ]
   const text = renderReview(changes, { width: 80, height: 24, t: createT('ko') }).join('\n')
-  assert.match(text, /일부 · CLI 2\/10/)
-  assert.doesNotMatch(text, /전부 · CLI/)
+  assert.match(text, /일부 · claude·opencode/)
+  assert.match(text, /다섯 · CLI 5\/11/)
+  assert.doesNotMatch(text, /전부 · /)
 })
 
 test('renderReview: 목록이 화면보다 길면 잘라내고 남은 건수를 알린다', () => {
@@ -527,4 +531,39 @@ test('항목 행은 짧은 힌트와 긴 힌트를 함께 들고 긴 쪽으로 �
   const row = rows.find((r) => r.id === 'plugin.ponytail')
   assert.notEqual(row.hint, row.fullHint)
   assert.ok(row.searchText.includes('agents.md'))
+})
+
+// ── 짧은 힌트의 커버리지 규칙은 탭과 무관하게 하나다 ──────────────────
+//
+// 예전에는 plugin 탭만 이름을, 나머지는 수를 찍어 한 화면 안에서 규칙이 바뀌었다.
+// 넷 이하면 이름, 그보다 많으면 수다.
+
+test('agentShortHint: 지원 CLI가 넷 이하면 이름을, 많으면 수를 찍는다', () => {
+  const t = createT('ko')
+  const few = { id: 'skill.g', category: 'skill', label: 'G', supports: ['claude'] }
+  assert.equal(agentShortHint(few, { status: 'absent' }, t), 'claude')
+  const four = { id: 'plugin.g', category: 'plugin', label: 'G', supports: ['codex', 'gemini', 'opencode', 'copilot'] }
+  assert.equal(agentShortHint(four, { status: 'installed' }, t), '설치됨 · codex·gemini·opencode·copilot')
+  const many = { id: 'skill.gsd', category: 'skill', label: 'GSD', supports: ['claude', 'codex', 'opencode', 'copilot', 'kilo'] }
+  assert.equal(agentShortHint(many, { status: 'absent' }, t), `CLI 5/${CLI_IDS.length}`)
+})
+
+// 상세에는 "CLI 없음: gemini"라 하면서 행에는 gemini가 그대로 찍히면 어느 쪽이
+// 참인지 알 수 없다. 전역 항목의 detect가 excluded로 알린 CLI는 나열에서 빼고 따로 적는다.
+test('agentShortHint: 이 머신에 없는 CLI는 나열에서 빼고 따로 적는다', () => {
+  const item = { id: 'global.p', category: 'plugin', label: 'P', scope: 'user', supports: ['codex', 'gemini', 'copilot'] }
+  assert.equal(agentShortHint(item, { status: 'installed', excluded: ['gemini'] }, createT('ko')), '설치됨 · codex·copilot · gemini 없음')
+  assert.equal(agentShortHint(item, { status: 'installed', excluded: ['gemini'] }, createT('en')), 'Installed · codex·copilot · gemini missing')
+})
+
+// design.md 동기화 세 작업은 그 탭에만 관계있다 — 작업 탭이 아니라 DESIGN.MD
+// 탭 맨 위에 놓인다.
+test('design.md 동기화 작업은 DESIGN.MD 탭 맨 위에 놓인다', () => {
+  const root = makeTempRepo()
+  const rows = buildRows({ actions: buildActions(root, { t: createT('ko') }), designStates: DESIGN_STATES, t: createT('ko') })
+  const actionTab = rows.filter((r) => r.section === 'action').map((r) => r.id)
+  assert.deepEqual(actionTab, ['action.language', 'action.bootstrap'])
+  const design = rows.filter((r) => r.section === 'design')
+  assert.deepEqual(design.slice(0, 3).map((r) => r.id), ['action.sync.installed', 'action.sync.catalog', 'action.sync.stale'])
+  assert.ok(design.slice(3).every((r) => r.kind === 'item'), '동기화 작업 뒤에 design.md 항목이 온다')
 })

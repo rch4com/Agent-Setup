@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { CLIS, CLI_IDS } from './clis.mjs'
+import { CLIS, CLI_IDS, MCP_CLI_IDS } from './clis.mjs'
 import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
@@ -61,10 +61,16 @@ export function shellQuote(text, platform = process.platform) {
 
 const execFileAsync = promisify(execFile)
 
+// 외부 명령 하나에 주는 시간. npx·git clone이 네트워크에서 멈추면 예전에는
+// 영원히 기다렸다 — Ctrl+C도 항목 경계에서만 보므로 그 항목이 끝나야 멈췄다.
+// 10분이면 gsd(3,500파일)·ECC 같은 큰 설치도 끝나고, 멈춘 명령은 결국 실패로
+// 보고된다. 호출부가 opts.timeout으로 바꿀 수 있다.
+export const EXEC_TIMEOUT_MS = 10 * 60 * 1000
+
 // 비동기다. 동기 실행은 이벤트 루프를 통째로 막아, npx가 도는 수십 초 동안
 // 진행 화면을 한 번도 다시 그릴 수 없었다. 반환 형태({ ok, output })는
 // 그대로라 호출부는 await만 더하면 된다.
-export function makeExec(dryRun, log = console.log) {
+export function makeExec(dryRun, log = console.log, t = null) {
   return async (cmd, args, opts = {}) => {
     if (dryRun) {
       log(`  [dry-run] ${cmd} ${args.join(' ')}`)
@@ -84,6 +90,7 @@ export function makeExec(dryRun, log = console.log) {
       // 복원하려면 스폰 직후 우리가 직접 stdin을 닫아야 한다.
       const p = execFileAsync(file, fileArgs, {
         encoding: 'utf8',
+        timeout: EXEC_TIMEOUT_MS,
         ...opts,
         shell,
       })
@@ -92,6 +99,13 @@ export function makeExec(dryRun, log = console.log) {
       const { stdout } = await p
       return { ok: true, output: stdout }
     } catch (err) {
+      // 시간 초과로 죽였으면 그 사실을 말한다 — stderr는 대개 비어 있어
+      // 아래 폴백만으로는 "왜 실패했는지"가 사라진다.
+      if (err.killed && err.signal) {
+        const seconds = Math.round((opts.timeout ?? EXEC_TIMEOUT_MS) / 1000)
+        const command = [cmd, ...args].join(' ')
+        return { ok: false, output: t ? t('error.commandTimeout', { seconds, command }) : `timed out after ${seconds}s: ${command}` }
+      }
       // spawn 자체가 실패하면(ENOENT 등) err.stderr가 undefined가 아니라
       // 빈 문자열로 온다 — ??는 빈 문자열을 "값 있음"으로 보고 통과시켜
       // err.message(바이너리 이름이 담긴 진단 텍스트)를 삼켜 버린다. ||로
@@ -101,11 +115,24 @@ export function makeExec(dryRun, log = console.log) {
   }
 }
 
-export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsupported = {}, note, group = null }) {
+// supports 기본값은 프로젝트 MCP 파일이 있는 CLI(MCP_CLI_IDS)다. Antigravity는
+// 그 파일이 없어 빠지고, 사유가 기본으로 붙는다.
+//
+// stdio 서버도 copilot에 그대로 배선한다. Copilot CLI는 루트 .mcp.json(Claude
+// 파일)을 우선 읽고 거기엔 `type: "stdio"`가 쓰이는데, 한때 README는 그 형식이
+// 붙지 않는다고 적었다. 2026-09-05에 Copilot CLI 1.0.82의 app.js를 읽어 확인한
+// 바로는 로컬 서버 판정이 `type === undefined || type === "local" || type ===
+// "stdio"`이고 스키마도 `enum(["local", "stdio"])`라 stdio를 받는다 — 두 파일에
+// 각자 형식으로 써도 어느 쪽이 이기든 붙는다.
+export function defineMcp({ id, label, server, supports = [...MCP_CLI_IDS], unsupported: reasons = {}, note, group = null, verified = null }) {
+  const unsupported = { ...reasons }
+  for (const cli of CLI_IDS) {
+    if (!supports.includes(cli) && !unsupported[cli] && !MCP_CLI_IDS.includes(cli)) unsupported[cli] = msg('item.unsupported.noProjectMcp')
+  }
   assertReasons(id, supports, unsupported)
   const name = id.replace(/^mcp\./, '')
   return {
-    id, category: 'mcp', label, scope: 'project', supports, unsupported, note, group,
+    id, category: 'mcp', label, scope: 'project', supports, unsupported, note, group, verified,
     async detect({ root }) {
       const present = supports.filter((cli) => CLIS[cli].has(root, name))
       if (present.length === 0) return { status: 'absent' }
@@ -140,12 +167,12 @@ export function defineMcp({ id, label, server, supports = [...CLI_IDS], unsuppor
 // 배선은 Claude 한 곳이라도 미배선 "사유"는 CLI마다 다를 수 있다 — 상류가
 // 자체 경로로 지원하는 CLI에 일괄 "Claude 전용" 사유를 붙이면 거짓 정보가 된다.
 // 항목이 사유를 넘기면 그 CLI만 덮고, 나머지는 기본 사유로 채운다.
-export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, exclusive = null, unsupported: reasons = {} }) {
+export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, exclusive = null, unsupported: reasons = {}, verified = null }) {
   const unsupported = Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudePlugin')]),
   )
   return {
-    id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group, exclusive,
+    id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group, exclusive, verified,
     async detect({ root }) {
       return { status: isPluginEnabled(root, detectIds) ? 'installed' : 'absent' }
     },
@@ -170,11 +197,11 @@ export function definePlugin({ id, label, installId, detectIds, marketplace, not
 // 대부분의 스킬 상류가 Claude 경로만 주기 때문이고, 상류가 런타임별 설치를
 // 주는 항목(skill.gsd)은 목록을 직접 넘긴다 — 넘긴 CLI는 미배선 사유 대상에서
 // 빠진다.
-export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, supports = ['claude'], unsupported: reasons = {} }) {
+export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, supports = ['claude'], unsupported: reasons = {}, verified = null }) {
   const unsupported = Object.fromEntries(
     CLI_IDS.filter((c) => !supports.includes(c)).map((c) => [c, reasons[c] ?? msg('item.unsupported.claudeSkill')]),
   )
-  return { id, category: 'skill', label, scope, supports: [...supports], unsupported, note, group, detect, install, uninstall }
+  return { id, category: 'skill', label, scope, supports: [...supports], unsupported, note, group, verified, detect, install, uninstall }
 }
 
 // 이 저장소가 공유 스킬 자리로 쓰는 디렉터리. vercel-labs/skills 레지스트리의
@@ -269,11 +296,11 @@ function pruneLock(root, names) {
 //
 // exclusive는 같은 상류를 플러그인으로도 넣을 수 있을 때 쓴다. 두 경로가 겹치면
 // 같은 스킬이 두 번 등록되므로 하나만 고르게 막는다.
-export function defineRegistrySkill({ id, label, source, skill, anchor = null, note, group = null, exclusive = null }) {
+export function defineRegistrySkill({ id, label, source, skill, anchor = null, note, group = null, exclusive = null, verified = null }) {
   const probe = anchor ?? skill
   if (skill === '*' && !anchor) throw new LocalizedError('error.registrySkillAnchor', { id })
   return {
-    id, category: 'skill', label, scope: 'project', supports: [...CLI_IDS], unsupported: {}, note, group, exclusive,
+    id, category: 'skill', label, scope: 'project', supports: [...CLI_IDS], unsupported: {}, note, group, exclusive, verified,
     async detect({ root }) {
       return { status: findSkillDir(root, probe) ? 'installed' : 'absent' }
     },

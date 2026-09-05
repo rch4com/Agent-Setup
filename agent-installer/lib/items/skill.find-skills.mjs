@@ -9,4 +9,5 @@ export default defineRegistrySkill({
   source: 'https://github.com/vercel-labs/skills',
   skill: 'find-skills',
   note: 'item.skill.find-skills.note',
+  verified: '2026-08-15',
 })

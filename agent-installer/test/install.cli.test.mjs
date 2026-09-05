@@ -84,6 +84,10 @@ test('--list는 상태와 함께 목록을 내고 아무것도 바꾸지 않는�
 
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /미설치\s+mcp\.notion/)
+  // CI가 읽는 경로라 화면의 힌트와 같은 정보를 싣는다 — 커버리지·대상 파일·설치 위치.
+  assert.match(r.stdout, /mcp\.notion — Notion MCP · CLI 10\/11/)
+  assert.match(r.stdout, /config\.gitmessage\.ko — Korean commit template · 대상 파일: \.gitmessage\.txt/)
+  assert.match(r.stdout, /global\.superpowers — superpowers \(전역\) · [^\n]*설치 위치: 사용자 글로벌/)
   assert.deepEqual(untouched(root), [])
 })
 

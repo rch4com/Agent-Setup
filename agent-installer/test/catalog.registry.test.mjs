@@ -36,12 +36,13 @@ function recordingExec(ok = true) {
   return exec
 }
 
-test('레지스트리 스킬: 지원 CLI는 전부다 — .agents/skills를 10개가 함께 본다', () => {
+test('레지스트리 스킬: 지원 CLI는 전부다 — .agents/skills를 11개가 함께 본다', () => {
   const it = item()
   assert.equal(it.category, 'skill')
   assert.equal(it.scope, 'project')
   assert.deepEqual(it.unsupported, {})
   assert.ok(it.supports.includes('claude') && it.supports.includes('vscode'))
+  assert.ok(it.supports.includes('antigravity'), 'Antigravity는 .agents/skills를 네이티브로 읽는다')
 })
 
 test('레지스트리 스킬 detect: 없으면 absent, 같은 이름 디렉터리면 installed', async () => {

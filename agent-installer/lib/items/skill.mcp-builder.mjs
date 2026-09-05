@@ -10,4 +10,5 @@ export default defineRegistrySkill({
   source: 'https://github.com/anthropics/skills',
   skill: 'mcp-builder',
   note: 'item.skill.mcp-builder.note',
+  verified: '2026-08-15',
 })

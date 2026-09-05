@@ -12,7 +12,7 @@ import {
   createState, setQuery, setFocus, move, moveTab, toggle, toggleVisible, scroll, currentRow, replaceRows, activeTab,
   cycleCliFilter,
 } from './state.mjs'
-import { render, renderReview, bodyHeight } from './render.mjs'
+import { render, renderReview, renderHelp, bodyHeight, footerHeight } from './render.mjs'
 import { createProgress, applyEvent, progressLines } from './progress.mjs'
 import { scopedLabel } from '../labels.mjs'
 
@@ -119,19 +119,36 @@ export async function runTui(root, opts = {}) {
 
   const color = !env.NO_COLOR && stdout.isTTY
   const draw = (lines) => stdout.write(HOME + lines.map((l) => l + CLEAR_LINE).join('\n') + '\n' + CLEAR_DOWN)
+  // 목록 지면은 바닥글 줄 수에 따라 달라진다 — render와 같은 산식을 써야
+  // 스크롤·페이지 이동이 화면과 어긋나지 않는다. t는 언어 행이 갈아끼우므로
+  // 그때그때 다시 잰다.
+  const listHeight = () => bodyHeight(stdout.rows ?? 24, detailExpanded, footerHeight(stdout.columns ?? 80, t))
   const paint = () => {
     const height = stdout.rows ?? 24
-    state = scroll(state, bodyHeight(height, detailExpanded))
+    state = scroll(state, listHeight())
     draw(render(state, {
       width: stdout.columns ?? 80, height, repo: root, dryRun, color, status, t,
       detailExpanded, cliOptions: CLI_OPTIONS,
     }))
   }
+  const paintHelp = () => draw(renderHelp({ width: stdout.columns ?? 80, height: stdout.rows ?? 24, color, t }))
+
+  // 터미널 크기가 바뀌면 지금 떠 있는 화면을 새 크기로 다시 그린다 — 예전에는
+  // 다음 키를 누를 때까지 옛 크기로 남았다. 화면마다 자기 그리기 함수를
+  // redraw에 걸고, 화면 밖(suspend)에서는 null로 둬 아무것도 안 한다.
+  // 테스트의 가짜 stdout에는 on이 없을 수 있어 선택 호출이다.
+  let redraw = paint
+  const onResize = () => {
+    try { redraw?.() } catch { /* 그리기 실패로 루프를 죽이지 않는다 */ }
+  }
+  stdout.on?.('resize', onResize)
 
   // 로그는 화면 안에 우겨넣지 않는다 — 실패 메시지가 길고, 잘리면 진단이 불가능해진다.
   const suspend = async (fn) => {
+    const was = redraw
+    redraw = null
     stdout.write(ALT_OFF + SHOW_CURSOR)
-    try { return await fn() } finally { stdout.write(ALT_ON + HIDE_CURSOR) }
+    try { return await fn() } finally { stdout.write(ALT_ON + HIDE_CURSOR); redraw = was }
   }
   const confirm = async (message) => {
     stdout.write(`\n${message}${t('tui.confirmSuffix')}`)
@@ -201,12 +218,18 @@ export async function runTui(root, opts = {}) {
 
   // 제출 검토 — 적용 직전에 변경 목록을 보여 주고 Enter/Esc만 받는다.
   const review = async (changes) => {
-    for (;;) {
-      draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color, t }))
-      const key = await keys.next()
-      if (key.ctrl && (key.name === 'c' || key.name === 'q')) return 'quit'
-      if (key.name === 'escape') return 'cancel'
-      if (key.name === 'return' || key.name === 'enter') return 'apply'
+    const paintReview = () => draw(renderReview(changes, { width: stdout.columns ?? 80, height: stdout.rows ?? 24, dryRun, color, t }))
+    redraw = paintReview
+    try {
+      for (;;) {
+        paintReview()
+        const key = await keys.next()
+        if (key.ctrl && (key.name === 'c' || key.name === 'q')) return 'quit'
+        if (key.name === 'escape') return 'cancel'
+        if (key.name === 'return' || key.name === 'enter') return 'apply'
+      }
+    } finally {
+      redraw = paint
     }
   }
 
@@ -225,6 +248,7 @@ export async function runTui(root, opts = {}) {
       width: stdout.columns ?? 80, height: stdout.rows ?? 24, color, dryRun, now: Date.now(), t,
     }))
 
+    redraw = drawProgress
     drawProgress()
     const timer = setInterval(() => { checkAbort(); drawProgress() }, 100)
     // 타이머가 프로세스를 붙잡지 않게 한다 — 화면 갱신은 종료를 미룰 이유가 없다.
@@ -255,6 +279,7 @@ export async function runTui(root, opts = {}) {
       return results
     } finally {
       clearInterval(timer)
+      redraw = paint
     }
   }
 
@@ -283,6 +308,17 @@ export async function runTui(root, opts = {}) {
         continue
       }
       if (key.ctrl && key.name === 'd') { detailExpanded = !detailExpanded; continue }
+
+      // F1: 도움말. 바닥글 두 줄로는 키의 뜻까지 담을 수 없다. 아무 키나 닫는다 —
+      // 그 키는 소비만 하고 명령으로 해석하지 않는다(도움말을 닫으려 누른
+      // Space가 항목을 고르면 안 된다).
+      if (key.name === 'f1') {
+        redraw = paintHelp
+        paintHelp()
+        await keys.next()
+        redraw = paint
+        continue
+      }
 
       // ── 검색칸에 포커스: 타이핑이 곧 검색어다(스페이스 포함, 두 단어 검색 가능).
       if (state.focus === 'search') {
@@ -319,8 +355,11 @@ export async function runTui(root, opts = {}) {
         continue
       }
       if (key.name === 'down' || (key.ctrl && key.name === 'n')) { state = move(state, 1); continue }
-      if (key.name === 'pageup') { state = move(state, -bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
-      if (key.name === 'pagedown') { state = move(state, bodyHeight(stdout.rows ?? 24, detailExpanded)); continue }
+      if (key.name === 'pageup') { state = move(state, -listHeight()); continue }
+      if (key.name === 'pagedown') { state = move(state, listHeight()); continue }
+      // 76개짜리 DESIGN.MD 탭에서 끝으로 가려면 PgDn을 여러 번 눌러야 했다.
+      if (key.name === 'home') { state = move(state, -state.filtered.length); continue }
+      if (key.name === 'end') { state = move(state, state.filtered.length); continue }
 
       // 탭 이동 — Tab/Shift+Tab, 좌우 화살표.
       if (key.name === 'tab') { state = moveTab(state, key.shift ? -1 : 1); continue }
@@ -389,6 +428,7 @@ export async function runTui(root, opts = {}) {
     }
   } finally {
     keys.stop()
+    stdout.off?.('resize', onResize)
     stdout.write(ALT_OFF + SHOW_CURSOR)
     stdin.setRawMode(false)
     stdin.pause()
