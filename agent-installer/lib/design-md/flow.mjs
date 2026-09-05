@@ -1,5 +1,5 @@
 import { scan, planChanges, apply } from '../engine.mjs'
-import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens, netFetch, CATALOG_PATH } from './catalog.mjs'
+import { loadCatalog, saveCatalog, buildItems, allEntries, sha256, resolveTokens, netFetch, isSafeSegment, CATALOG_PATH } from './catalog.mjs'
 import { PROVIDERS } from './providers/index.mjs'
 import { discoverSources, extraDirsFromEnv } from './scan.mjs'
 import { makeOpener, openPreview } from './open.mjs'
@@ -90,7 +90,11 @@ export async function refreshCatalog({ dryRun, fetchImpl, log, catalogFile = CAT
   const next = { updatedAt: new Date().toISOString(), providers: {} }
   for (const provider of PROVIDERS) {
     try {
-      const entries = await provider.fetchCatalog(fetchImpl)
+      // 이름은 원격 README에서 오는 신뢰 경계 밖 값이다. buildItems가 설치
+      // 경로 앞에서 거르지만, 카탈로그 파일 자체에 `..` 같은 이름이 남으면
+      // 그 파일을 직접 읽는 번들 스크립트가 경로 이탈에 노출된다 — 저장
+      // 전에 거른다.
+      const entries = (await provider.fetchCatalog(fetchImpl)).filter((e) => isSafeSegment(e.name))
       next.providers[provider.id] = { label: provider.label, entries }
       log(t('design.provider.count', { label: provider.label, count: entries.length }))
     } catch (err) {

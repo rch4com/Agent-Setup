@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  existsSync, lstatSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, mkdtempSync,
+  existsSync, lstatSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, mkdtempSync, rmSync,
 } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -125,4 +125,35 @@ test('저장소 밖을 가리키는 링크도 예외 없이 경고로 보존한�
 
   assert.equal(result.action, 'warn')
   assert.ok(lstatSync(join(root, '.claude', 'skills')).isSymbolicLink(), '링크가 남아야 한다')
+})
+
+// Windows Junction은 만들 때의 절대 경로를 담는다. 저장소를 옮기면 옛 경로를
+// 가리킨 채 끊기는데, 그것을 "다른 곳을 가리키는 링크"로 보존하면 매 실행마다
+// 경고만 찍히고 Claude Code는 공유 스킬을 영영 보지 못한다(2026-09-05 실측).
+test('대상이 사라진 링크는 보존하지 않고 다시 만든다', () => {
+  const root = repoWithSkills()
+  const gone = mkdtempSync(join(tmpdir(), 'gone-'))
+  symlinkSync(gone, join(root, '.claude', 'skills'), 'junction')
+  rmSync(gone, { recursive: true, force: true })
+
+  const cap = makeCapture()
+  const result = configureAdapter(root, ENTRY, ctx(cap, { skillMode: 'link' }))
+
+  assert.equal(result.ok, true, cap.text())
+  assert.equal(result.action, 'link')
+  assert.match(cap.text(), /더는 존재하지 않습니다/)
+  assert.equal(readFileSync(join(root, '.claude', 'skills', 'demo', 'SKILL.md'), 'utf8'), '# demo\n')
+})
+
+test('dry-run은 끊긴 링크를 알리되 건드리지 않는다', () => {
+  const root = repoWithSkills()
+  const gone = mkdtempSync(join(tmpdir(), 'gone-'))
+  symlinkSync(gone, join(root, '.claude', 'skills'), 'junction')
+  rmSync(gone, { recursive: true, force: true })
+
+  const cap = makeCapture()
+  const result = configureAdapter(root, ENTRY, ctx(cap, { dryRun: true }))
+  assert.equal(result.action, 'skip')
+  assert.match(cap.text(), /더는 존재하지 않습니다/)
+  assert.ok(lstatSync(join(root, '.claude', 'skills')).isSymbolicLink(), 'dry-run이 링크를 지웠다')
 })

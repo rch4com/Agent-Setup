@@ -445,3 +445,16 @@ test('터미널 크기가 바뀌면 키를 누르지 않아도 새 폭으로 다
   const head = last.split('\n')[0].replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
   assert.ok(head.length <= 60, `머리글이 60칸을 넘는다(${head.length}): ${head}`)
 })
+
+// 작업 행의 예외가 화면 전체를 끌고 내려가면 안 된다 — 깨진 기록 파일로
+// 부트스트랩이 던져도 TUI는 살아서 사연을 보여 주고 다음 키를 받는다.
+test('작업 행이 던져도 화면은 살아남고 실패를 알린다', async () => {
+  const root = makeTempRepo()
+  const { mkdirSync } = await import('node:fs')
+  mkdirSync(join(root, '.agent-kit'), { recursive: true })
+  writeFileSync(join(root, '.agent-kit', 'agent-setup.json'), '{ not json')
+  // dry-run은 기록을 읽지 않는다 — 실제 실행이어야 readRecord가 던진다.
+  const { result, log } = await drive([DOWN, ENTER, ANY, ...QUIT], { root, dryRun: false })
+  assert.equal(result.interactive, true)
+  assert.match(log, /작업이 실패했습니다: .*JSON이 아닙니다/)
+})

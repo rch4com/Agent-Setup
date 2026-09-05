@@ -16,3 +16,18 @@ export function ensureGitignoreEntries(root, entries) {
   const sep = text.length === 0 || text.endsWith('\n') ? '' : eol
   writeFileSync(file, text + sep + missing.join(eol) + eol)
 }
+
+// 정확히 일치하는 줄만 걷어낸다 — 설치가 넣은 항목을 제거가 도로 가져가는
+// 용도라, 사용자가 손으로 적은 비슷한 패턴은 건드리지 않는다. 줄바꿈은
+// 파일의 것을 그대로 따른다.
+export function removeGitignoreEntries(root, entries) {
+  const file = repoPathStrict(root, '.gitignore')
+  if (!existsSync(file)) return
+  const text = readFileSync(file, 'utf8')
+  const eol = text.includes('\r\n') ? '\r\n' : '\n'
+  const drop = new Set(entries)
+  const lines = text.split(/\r?\n/)
+  const kept = lines.filter((line) => !drop.has(line))
+  if (kept.length === lines.length) return
+  writeFileSync(file, kept.join(eol))
+}

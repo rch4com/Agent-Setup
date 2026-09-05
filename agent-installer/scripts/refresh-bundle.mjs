@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadCatalog, netFetch } from '../lib/design-md/catalog.mjs'
+import { loadCatalog, netFetch, isSafeSegment } from '../lib/design-md/catalog.mjs'
 import { getProvider } from '../lib/design-md/providers/index.mjs'
 
 const CACHE = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'design-md', 'cache')
@@ -29,7 +29,12 @@ const jobs = []
 for (const [providerId, block] of Object.entries(catalog.providers ?? {})) {
   const provider = getProvider(providerId)
   if (!provider) { console.log(`프로바이더 건너뜀: ${providerId}`); continue }
-  for (const entry of block.entries ?? []) jobs.push({ provider, name: entry.name })
+  // 이름이 cache/<provider>/<name>/ 경로가 된다 — refreshCatalog가 저장 전에
+  // 거르지만, 손으로 고친 카탈로그도 같은 검사를 지나야 한다.
+  for (const entry of block.entries ?? []) {
+    if (!isSafeSegment(entry.name)) { console.log(`이름 건너뜀(경로에 쓸 수 없음): ${providerId}/${entry.name}`); continue }
+    jobs.push({ provider, name: entry.name })
+  }
 }
 
 let ok = 0

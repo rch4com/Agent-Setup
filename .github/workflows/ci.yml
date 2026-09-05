@@ -1,0 +1,37 @@
+name: ci
+
+# main 푸시와 PR마다 테스트를 돌린다. publish.yml은 v* 태그에서만 돌아,
+# 이것이 없으면 회귀가 발행 시점에야 드러난다.
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '22']
+    defaults:
+      run:
+        working-directory: agent-installer
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 의존성 설치
+        run: npm install
+
+      - name: 테스트
+        run: npm test
+
+      - name: 런처 문법 검사
+        working-directory: .
+        run: bash -n ./setup-agents.sh

@@ -567,3 +567,12 @@ test('design.md 동기화 작업은 DESIGN.MD 탭 맨 위에 놓인다', () => {
   assert.deepEqual(design.slice(0, 3).map((r) => r.id), ['action.sync.installed', 'action.sync.catalog', 'action.sync.stale'])
   assert.ok(design.slice(3).every((r) => r.kind === 'item'), '동기화 작업 뒤에 design.md 항목이 온다')
 })
+
+// short()가 코드 유닛으로 자르면 서로게이트 쌍 한가운데가 끊겨 깨진 문자가 남는다.
+test('design 힌트의 설명 줄임이 이모지 한가운데를 자르지 않는다', () => {
+  const t = createT('ko')
+  const state = { status: 'absent', item: { providerId: 'p', designCategory: 'c', description: '🚀'.repeat(80) } }
+  const hint = designHint(state, false, t)
+  assert.doesNotMatch(hint, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/, '홀로 남은 서로게이트')
+  assert.ok(hint.endsWith('…'))
+})

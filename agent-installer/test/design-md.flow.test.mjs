@@ -161,3 +161,20 @@ test('--preview: 로컬(디렉터리) 항목은 원본 파일을 연다', async 
   await runDesign(makeTempRepo(), { preview: 'faux', opener, log() {}, fetchImpl: fileFetch('x'), sources })
   assert.deepEqual(opener.targets, [join(src, 'faux', 'DESIGN.md')])
 })
+
+// 이름은 원격 README에서 오는 신뢰 경계 밖 값이다. 카탈로그 파일에 `..`이
+// 남으면 그 파일을 직접 읽는 번들 스크립트가 경로 이탈에 노출된다.
+test('sync=catalog은 경로에 쓸 수 없는 이름을 저장하지 않는다', async () => {
+  const catalogFile = join(mkdtempSync(join(tmpdir(), 'catalog-')), 'catalog.json')
+  const fetchImpl = makeFetch([
+    { match: 'README.md', body: [
+      '## Collection', '### C',
+      '- [**Up**](https://getdesign.md/../design-md) - d',
+      '- [**Back**](https://getdesign.md/..\\\\x/design-md) - d',
+      '- [**Ok**](https://getdesign.md/stripe/design-md) - d',
+    ].join('\n') },
+  ])
+  await runDesign(makeTempRepo(), { sync: 'catalog', fetchImpl, catalogFile, log() {} })
+  const saved = JSON.parse(readFileSync(catalogFile, 'utf8'))
+  assert.deepEqual(saved.providers[PID].entries.map((e) => e.name), ['stripe'])
+})

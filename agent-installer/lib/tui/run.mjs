@@ -387,7 +387,15 @@ export async function runTui(root, opts = {}) {
         if (row?.id === 'action.language') { status = await cycleLanguage(); continue }
         if (row?.kind === 'action') {
           await suspend(async () => {
-            await row.run({ root, dryRun, skillMode, fetchImpl, catalogFile, log, confirm, t })
+            // 작업 하나의 예외가 화면 전체를 끌고 내려가면 안 된다 — 깨진
+            // 기록 파일(부트스트랩), 읽기 전용 설치 위치(카탈로그 동기화)가
+            // 던지면 TUI가 통째로 죽고 고르던 선택이 사라졌다. 적용(runApply)이
+            // 항목별로 격리하는 것과 같은 규칙이다.
+            try {
+              await row.run({ root, dryRun, skillMode, fetchImpl, catalogFile, log, confirm, t })
+            } catch (err) {
+              log(`\n${t('tui.actionFailed', { message: err.key ? t(err.key, err.params) : err.message })}`)
+            }
             await pause()
           })
           await recollect()

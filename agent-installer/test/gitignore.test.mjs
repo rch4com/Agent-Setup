@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { writeFileSync, readFileSync } from 'node:fs'
+import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { ensureGitignoreEntries } from '../lib/gitignore.mjs'
+import { ensureGitignoreEntries, removeGitignoreEntries } from '../lib/gitignore.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
 test('없는 항목만 추가하고 기존 내용을 보존한다', () => {
@@ -47,4 +47,17 @@ test('CRLF 파일에서도 멱등하다', () => {
   const after = readFileSync(join(repo, '.gitignore'), 'utf8')
   ensureGitignoreEntries(repo, ['.claude/skills'])
   assert.equal(readFileSync(join(repo, '.gitignore'), 'utf8'), after)
+})
+
+test('removeGitignoreEntries는 정확히 같은 줄만 걷어내고 줄바꿈을 지킨다', () => {
+  const repo = makeTempRepo()
+  writeFileSync(join(repo, '.gitignore'), '*.log\r\n.claude/skills/gstack\r\n.claude/skills/gstack-fork\r\n.agents/skills/gstack\r\n')
+  removeGitignoreEntries(repo, ['.claude/skills/gstack', '.agents/skills/gstack'])
+  assert.equal(readFileSync(join(repo, '.gitignore'), 'utf8'), '*.log\r\n.claude/skills/gstack-fork\r\n')
+})
+
+test('removeGitignoreEntries는 파일이 없거나 항목이 없으면 아무것도 하지 않는다', () => {
+  const repo = makeTempRepo()
+  removeGitignoreEntries(repo, ['x'])
+  assert.equal(existsSync(join(repo, '.gitignore')), false)
 })

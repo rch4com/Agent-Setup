@@ -38,9 +38,11 @@ function groupRank(group) {
   return i === -1 ? GROUP_ORDER.length : i
 }
 
+// 코드 포인트 단위로 자른다 — slice는 코드 유닛을 세어 이모지 같은 서로게이트
+// 쌍 한가운데를 자를 수 있다. 이 파일의 다른 자르기(width.cut)와 같은 규칙이다.
 function short(text, n = 60) {
-  const t = (text ?? '').replace(/\s+/g, ' ').trim()
-  return t.length > n ? `${t.slice(0, n - 1)}…` : t
+  const chars = [...(text ?? '').replace(/\s+/g, ' ').trim()]
+  return chars.length > n ? `${chars.slice(0, n - 1).join('')}…` : chars.join('')
 }
 
 // 검색어에 섹션의 두 로케일 라벨을 모두 넣는다 — 한국어 화면에서도 영어 탭

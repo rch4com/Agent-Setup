@@ -2,7 +2,7 @@
 // Windows는 Junction을 쓴다. 관리자 권한이 필요 없고, MSYS(Git Bash)의 ln -s가
 // 링크 대신 복사를 만드는 문제도 우회한다.
 import { cpSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { createT, msg } from '../i18n/index.mjs'
 import { pathExists } from './apply.mjs'
@@ -42,7 +42,12 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
   const target = repoPath(root, rel)
 
   const linked = linkTarget(target)
-  if (linked !== null) {
+  // 대상이 사라진 링크는 보존할 것이 없다. Windows Junction은 만들 때의 절대
+  // 경로를 담으므로 저장소 디렉터리를 옮기거나 이름을 바꾸면 옛 경로를
+  // 가리킨 채 끊긴다 — 그것을 "다른 곳을 가리키는 링크"로 보고 보존하면
+  // 매 실행마다 경고만 찍히고 Claude Code는 공유 스킬을 영영 보지 못한다.
+  const dangling = linked !== null && !pathExists(linked)
+  if (linked !== null && !dangling) {
     if (linked === repoPath(root, SOURCE_REL)) {
       log(t('log.skill.linkOk', { tool, path: rel }))
       return { ok: true, action: 'skip', path: rel }
@@ -51,8 +56,8 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
     return { ok: true, action: 'warn', path: rel, message: msg('msg.foreignLink') }
   }
 
-  const managedCopy = pathExists(target) && pathExists(join(target, MARKER))
-  if (pathExists(target) && !managedCopy) {
+  const managedCopy = !dangling && pathExists(target) && pathExists(join(target, MARKER))
+  if (!dangling && pathExists(target) && !managedCopy) {
     log(t('log.skill.warnUnmanaged', { path: rel }))
     return { ok: true, action: 'warn', path: rel, message: msg('msg.unmanagedExisting') }
   }
@@ -62,7 +67,14 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
   // 쓰기만 !dryRun으로 막는다 — apply.mjs의 ensureDirs와 같은 형태.
   // source(.agents/skills)는 실제로 읽어 복사하는 대상이므로 여기서 함께 검사한다.
   const source = repoPathStrict(root, SOURCE_REL)
-  const strictTarget = repoPathStrict(root, rel)
+  // 끊긴 링크는 realpath가 ENOENT로 실패해 자기 자신을 엄격 검사할 수 없다.
+  // 지울 것은 링크 항목 하나뿐이니 그것이 놓인 부모 디렉터리를 검사한다 —
+  // 부모가 저장소 안이면 그 안의 항목 하나를 지우는 것도 저장소 안이다.
+  const strictTarget = dangling
+    ? join(repoPathStrict(root, dirname(rel)), basename(rel))
+    : repoPathStrict(root, rel)
+
+  if (dangling) log(t('log.skill.relinkDangling', { path: rel }))
 
   if (dryRun) {
     log(t('log.skill.plan', { tool, path: rel, mode: skillMode }))
@@ -74,6 +86,8 @@ export function configureAdapter(root, { tool, path: rel }, { dryRun = false, sk
     // 마커가 확인된 복사본만 지운다.
     rmSync(strictTarget, { recursive: true, force: true })
   }
+  // 링크 자체만 지운다 — rmSync는 링크를 따라 내려가지 않는다(대상이 없기도 하다).
+  if (dangling) rmSync(strictTarget, { recursive: true, force: true })
 
   mkdirSync(dirname(strictTarget), { recursive: true })
 

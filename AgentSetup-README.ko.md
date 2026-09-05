@@ -246,13 +246,16 @@ npx @rch4com/agent-setup bootstrap --adopt
 | 항목 | 실행되는 것 |
 |---|---|
 | `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. `claude` 명령이 없으면 `.claude/settings.json`에 기록만 하고, 다음 Claude Code 실행 시 다운로드됩니다 |
+| `skill.*` (레지스트리 스킬: agent-browser, caveman, diagram-design, find-skills, hallmark, karpathy, mattpocock-skills, mcp-builder, prompt-master, strix, superpowers, taste) | `npx -y skills@latest add <github 저장소> --copy` — 확인 프롬프트 없이(`-y`) 최신 `skills` CLI를 내려받고, 상류 저장소의 스킬 디렉터리를 `.agents/skills`에 복사합니다. 제거는 `npx -y skills@latest remove`를 돌린 뒤 디렉터리를 지웁니다 |
+| `global.*` (`global.superpowers`, `global.ponytail`) | **저장소 밖에 씁니다.** `PATH`에 있는 CLI마다 `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, `grok plugin install <소스> --trust`를 실행하고, 사용자 전역 `opencode.json`의 plugin 배열을 직접 고칩니다. 상세 패널과 검토 화면이 전역임을 표시하며 `--set`은 이 항목을 제거하지 않습니다 |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
 | `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
 | `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — 저장소의 `.git/config`만 고칩니다(네트워크 없음). 전역·시스템 설정은 읽지도 쓰지도 않습니다 |
 | design.md | `raw.githubusercontent.com`에서 `DESIGN.md`를 내려받습니다(문서 파일이며 실행되지 않습니다). 동봉 번들에 있으면 네트워크를 쓰지 않습니다 |
 
 - 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.
-  세 항목 모두 제3자 코드를 이 저장소 안에서 실행합니다.
+  플러그인·스킬 항목은 전부 제3자 코드를 실행합니다 — 프로젝트 스코프
+  항목은 이 저장소 안에서, `global.*` 항목은 이 머신에서 실행합니다.
 - 네트워크 호출에는 20초 시간 제한과 8MiB 응답 본문 상한이 걸려 있습니다
   (데이터가 계속 오는 응답은 시간 제한에 걸리지 않으므로 크기도 함께 막습니다).
 - `--dry-run`을 붙이면 무엇이 실행·기록될지만 출력하고 아무것도 바꾸지

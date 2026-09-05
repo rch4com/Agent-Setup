@@ -50,3 +50,13 @@ test('limit이 한 글자보다 좁으면 그 문자를 버린다', () => {
 test('접히는 자리의 공백이 빈 줄을 만들지 않는다', () => {
   assert.deepEqual(wrap('abc ', 3), ['abc'])
 })
+
+// 이모지는 두 칸, 결합 문자는 0칸이다 — DESIGN.md 라벨에 이모지가 오면 그
+// 행만 열이 밀렸고, 결합 악센트는 반대로 왼쪽으로 밀렸다.
+test('이모지는 두 칸, 결합 문자는 0칸으로 센다', () => {
+  assert.equal(width('🚀'), 2)
+  assert.equal(width('é'), 1)
+  assert.equal(width('a️'), 1)
+  assert.equal(width('한🚀'), 4)
+  for (const line of wrap('🚀🚀🚀🚀🚀', 4)) assert.ok(width(line) <= 4, line)
+})

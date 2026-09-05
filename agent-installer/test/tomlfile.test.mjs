@@ -51,3 +51,15 @@ test('removeSection은 무관한 위치의 연속 빈 줄을 보존한다', () =
   removeSection(file, 'notion')
   assert.equal(readFileSync(file, 'utf8'), before)
 })
+
+// smol-toml이 던지는 파싱 실패를 "섹션 없음"으로 돌려주면, 닫는 대괄호가
+// 빠진 파일 끝에 같은 섹션이 하나 더 붙고 사용자는 파일이 깨진 것을 모른다.
+test('깨진 TOML은 읽기·쓰기 모두 지역화 오류로 거부하고 파일을 건드리지 않는다', () => {
+  const broken = '[mcp_servers.notion\nurl = "https://x"\n'
+  const file = tmpToml(broken)
+  const isInvalid = (err) => err.key === 'error.tomlInvalid' && err.params.path === file
+  assert.throws(() => hasSection(file, 'notion'), isInvalid)
+  assert.throws(() => appendSection(file, 'notion', ['url = "https://x"']), isInvalid)
+  assert.throws(() => removeSection(file, 'notion'), isInvalid)
+  assert.equal(readFileSync(file, 'utf8'), broken)
+})

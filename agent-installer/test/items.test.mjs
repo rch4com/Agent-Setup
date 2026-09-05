@@ -218,3 +218,17 @@ test('plugin 항목 라벨에 수기 범위 접미사가 없다', async () => {
     assert.doesNotMatch(item.label, /\((plugin|global)\)/, `${item.id}: 라벨에 수기 접미사가 남았다`)
   }
 })
+
+// gstack 제거가 설치 때 넣은 .gitignore 두 줄을 도로 가져간다.
+test('gstack 제거는 자기가 넣은 .gitignore 항목을 걷어낸다', async () => {
+  const { mkdirSync: mk, writeFileSync: wf, readFileSync: rf, existsSync: ex } = await import('node:fs')
+  const { join: j } = await import('node:path')
+  const { makeTempRepo: repo } = await import('./helpers.mjs')
+  const root = repo()
+  mk(j(root, '.claude', 'skills', 'gstack', 'bin'), { recursive: true })
+  wf(j(root, '.gitignore'), '*.log\n.claude/skills/gstack\n.agents/skills/gstack\n')
+  const item = (await import('../lib/items/skill.gstack.mjs')).default
+  await item.uninstall({ root, dryRun: false, exec: async () => ({ ok: false, output: '' }) })
+  assert.equal(ex(j(root, '.claude', 'skills', 'gstack')), false)
+  assert.equal(rf(j(root, '.gitignore'), 'utf8'), '*.log\n')
+})

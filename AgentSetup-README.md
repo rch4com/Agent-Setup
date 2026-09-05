@@ -257,13 +257,16 @@ when you pick something.
 | Item | What runs |
 |---|---|
 | `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. If the `claude` command is missing, it only records into `.claude/settings.json` and the download happens on the next Claude Code run |
+| `skill.*` (registry skills: agent-browser, caveman, diagram-design, find-skills, hallmark, karpathy, mattpocock-skills, mcp-builder, prompt-master, strix, superpowers, taste) | `npx -y skills@latest add <github repo> --copy` — downloads the latest `skills` CLI with no confirmation prompt (`-y`) and copies the skill directory from the upstream repository into `.agents/skills`. Removal runs `npx -y skills@latest remove` and then deletes the directory |
+| `global.*` (`global.superpowers`, `global.ponytail`) | **Writes outside the repository.** Runs `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, and `grok plugin install <source> --trust` for each CLI found on `PATH`, and edits the plugin array of the user-global `opencode.json` directly. The detail panel and review screen mark these as global; `--set` never removes them |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — downloads and runs the latest version with no confirmation prompt (`-y`) |
 | `skill.gstack` | Shallow-clones the default branch of `github.com/garrytan/gstack` and then runs `bash ./setup` inside the repository. It does not pin a commit or verify integrity |
 | `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — touches only the repository's `.git/config` (no network). Global and system settings are neither read nor written |
 | design.md | Downloads `DESIGN.md` from `raw.githubusercontent.com` (a document file; it is not executed). If it exists in the bundled cache, no network is used |
 
-- Make sure you trust the target repository/package before picking an item. All
-  three of those items run third-party code inside this repository.
+- Make sure you trust the target repository/package before picking an item.
+  Every plugin and skill item runs third-party code — inside this repository
+  for the project-scoped items, and on this machine for the `global.*` items.
 - Network calls have a 20-second time limit and an 8 MiB response body cap (a
   response that keeps streaming would never hit a time limit, so size is capped
   too).

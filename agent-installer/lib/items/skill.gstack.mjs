@@ -3,10 +3,11 @@ import { join } from 'node:path'
 import { defineSkill } from '../catalog.mjs'
 import { CLI_IDS } from '../clis.mjs'
 import { repoPath, repoPathStrict } from '../context.mjs'
-import { ensureGitignoreEntries } from '../gitignore.mjs'
+import { ensureGitignoreEntries, removeGitignoreEntries } from '../gitignore.mjs'
 import { LocalizedError, msg } from '../i18n/index.mjs'
 
 const REL_DIR = '.claude/skills/gstack'
+const IGNORE_ENTRIES = ['.claude/skills/gstack', '.agents/skills/gstack']
 
 // 상류 setup은 --host codex·kiro·opencode(와 factory)도 지원하지만 이 항목은
 // 인자 없이 실행하며 setup의 기본값이 claude 단독이다. README 표에 있는
@@ -58,12 +59,16 @@ export default defineSkill({
       }
     }
     // 부트스트랩 저장소에서는 .claude/skills가 .agents/skills Junction이므로 두 경로 모두 무시 처리
-    if (!dryRun) ensureGitignoreEntries(root, ['.claude/skills/gstack', '.agents/skills/gstack'])
+    if (!dryRun) ensureGitignoreEntries(root, IGNORE_ENTRIES)
   },
   async uninstall({ root, dryRun, exec }) {
     const dir = repoPathStrict(root, REL_DIR)
     if (!existsSync(dir)) return
     await exec('bash', [join(dir, 'bin', 'gstack-uninstall'), '--force'], { cwd: dir }) // 실패해도 디렉터리 삭제로 폴백
-    if (!dryRun && existsSync(dir)) rmSync(dir, { recursive: true, force: true })
+    if (dryRun) return
+    if (existsSync(dir)) rmSync(dir, { recursive: true, force: true })
+    // 설치가 넣은 두 줄을 도로 가져간다 — 남겨 두면 제거한 뒤에도 우리가 만든
+    // 흔적이 .gitignore에 계속 남는다.
+    removeGitignoreEntries(root, IGNORE_ENTRIES)
   },
 })
