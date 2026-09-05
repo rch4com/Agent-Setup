@@ -1,0 +1,17 @@
+# 의존성 갱신 PR을 자동으로 연다. 이 저장소는 런타임 의존성이 둘(jsonc-parser,
+# smol-toml)이고 워크플로 액션이 셋이라 손으로 챙기다 잊기 쉬운 크기다 —
+# 갱신 PR마다 ci.yml이 700여 개 테스트를 돌려 회귀를 먼저 잡는다.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /agent-installer
+    schedule:
+      interval: weekly
+    # 잠금 파일만 움직이는 간접 의존성까지 PR로 오면 소음이다 —
+    # package.json의 직접 의존성 범위가 바뀔 때만 연다.
+    versioning-strategy: increase-if-necessary
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
