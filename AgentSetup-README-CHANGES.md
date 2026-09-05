@@ -5,6 +5,45 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Upstream names no longer become regexes, and three quiet misjudgements are fixed (2026-09-06, 1.21.1)
+
+**A fourth pass, this time with a security-audit lens.** Three earlier passes
+covered paths and command quoting, but a string read from outside becoming a
+**regular expression** passed through no check at all. The rest are three
+places where a failure looked like success. Every fix landed behind a
+reproducing test written first.
+
+- **Removing a registry skill no longer breaks on a lock-file name.** Skill
+  names come from upstream SKILL.md; a name like `evil(` made the RegExp
+  constructor throw after `npx skills remove` had already run, leaving the
+  remaining skills behind. Names are now escaped, and names unusable as an
+  argument or a path (leading dash, path separators, `..`) are skipped while
+  their lock entries are still pruned. Escaping lives in one new leaf module,
+  `regexp.mjs`, shared with TOML section removal.
+- **A VS Code settings key found only in a comment no longer counts as
+  present.** The substring check treated `// see "chat.useAgentsMdFile"` — or
+  the name inside another key's value — as the key itself, skipped the insert,
+  and logged success. VS Code Copilot never read AGENTS.md while the screen
+  said it would. Only a `"key":` at the head of a line counts now.
+- **An internal import typo no longer masquerades as "install dependencies".**
+  A missing relative file arrives with the same error code; Node tells them
+  apart by wording ("Cannot find package" vs. "Cannot find module"). Only a
+  missing package becomes the hint.
+- **The install record's skillMode and managed are validated on read.** `lang`
+  already was, but `skillMode: "bogus"` and an array `managed` flowed straight
+  into `update`'s adapters. The allowed list now lives in `args.mjs` alone.
+- **The PowerShell launcher stops when npm install fails.** The .sh stops via
+  `set -e`; the .ps1 ran node regardless, so the failure surfaced as the
+  "dependencies missing" hint instead of its real cause.
+- **Workflows.** publish.yml now declares workflow-level `permissions:
+  contents: read` (its test job had inherited the repository default). Both
+  workflows use `npm ci`, which fails when the lockfile disagrees with
+  package.json.
+- **The npm package README scopes its Safety section.** It claimed the tool
+  never touches home configuration, yet the two `global.*` items write there
+  on purpose. Like the root README, the rules are now stated as the
+  bootstrap's, with the exception spelled out.
+
 ## A moved repository heals its skill link, and the screen survives a failing action (2026-09-06, 1.21.0)
 
 **A second and third pass over the source looked at the layers the first one
