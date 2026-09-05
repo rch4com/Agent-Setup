@@ -158,7 +158,9 @@ test('makeExec: 존재하지 않는 바이너리는 빈 진단이 아니라 바�
 // 넘긴다. 옛 execFileSync는 stdio: ['ignore', ...]로 자식의 stdin을 즉시
 // 닫아 뒀다 — 스폰 직후 우리가 stdin.end()로 그 동작을 복원했는지, 실제
 // 자식으로 확인한다. 복원되지 않으면 자식이 EOF를 못 받아 타이머(1.5초)까지
-// 기다린다 — 이 테스트는 수십 ms 안에 끝나야 한다.
+// 기다린다 — 이 테스트는 수십 ms 안에 끝나야 한다. 상한은 1초다: 전체
+// 스위트가 병렬로 돌 때 Node 기동만으로 500ms를 넘긴 적이 있다(563ms).
+// 1.5초 타이머와는 여전히 갈리므로 회귀 감지력은 그대로다.
 test('makeExec: 자식의 stdin을 닫아 EOF를 준다(안 닫으면 자식이 멈춘다)', async () => {
   const exec = makeExec(false, () => {})
   const childCode = "process.stdin.on('end', () => { console.log('EOF'); process.exit(0) }); process.stdin.resume(); setTimeout(() => { console.log('NO-EOF'); process.exit(0) }, 1500)"
@@ -166,7 +168,7 @@ test('makeExec: 자식의 stdin을 닫아 EOF를 준다(안 닫으면 자식이 
   const r = await exec(process.execPath, ['-e', childCode])
   assert.equal(r.ok, true, r.output)
   assert.equal(r.output.trim(), 'EOF')
-  assert.ok(Date.now() - start < 500, `stdin이 열린 채로 남아 타임아웃까지 기다린 듯하다: ${Date.now() - start}ms`)
+  assert.ok(Date.now() - start < 1000, `stdin이 열린 채로 남아 타임아웃까지 기다린 듯하다: ${Date.now() - start}ms`)
 })
 
 // await를 빠뜨린 자리는 { ok, output } 대신 Promise를 받는다. r.ok가
