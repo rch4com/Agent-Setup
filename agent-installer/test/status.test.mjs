@@ -146,3 +146,27 @@ test('verified가 STALE_DAYS를 넘긴 항목을 실측 오래됨으로 센다',
   assert.match(text, /실측 오래됨\s+skill\.x \(2026-01-01\)/)
   assert.match(text, new RegExp(`${STALE_DAYS}일`))
 })
+
+// ── 최신 버전 ──────────────────────────────────────────────────────────
+import { fetchLatestVersion, runStatus } from '../lib/status.mjs'
+import { makeCapture, makeFetch } from './helpers.mjs'
+
+// latest는 collectStatus·문구까지 다 있었지만 runStatus가 값을 넘기지 않아
+// "최신 X" 줄이 한 번도 화면에 나오지 않았다.
+test('runStatus는 레지스트리의 최신 버전을 보고에 싣는다', async () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+  const fetchImpl = makeFetch([{ match: 'registry.npmjs.org', body: '{"version":"9.9.9"}' }])
+
+  const cap = makeCapture()
+  const report = await runStatus(root, { fetchImpl, log: cap.log, t: KO_T })
+
+  assert.equal(report.tool.latest, '9.9.9')
+  assert.match(cap.text(), /최신 9\.9\.9/)
+})
+
+test('fetchLatestVersion은 네트워크 실패를 null로 떨어뜨린다', async () => {
+  assert.equal(await fetchLatestVersion(async () => { throw new Error('offline') }), null)
+  assert.equal(await fetchLatestVersion(makeFetch([])), null, '404도 null이어야 한다')
+  assert.equal(await fetchLatestVersion(makeFetch([{ match: 'registry', body: '{}' }])), null, 'version 없는 응답')
+})

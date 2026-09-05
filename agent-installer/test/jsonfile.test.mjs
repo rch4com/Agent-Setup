@@ -39,3 +39,22 @@ test('removeKey는 없는 키에 no-op이다', () => {
   removeKey(file, ['mcpServers', 'a'])
   assert.equal(readJson(file).x, 1)
 })
+
+// jsonc-parser의 parse는 던지지 않는다 — 닫는 괄호가 빠진 파일에 키를 끼워
+// 넣고 has()는 설치됨으로 읽어, 사용자는 파일이 깨진 것을 끝까지 몰랐다.
+test('깨진 JSON은 읽기·쓰기 모두 지역화 오류로 거부하고 파일을 건드리지 않는다', () => {
+  const broken = '{ "mcpServers": { "a": { "command": "x" } '
+  const file = tmpFile(broken)
+  const isInvalid = (err) => err.key === 'error.jsonInvalid' && /CloseBraceExpected/.test(err.params.message)
+  assert.throws(() => readJson(file), isInvalid)
+  assert.throws(() => setKey(file, ['mcpServers', 'b'], { command: 'y' }), isInvalid)
+  assert.throws(() => removeKey(file, ['mcpServers', 'a']), isInvalid)
+  assert.equal(readFileSync(file, 'utf8'), broken, '깨진 파일에 쓰면 안 된다')
+})
+
+test('주석과 후행 콤마는 JSONC로 정상이라 거부하지 않는다', () => {
+  const file = tmpFile('{\n  // 주석\n  "plugin": ["a",],\n}\n')
+  assert.deepEqual(readJson(file).plugin, ['a'])
+  setKey(file, ['plugin', 1], 'b')
+  assert.deepEqual(readJson(file).plugin, ['a', 'b'])
+})

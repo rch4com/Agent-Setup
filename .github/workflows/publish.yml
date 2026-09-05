@@ -58,8 +58,10 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # 메이저를 고정한다. 발행 도구 자체를 @latest로 받으면 provenance가
+      # 증명하는 발행 경로에 무엇이 끼어들지 태그마다 달라진다.
       - name: npm 최신화
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: 태그와 package.json 버전 대조
         run: |

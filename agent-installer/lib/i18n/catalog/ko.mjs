@@ -144,6 +144,7 @@ export default {
   'log.record.write': '설치 기록 기록: {path}',
   'error.recordUnreadable': '{path}을 읽을 수 없습니다 ({code})',
   'error.recordNotJson': '{path}을 읽을 수 없습니다 — JSON이 아닙니다 ({message})',
+  'error.jsonInvalid': '{path}을 읽을 수 없습니다 — JSON이 깨져 있습니다: {message}. 파일을 손으로 고치세요. 아무것도 쓰지 않았습니다.',
   'error.recordVersion': '{path}의 형식 버전이 {found}입니다. 이 도구는 {expected}을 씁니다 — 도구를 올리거나 기록을 다시 만드세요.',
 
   'log.repoRoot': '저장소 루트: {path}',

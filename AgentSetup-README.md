@@ -198,7 +198,8 @@ The managed blocks in `CLAUDE.md` and `GEMINI.md` are replaced only between the
 markers (`<!-- agent-kit:begin -->`), so anything you wrote around them survives.
 
 Use `update --force` to take in drifted files too. Since git is the only way to
-undo it, it works **only when the working tree is clean**.
+undo it, it works **only when the working tree is clean** (untracked files
+do not count — nothing of theirs is overwritten).
 
 Hashes are computed over content normalized to LF line endings — a CRLF checkout
 on Windows is not misjudged as drift.

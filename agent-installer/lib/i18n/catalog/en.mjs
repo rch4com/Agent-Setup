@@ -150,6 +150,7 @@ export default {
   'log.record.write': 'install record written: {path}',
   'error.recordUnreadable': 'Cannot read {path} ({code})',
   'error.recordNotJson': 'Cannot read {path} — not JSON ({message})',
+  'error.jsonInvalid': 'Cannot read {path} — invalid JSON: {message}. Fix the file by hand; nothing was written.',
   'error.recordVersion': '{path} has format version {found}. This tool uses {expected} — upgrade the tool or recreate the record.',
 
   'log.repoRoot': 'repository root: {path}',

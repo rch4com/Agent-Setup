@@ -67,6 +67,12 @@ const execFileAsync = promisify(execFile)
 // 보고된다. 호출부가 opts.timeout으로 바꿀 수 있다.
 export const EXEC_TIMEOUT_MS = 10 * 60 * 1000
 
+// 자식 출력의 상한. execFile 기본값(1MB)을 넘기면 Node가 자식을 **죽이고**
+// "maxBuffer length exceeded"로 실패시킨다 — gsd(3,500파일)·hallmark
+// (references 100개 이상)처럼 파일마다 한 줄씩 찍는 설치가 반쯤 깔린 채
+// 실패로 보고됐다. 64MB면 어떤 설치 로그도 넉넉히 담긴다.
+export const EXEC_MAX_BUFFER = 64 * 1024 * 1024
+
 // 비동기다. 동기 실행은 이벤트 루프를 통째로 막아, npx가 도는 수십 초 동안
 // 진행 화면을 한 번도 다시 그릴 수 없었다. 반환 형태({ ok, output })는
 // 그대로라 호출부는 await만 더하면 된다.
@@ -91,6 +97,7 @@ export function makeExec(dryRun, log = console.log, t = null) {
       const p = execFileAsync(file, fileArgs, {
         encoding: 'utf8',
         timeout: EXEC_TIMEOUT_MS,
+        maxBuffer: EXEC_MAX_BUFFER,
         ...opts,
         shell,
       })

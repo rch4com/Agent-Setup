@@ -79,7 +79,9 @@ test('두 번 돌리면 두 번째는 변경이 없다', async () => {
 test('force는 워킹트리가 더러우면 거부한다', async () => {
   const root = makeTempRepo()
   runBootstrap(root, { log() {} })
-  // 커밋하지 않은 상태 — 되돌릴 수 없는 덮어쓰기를 막아야 한다.
+  commitAll(root)
+  // 추적 파일에 커밋하지 않은 변경 — 되돌릴 수 없는 덮어쓰기를 막아야 한다.
+  writeFileSync(join(root, '.agent-kit/README.md'), '커밋 전 수정\n')
   // LocalizedError.message는 언제나 영어다 — 텍스트가 아니라 키로 단언한다.
   await assert.rejects(
     () => runUpdate(root, { force: true, log() {} }),
@@ -125,4 +127,32 @@ test('관리 블록이 사라진 파일은 드리프트 메시지를 문자열�
   assert.deepEqual(r.drift.map((d) => d.path), ['CLAUDE.md'])
   assert.doesNotMatch(cap.text(), /\[object Object\]/)
   assert.match(cap.text(), /관리 블록 없음/)
+})
+
+// 어댑터 실패는 configureAdapterSafe가 ok:false로 격리해 돌려준다. 요약이
+// 갱신·신규·드리프트만 세면 이 결과는 어디에도 나오지 않고 종료 코드도
+// 0이었다 — 링크가 끊긴 채 "갱신 0건"으로 끝난다.
+test('어댑터 실패는 failed에 모이고 화면에 보고된다', async () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+  const manifest = { ...MANIFEST, adapters: [{ tool: '실패용', path: '../escape' }] }
+
+  const cap = makeCapture()
+  const r = await runUpdate(root, { manifest, log: cap.log, t: KO_T })
+
+  assert.equal(r.failed.length, 1)
+  assert.equal(r.failed[0].path, '../escape')
+  assert.match(cap.text(), /실패 1건/)
+  assert.match(cap.text(), /✖ \.\.\/escape — .*Cannot write outside/)
+})
+
+test('force는 추적되지 않는 파일만 있으면 진행한다', async () => {
+  const root = makeTempRepo()
+  runBootstrap(root, { log() {} })
+  commitAll(root)
+  // 갱신 대상이 아닌 스크래치 파일 — 되돌릴 것이 없으니 막을 이유가 없다.
+  writeFileSync(join(root, 'scratch.txt'), '작업 중\n')
+
+  await runUpdate(root, { manifest: bumpedManifest(), force: true, log() {} })
+  assert.equal(readFileSync(join(root, '.agent-kit/README.md'), 'utf8'), '새 안내 문서\n')
 })

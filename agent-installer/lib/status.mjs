@@ -103,9 +103,27 @@ export function formatStatus(report, t = createT('en')) {
   return lines.join('\n')
 }
 
-export async function runStatus(root, { json = false, log = console.log, t = createT('en') } = {}) {
+// 레지스트리의 최신 발행 버전. status는 진단 명령이라 네트워크가 없거나
+// 느려도 죽으면 안 된다 — 어떤 실패든 null로 떨어뜨리고 화면은 "최신"
+// 자리만 비운다. 시간 제한은 짧게 둔다: 이 한 줄 때문에 status가 20초를
+// 기다리면 진단 도구가 아니다.
+export const LATEST_TIMEOUT_MS = 5000
+const LATEST_URL = 'https://registry.npmjs.org/@rch4com%2Fagent-setup/latest'
+
+export async function fetchLatestVersion(fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(LATEST_URL, { signal: AbortSignal.timeout(LATEST_TIMEOUT_MS) })
+    if (!res.ok) return null
+    const version = (await res.json())?.version
+    return typeof version === 'string' && version ? version : null
+  } catch {
+    return null
+  }
+}
+
+export async function runStatus(root, { json = false, log = console.log, fetchImpl = fetch, t = createT('en') } = {}) {
   const { loadItems } = await import('./catalog.mjs')
-  const report = await collectStatus(root, { items: await loadItems() })
+  const report = await collectStatus(root, { items: await loadItems(), latest: await fetchLatestVersion(fetchImpl) })
   log(json ? JSON.stringify(report, null, 2) : formatStatus(report, t))
   return report
 }

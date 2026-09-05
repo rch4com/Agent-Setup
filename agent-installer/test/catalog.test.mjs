@@ -219,3 +219,14 @@ test('defineMcp: antigravity는 프로젝트 MCP 파일이 없어 기본 사유�
   assert.equal(item.unsupported.antigravity.key, 'item.unsupported.noProjectMcp')
   assert.equal(item.supports.length, CLI_IDS.length - 1)
 })
+
+// 회귀: execFile 기본 maxBuffer(1MB)를 넘기면 Node가 자식을 죽이고
+// "maxBuffer length exceeded"로 실패시킨다 — 파일마다 한 줄씩 찍는 큰 설치
+// (gsd 3,500파일)가 반쯤 깔린 채 실패로 보고됐다.
+test('makeExec: 1MB를 넘는 자식 출력도 실패로 보지 않는다', async () => {
+  const exec = makeExec(false, () => {})
+  // 큰따옴표를 쓰지 않는다 — win32 shellQuote가 거부한다.
+  const r = await exec(process.execPath, ['-e', 'process.stdout.write(String.fromCharCode(120).repeat(2 * 1024 * 1024))'])
+  assert.equal(r.ok, true, r.output.slice(0, 80))
+  assert.equal(r.output.length, 2 * 1024 * 1024)
+})

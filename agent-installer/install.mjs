@@ -125,7 +125,11 @@ async function main() {
   // 살아남는다. 조용히 되돌아가는 대신 화면이 그 사실을 알리게 한다.
   const localeForced = isLocaleForced({ flag, env: process.env })
 
-  if (root === null) throw new LocalizedError('error.notGitRepo')
+  // 도움말은 저장소가 필요 없다. 이 검사를 먼저 하면 `--help`가 Git 저장소
+  // 밖에서 "Run this inside a Git repository"로 죽는다 — 사용법을 보려는
+  // 사람에게 그 오류를 내밀 이유가 없다.
+  const wantsHelp = argv.includes('-h') || argv.includes('--help')
+  if (root === null && !wantsHelp) throw new LocalizedError('error.notGitRepo')
 
   if (argv[0] === 'bootstrap') {
     const opts = parseBootstrapArgs(argv.slice(1), t)
@@ -140,7 +144,8 @@ async function main() {
     if (opts.help) { console.log(updateUsage(t)); return }
     // 항목 수렴을 위해 스캔이 필요해 의존성 있는 모듈에 닿는다.
     const { runUpdate } = await withDeps(() => import('./lib/update.mjs'), t)
-    await runUpdate(root, { ...opts, t })
+    const { failed } = await runUpdate(root, { ...opts, t })
+    if (failed.length > 0) process.exitCode = 1
     return
   }
 

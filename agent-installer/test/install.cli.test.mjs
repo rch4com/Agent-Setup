@@ -254,3 +254,15 @@ test('비대화형 --set은 평문 진행 줄을 낸다', () => {
   assert.match(r.stdout, /\[1\/1\]/)
   assert.ok(!r.stdout.includes(String.fromCharCode(27)), 'CI 로그에 ANSI 제어문자가 없어야 한다')
 })
+
+// --help는 저장소가 필요 없다. root 검사가 앞서면 Git 저장소 밖에서
+// 사용법을 보려는 사람이 "Run this inside a Git repository"를 받는다.
+test('--help는 Git 저장소 밖에서도 사용법을 낸다', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-installer-nogit-'))
+  for (const args of [['--help'], ['bootstrap', '--help'], ['update', '-h']]) {
+    const r = runInstaller(dir, args, { env: { AGENT_SETUP_LANG: 'en' } })
+    assert.equal(r.status, 0, `${args.join(' ')}: ${r.stderr}`)
+    assert.match(r.stdout, /Usage|usage/i)
+    assert.doesNotMatch(r.stderr, /Git repository/)
+  }
+})

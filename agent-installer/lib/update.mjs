@@ -11,9 +11,11 @@ import { RECORD_REL, managedKey, readRecord, toolVersion, writeRecord } from './
 import { LocalizedError, createT, toText } from './i18n/index.mjs'
 
 // git이 유일한 되돌리기 수단이다. 커밋되지 않은 변경 위에 덮어쓰면 사용자가
-// 잃은 것을 복구할 방법이 없다.
+// 잃은 것을 복구할 방법이 없다. 추적되지 않는 파일은 세지 않는다 — 갱신
+// 대상은 기록에 해시가 있는 추적 파일뿐이라, 스크래치 파일 하나가 --force를
+// 막을 이유가 없다.
 function assertCleanWorktree(root) {
-  const out = execFileSync('git', ['-C', root, 'status', '--porcelain'], { encoding: 'utf8' })
+  const out = execFileSync('git', ['-C', root, 'status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' })
   if (out.trim()) {
     throw new LocalizedError('error.forceNeedsCleanTree')
   }
@@ -65,10 +67,18 @@ export async function runUpdate(root, opts = {}) {
   const drift = results.filter((r) => r.action === 'drift')
   const updated = results.filter((r) => r.action === 'update')
   const created = results.filter((r) => r.action === 'create')
+  // 어댑터가 격리해 돌려준 실패다. 요약이 갱신·신규·드리프트만 세면 이
+  // 결과는 아무 데도 나오지 않고 종료 코드도 0이라, 링크가 끊긴 채 "갱신
+  // 0건"으로 끝난다. flow.mjs의 bootstrap과 같은 형식으로 보고한다.
+  const failed = results.filter((r) => !r.ok)
 
   if (!dryRun) writeRecord(root, { ...record, managed }, { dryRun, log: say, t })
 
   log('')
+  if (failed.length > 0) {
+    say(t('bootstrap.failures', { count: failed.length }))
+    for (const f of failed) say(`  ✖ ${f.path} — ${toText(t, f.message)}`)
+  }
   say(t('update.summary', { updated: updated.length, created: created.length, drift: drift.length }))
   if (drift.length > 0) {
     say(t('update.driftHeader'))
@@ -81,5 +91,5 @@ export async function runUpdate(root, opts = {}) {
     say(t('update.driftHint'))
   }
 
-  return { results, drift, record: { ...record, managed } }
+  return { results, drift, failed, record: { ...record, managed } }
 }
