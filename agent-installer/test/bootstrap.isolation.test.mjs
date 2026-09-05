@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -50,4 +50,14 @@ test('context.mjs에 외부 의존성이 없다', () => {
 test('install.mjs의 정적 import가 부트스트랩 경로만 끌어온다', () => {
   const { bare } = reachable(join(ROOT, 'install.mjs'))
   assert.deepEqual(bare, [], `install.mjs 최상위에서 의존성 유입: ${JSON.stringify(bare)}`)
+})
+
+// deps.test.mjs의 "의존성 없는 트리"는 lib/design-md(번들 74개)도 뺀다 — --list는
+// 항목 카탈로그만 필요하기 때문이다. catalog.mjs가 design-md에 정적으로 닿으면
+// 그 트리에서 "Cannot find module"이 먼저 터져, 의존성 안내 대신 원시 오류가 샌다
+// (v1.21.1 발행 CI에서 실제로 그랬다). 공용 가드는 잎 모듈에 둬야 한다.
+test('catalog.mjs(--list 경로)는 design-md에 정적으로 닿지 않는다', () => {
+  const { files } = reachable(join(ROOT, 'lib', 'catalog.mjs'))
+  const touched = [...files].filter((f) => f.includes(`${sep}design-md${sep}`))
+  assert.deepEqual(touched, [], `design-md 유입: ${JSON.stringify(touched)}`)
 })

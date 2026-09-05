@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { PROVIDERS, getProvider } from './providers/index.mjs'
 import { createT, LocalizedError } from '../i18n/index.mjs'
+import { isSafeSegment } from '../untrusted.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const CATALOG_PATH = join(HERE, 'catalog.json')
@@ -84,16 +85,11 @@ export async function netFetch(url, opts = {}) {
   }
 }
 
-// 경로 세그먼트 하나로 안전한 이름인지 본다. 한글 등 유니코드는 허용하되
-// 경로 구분자·상위 이동·Windows 금지 문자·제어문자는 막는다.
+// 경로 세그먼트 가드는 잎 모듈(lib/untrusted.mjs)에 있다 — lib/catalog.mjs도
+// 쓰는데 그쪽은 design-md에 정적으로 닿을 수 없다. 이 모듈의 소비자
+// (flow·scan·refresh-bundle)가 계속 여기서 가져갈 수 있게 다시 내보낸다.
 // (name은 원격 README 파싱이나 디렉터리 스캔에서 오므로 신뢰 경계 밖이다.)
-export function isSafeSegment(text) {
-  const value = String(text ?? '')
-  // 선행·후행 점은 숨김 파일이자 Windows에서 다루기 어려운 이름이다('.', '..' 포함).
-  if (!value || value.startsWith('.') || value.endsWith('.')) return false
-  // eslint-disable-next-line no-control-regex
-  return !/[\\/:*?"<>|\x00-\x1f]/.test(value)
-}
+export { isSafeSegment }
 
 // 라벨·카테고리·설명은 원격 README나 DESIGN.md 본문에서 온다. 목록과 TUI가
 // 이 값을 터미널에 그대로 찍으므로 제어문자를 걷어낸다 — ANSI 이스케이프가

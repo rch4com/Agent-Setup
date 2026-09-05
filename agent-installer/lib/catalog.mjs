@@ -6,9 +6,10 @@ import { promisify } from 'node:util'
 import { CLIS, CLI_IDS, MCP_CLI_IDS } from './clis.mjs'
 import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
-import { isSafeSegment } from './design-md/catalog.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
-import { escapeRegExp } from './regexp.mjs'
+// design-md가 아니라 잎 모듈에서 가져온다 — deps.test.mjs의 "의존성 없는
+// 트리"는 design-md를 통째로 빼고 --list를 돌린다(bootstrap.isolation.test.mjs).
+import { escapeRegExp, isSafeSegment } from './untrusted.mjs'
 
 const ITEMS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'items')
 

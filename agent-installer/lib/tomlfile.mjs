@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parse } from 'smol-toml'
 import { LocalizedError } from './i18n/index.mjs'
-import { escapeRegExp } from './regexp.mjs'
+import { escapeRegExp } from './untrusted.mjs'
 
 function readText(file) {
   return existsSync(file) ? readFileSync(file, 'utf8') : ''

@@ -18,8 +18,11 @@ reproducing test written first.
   constructor throw after `npx skills remove` had already run, leaving the
   remaining skills behind. Names are now escaped, and names unusable as an
   argument or a path (leading dash, path separators, `..`) are skipped while
-  their lock entries are still pruned. Escaping lives in one new leaf module,
-  `regexp.mjs`, shared with TOML section removal.
+  their lock entries are still pruned. Escaping and the path-segment guard
+  live in one new leaf module, `untrusted.mjs`, shared with TOML section
+  removal and design-md — placed under design-md, `--list` died with a raw
+  error in CI's "no dependencies" tree, which omits that directory (the first
+  publish attempt failed exactly so).
 - **A VS Code settings key found only in a comment no longer counts as
   present.** The substring check treated `// see "chat.useAgentsMdFile"` — or
   the name inside another key's value — as the key itself, skipped the insert,
