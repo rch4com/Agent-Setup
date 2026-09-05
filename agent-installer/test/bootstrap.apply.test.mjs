@@ -442,3 +442,27 @@ test('ensureJsonKeys: 링크를 통한 저장소 이탈을 거부한다', () => 
     /external link/,
   )
 })
+
+// 키 이름이 주석이나 값 문자열 안에만 있으면 아직 설정되지 않은 것이다.
+// 문자열 포함 검사는 이를 "있음"으로 읽어 키를 넣지 않고도 성공 로그를 냈다 —
+// VS Code Copilot이 AGENTS.md를 영영 읽지 못하는데 화면은 성공이다.
+test('ensureJsonKeys: 주석 안에만 있는 키는 없는 것으로 보고 삽입한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  "editor.rulers": [80] // see "chat.useAgentsMdFile" docs\n}\n')
+
+  const results = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  assert.equal(results[0].action, 'insert')
+  assert.match(readFileSync(join(root, '.vscode/settings.json'), 'utf8'), /^\s*"chat\.useAgentsMdFile": true,/m)
+})
+
+test('ensureJsonKeys: 값 문자열 안에만 있는 키는 없는 것으로 보고 삽입한다', () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, '.vscode/settings.json'), '{\n  "note": "chat.useAgentsMdFile"\n}\n')
+
+  const results = ensureJsonKeys(root, [SETTING], ctx(makeCapture()))
+
+  assert.equal(results[0].action, 'insert')
+})

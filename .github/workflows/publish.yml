@@ -6,6 +6,11 @@ on:
   push:
     tags: ['v*']
 
+# 기본 토큰을 읽기 전용으로 못박는다. 없으면 test 잡이 저장소 설정의 기본
+# 권한을 그대로 받는다 — publish 잡만 id-token: write를 따로 연다(아래).
+permissions:
+  contents: read
+
 jobs:
   # 발행 전에 선언한 Node 하한(engines: >=20)이 실제로 동작하는지 확인한다.
   # publish 잡은 22에서만 도니 여기서 20을 함께 돌려야 하한이 검증된다.
@@ -24,8 +29,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # npm ci는 잠금 파일과 package.json이 어긋나면 실패한다 — npm install은
+      # 조용히 다시 풀어, 잠금이 고정하지 않은 버전으로 테스트·발행할 수 있다.
       - name: 의존성 설치
-        run: npm install
+        run: npm ci
 
       - name: 테스트
         run: npm test
@@ -72,8 +79,10 @@ jobs:
             exit 1
           fi
 
+      # npm ci는 잠금 파일과 package.json이 어긋나면 실패한다 — npm install은
+      # 조용히 다시 풀어, 잠금이 고정하지 않은 버전으로 테스트·발행할 수 있다.
       - name: 의존성 설치
-        run: npm install
+        run: npm ci
 
       # 이름은 @rch4com/agent-setup 하나다. 정식 이름 agent-setup은 npm의
       # 유사 이름 제한(기존 agentsetup)에 걸려 403으로 거부된다.

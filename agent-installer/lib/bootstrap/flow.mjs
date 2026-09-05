@@ -5,10 +5,9 @@ import {
   configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
 } from './apply.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
+import { SKILL_MODES } from '../args.mjs'
 import { createT, LocalizedError, toText } from '../i18n/index.mjs'
 import { width } from '../width.mjs'
-
-const SKILL_MODES = ['auto', 'link', 'copy']
 
 // 오른쪽 정렬. width.mjs의 pad()는 오른쪽에 공백을 채워 왼쪽 정렬만 하므로
 // 숫자에는 못 쓴다 — 자릿수가 9에서 10으로 늘 때 열이 흔들리지 않으려면

@@ -198,3 +198,16 @@ test('부트스트랩은 기록의 lang을 지우지 않는다', () => {
   runBootstrap(root, { log: () => {} })
   assert.equal(readRecord(root).lang, 'ko')
 })
+
+// lang과 같은 규칙이다 — 손으로 고친 값이 update의 어댑터까지 흘러가면 안 된다.
+test('readRecord는 지원하지 않는 skillMode를 auto로 떨어뜨린다', () => {
+  const root = makeTempRepo()
+  putRecord(root, { formatVersion: FORMAT_VERSION, skillMode: 'bogus' })
+  assert.equal(readRecord(root).skillMode, 'auto')
+})
+
+test('readRecord는 객체가 아닌 managed를 빈 객체로 읽는다', () => {
+  const root = makeTempRepo()
+  putRecord(root, { formatVersion: FORMAT_VERSION, managed: ['sha256:x'] })
+  assert.deepEqual(readRecord(root).managed, {})
+})

@@ -5,6 +5,7 @@ import { dirname } from 'node:path'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { ensureGitignoreEntries } from '../gitignore.mjs'
 import { createT, msg } from '../i18n/index.mjs'
+import { escapeRegExp } from '../regexp.mjs'
 import { hashBody, normalizeBody } from './text.mjs'
 import { BEGIN_MARKER, END_MARKER, extractBlock, managedKey } from './record.mjs'
 import { configureAdapter } from './adapter.mjs'
@@ -231,12 +232,13 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log, t = createT
       return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
     }
 
-    // 주석 안에 있어도 건드리지 않는다 — 사용자가 언급한 키를 스크립트가
-    // 되살리지 않는 편이 "기존 설정을 덮어쓰지 않는다"는 원칙에 맞는다.
-    // 문자열 포함 검사라 키 이름이 어떤 값 안에 들어 있어도 건너뛴다. 보수적인
-    // 쪽으로 틀리는 것(넣지 않음)이라 파일을 망가뜨리지는 않는다. 정확히 하려면
-    // 최상위 키만 보는 파서가 필요한데, 부트스트랩은 의존성을 쓸 수 없다.
-    if (text.includes(JSON.stringify(key))) {
+    // 줄 머리에 `"키":` 꼴로 놓인 것만 "있음"으로 본다. 단순 문자열 포함
+    // 검사는 주석(`// see "chat.useAgentsMdFile"`)이나 다른 키의 값 안에 든
+    // 이름까지 "있음"으로 읽어, 키를 넣지 않고도 성공 로그를 냈다 — VS Code
+    // Copilot이 AGENTS.md를 영영 읽지 못하는데 화면은 성공이다. 정확히 하려면
+    // 최상위 키만 보는 파서가 필요한데 부트스트랩은 의존성을 쓸 수 없다 —
+    // 중첩 객체 안의 같은 키를 최상위로 오판하는 쪽(넣지 않음)으로만 틀린다.
+    if (new RegExp(`^\\s*${escapeRegExp(JSON.stringify(key))}\\s*:`, 'm').test(text)) {
       log(t('log.json.keep', { path: rel, key }))
       return { ok: true, action: 'skip', path: rel }
     }

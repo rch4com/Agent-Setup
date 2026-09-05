@@ -9,9 +9,11 @@ export async function withDeps(load, t) {
   try {
     return await load()
   } catch (err) {
-    // 모듈이 정말 없을 때만 안내로 바꾼다. 로드된 모듈 안에서 난 오류는
+    // 패키지가 정말 없을 때만 안내로 바꾼다. 로드된 모듈 안에서 난 오류는
     // 그대로 올려보내야 한다 — 삼키면 진짜 버그가 "의존성 없음"으로 둔갑한다.
-    if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
+    // 상대 경로 import 오타도 같은 코드로 오지만 Node는 문구로 가른다: 패키지
+    // 부재는 "Cannot find package", 파일 부재는 "Cannot find module".
+    if (err.code !== 'ERR_MODULE_NOT_FOUND' || !/Cannot find package/.test(err.message)) throw err
     throw new LocalizedError('error.depsMissing')
   }
 }

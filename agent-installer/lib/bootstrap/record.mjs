@@ -10,6 +10,7 @@
 // 부트스트랩 그래프에 속하므로 node: 내장 모듈만 쓴다.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { SKILL_MODES } from '../args.mjs'
 import { repoPath, repoPathStrict } from '../context.mjs'
 import { LOCALES, LocalizedError } from '../i18n/index.mjs'
 import { hashBody, normalizeBody } from './text.mjs'
@@ -66,12 +67,14 @@ export function readRecord(root) {
   return {
     formatVersion: parsed.formatVersion,
     pinnedVersion: parsed.pinnedVersion ?? null,
-    skillMode: parsed.skillMode ?? 'auto',
     // 손으로 편집된 값 때문에 도구가 죽으면 안 된다. 모르는 값은 없는 것으로 본다.
+    // skillMode도 같다 — 걸러 두지 않으면 update가 그 값을 어댑터까지 흘려보낸다.
+    skillMode: SKILL_MODES.includes(parsed.skillMode) ? parsed.skillMode : 'auto',
     lang: LOCALES.includes(parsed.lang) ? parsed.lang : null,
     items: Array.isArray(parsed.items) ? parsed.items : [],
     design: Array.isArray(parsed.design) ? parsed.design : [],
-    managed: parsed.managed && typeof parsed.managed === 'object' ? parsed.managed : {},
+    // 배열도 typeof가 object다 — managed[rel] 조회가 undefined만 돌려주는 빈 껍데기가 된다.
+    managed: parsed.managed && typeof parsed.managed === 'object' && !Array.isArray(parsed.managed) ? parsed.managed : {},
   }
 }
 

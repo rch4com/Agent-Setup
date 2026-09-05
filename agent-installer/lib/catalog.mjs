@@ -6,7 +6,9 @@ import { promisify } from 'node:util'
 import { CLIS, CLI_IDS, MCP_CLI_IDS } from './clis.mjs'
 import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
+import { isSafeSegment } from './design-md/catalog.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
+import { escapeRegExp } from './regexp.mjs'
 
 const ITEMS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'items')
 
@@ -240,9 +242,16 @@ function findSkillDir(root, skill) {
     const file = join(base, name, 'SKILL.md')
     if (!existsSync(file)) continue
     const head = readFileSync(file, 'utf8').slice(0, 2000)
-    if (new RegExp(`^name:\\s*['"]?${skill}['"]?\\s*$`, 'm').test(head)) return name
+    if (new RegExp(`^name:\\s*['"]?${escapeRegExp(skill)}['"]?\\s*$`, 'm').test(head)) return name
   }
   return null
+}
+
+// 잠금 파일의 이름은 상류 SKILL.md frontmatter에서 온다 — 신뢰 경계 밖이다.
+// `npx skills remove <이름>`의 인자이자 `.agents/skills/<이름>` 경로가 되므로,
+// 플래그로 읽히는 선행 대시와 경로 구분자·상위 이동은 어느 쪽으로도 쓸 수 없다.
+function isSafeSkillName(name) {
+  return isSafeSegment(name) && !name.startsWith('-')
 }
 
 // 레지스트리가 저장소 루트에 남기는 잠금 파일. 스킬 이름마다 어느 출처에서
@@ -321,6 +330,9 @@ export function defineRegistrySkill({ id, label, source, skill, anchor = null, n
       const names = skill === '*' ? lockedSkills(root, source) : [skill]
       const targets = names.length > 0 ? names : [probe]
       for (const name of targets) {
+        // 인자·경로로 쓸 수 없는 이름은 건너뛴다. 잠금 항목은 아래 pruneLock이
+        // 함께 지운다 — 남기면 다음 제거가 같은 자리에서 또 멈춘다.
+        if (!isSafeSkillName(name)) continue
         // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리를
         // 남긴다(실측). 그래서 성공/실패와 무관하게 남은 디렉터리를 우리가 지운다 —
         // 남겨 두면 detect가 계속 installed로 읽어 제거가 안 된 채 성공으로 보인다.

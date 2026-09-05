@@ -102,3 +102,15 @@ test('의존성이 없어도 부트스트랩은 끝까지 동작한다', () => {
   assert.match(r.stdout, /완료되었습니다/)
   assert.doesNotMatch(r.stderr, /npm install/, '부트스트랩이 의존성을 요구했다')
 })
+
+// 상대 경로 import 오타도 같은 코드(ERR_MODULE_NOT_FOUND)로 온다. 그것까지
+// "의존성을 설치하세요"로 바꾸면 진짜 버그가 안내 문구 뒤에 숨는다 — Node는
+// 패키지 부재를 "Cannot find package", 파일 부재를 "Cannot find module"로 가른다.
+test('withDeps: 내부 파일 부재는 의존성 안내로 바꾸지 않는다', async () => {
+  const err = new Error("Cannot find module '/repo/lib/nope.mjs' imported from /repo/lib/x.mjs")
+  err.code = 'ERR_MODULE_NOT_FOUND'
+  await assert.rejects(() => withDeps(() => { throw err }), (thrown) => {
+    assert.equal(thrown, err)
+    return true
+  })
+})

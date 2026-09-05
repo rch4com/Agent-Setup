@@ -33,6 +33,9 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 
 if ($Tui -and -not $Help) {
     & npm install --prefix $installer --silent
+    # .sh는 set -e로 여기서 멈춘다. 확인 없이 node로 넘어가면 npm 실패가
+    # "의존성 없음" 안내로 바뀌어 보여 진짜 원인(네트워크·권한)이 가려진다.
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     # -SkillMode도 함께 넘긴다 — 화면 안의 '부트스트랩 실행'이 그 값을 쓴다.
     # 예전에는 여기서 버려져 대화형 경로가 늘 auto로 고정됐다.
     $tuiArgs = @()

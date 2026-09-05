@@ -78,6 +78,14 @@ show up in `status` and can be pulled in later with `update --force`.
 
 ## Safety
 
+The rules below are what the **bootstrap** (`bootstrap`, `update`, `status`)
+upholds. The optional-item picker runs third-party installers, and its two
+`global.*` items (`global.superpowers`, `global.ponytail`) deliberately write
+to per-user CLI configuration under your home directory — the screen marks
+them as machine-global and `--set` never removes them. The full list of what
+each item runs is in the
+[usage guide](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.md#what-the-installer-runs).
+
 - Runs only inside a Git repository, and never writes outside the repository root.
 - Never reads or modifies global configuration in your home directory.
 - Never overwrites existing configuration files.
@@ -175,6 +183,14 @@ npx @rch4com/agent-setup bootstrap --adopt
 들여올 수 있습니다.
 
 ## 안전 원칙
+
+아래는 **부트스트랩**(`bootstrap`·`update`·`status`)이 지키는 규칙입니다.
+선택 항목 화면은 제3자 설치기를 실행하며, 그중 `global.*` 두 항목
+(`global.superpowers`, `global.ponytail`)은 의도적으로 홈 디렉터리 아래
+CLI별 사용자 설정에 씁니다 — 화면이 머신 전역임을 표시하고 `--set`은 이
+항목을 제거하지 않습니다. 항목마다 무엇을 실행하는지는
+[사용 안내](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.ko.md#설치기가-실행하는-것)에
+있습니다.
 
 - 반드시 Git 저장소 안에서만 실행되며, 저장소 루트 밖에는 쓰지 않습니다.
 - 홈 디렉터리의 글로벌 설정을 읽거나 수정하지 않습니다.

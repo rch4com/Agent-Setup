@@ -26,8 +26,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # npm ci는 잠금 파일과 package.json이 어긋나면 실패한다 — npm install은
+      # 조용히 다시 풀어, 잠금이 고정하지 않은 버전으로 테스트할 수 있다.
       - name: 의존성 설치
-        run: npm install
+        run: npm ci
 
       - name: 테스트
         run: npm test

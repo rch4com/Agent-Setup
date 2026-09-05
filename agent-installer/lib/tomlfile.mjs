@@ -2,13 +2,10 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { parse } from 'smol-toml'
 import { LocalizedError } from './i18n/index.mjs'
+import { escapeRegExp } from './regexp.mjs'
 
 function readText(file) {
   return existsSync(file) ? readFileSync(file, 'utf8') : ''
-}
-
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 // 깨진 TOML은 읽기·쓰기 모두 거부한다. 예전에는 파싱 실패를 "섹션 없음"으로

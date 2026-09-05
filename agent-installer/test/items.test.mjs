@@ -232,3 +232,44 @@ test('gstack 제거는 자기가 넣은 .gitignore 항목을 걷어낸다', asyn
   assert.equal(ex(j(root, '.claude', 'skills', 'gstack')), false)
   assert.equal(rf(j(root, '.gitignore'), 'utf8'), '*.log\n')
 })
+
+// 잠금 파일의 스킬 이름은 상류 SKILL.md frontmatter에서 온다 — 신뢰 경계 밖이다.
+// 정규식 메타문자가 든 이름이 RegExp 생성을 깨뜨리면 제거가 중간에 죽어,
+// 이미 `npx skills remove`를 부른 뒤 나머지 스킬이 그대로 남는다.
+test('레지스트리 스킬 제거는 정규식 메타문자가 든 잠금 이름에도 끝까지 돈다', async () => {
+  const { mkdirSync: mk, writeFileSync: wf, existsSync: ex } = await import('node:fs')
+  const { join: j } = await import('node:path')
+  const { makeTempRepo: repo } = await import('./helpers.mjs')
+  const { defineRegistrySkill } = await import('../lib/catalog.mjs')
+  const root = repo()
+  mk(j(root, '.agents', 'skills', 'good'), { recursive: true })
+  wf(j(root, '.agents', 'skills', 'good', 'SKILL.md'), '---\nname: good\n---\n')
+  wf(j(root, 'skills-lock.json'), JSON.stringify({
+    skills: { 'evil(': { source: 'acme/kit' }, good: { source: 'acme/kit' } },
+  }))
+  const item = defineRegistrySkill({ id: 'skill.kit', label: 'kit', source: 'https://github.com/acme/kit', skill: '*', anchor: 'good' })
+  const removed = []
+  await item.uninstall({ root, dryRun: false, exec: async (_cmd, args) => { removed.push(args[3]); return { ok: true, output: '' } } })
+  assert.deepEqual(removed.sort(), ['evil(', 'good'])
+  assert.equal(ex(j(root, '.agents', 'skills', 'good')), false)
+  assert.equal(ex(j(root, 'skills-lock.json')), false)
+})
+
+// 경로 구분자·상위 이동·선행 대시가 든 이름은 CLI 인자도 경로도 될 수 없다 —
+// `--flag`는 skills CLI의 플래그로 읽히고, `..`는 공유 디렉터리 밖을 가리킨다.
+test('레지스트리 스킬 제거는 인자·경로로 쓸 수 없는 잠금 이름을 건너뛴다', async () => {
+  const { writeFileSync: wf, existsSync: ex } = await import('node:fs')
+  const { join: j } = await import('node:path')
+  const { makeTempRepo: repo } = await import('./helpers.mjs')
+  const { defineRegistrySkill } = await import('../lib/catalog.mjs')
+  const root = repo()
+  wf(j(root, 'skills-lock.json'), JSON.stringify({
+    skills: { '--yes': { source: 'acme/kit' }, '../escape': { source: 'acme/kit' }, good: { source: 'acme/kit' } },
+  }))
+  const item = defineRegistrySkill({ id: 'skill.kit', label: 'kit', source: 'https://github.com/acme/kit', skill: '*', anchor: 'good' })
+  const removed = []
+  await item.uninstall({ root, dryRun: false, exec: async (_cmd, args) => { removed.push(args[3]); return { ok: true, output: '' } } })
+  assert.deepEqual(removed, ['good'])
+  // 건너뛴 이름은 잠금 파일에도 남지 않는다 — 남기면 다음 제거가 같은 자리에서 또 멈춘다.
+  assert.equal(ex(j(root, 'skills-lock.json')), false)
+})

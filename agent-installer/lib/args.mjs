@@ -17,7 +17,9 @@ export const designUsage = (t) => t('usage.design')
 export const updateUsage = (t) => t('usage.update')
 export const statusUsage = (t) => t('usage.status')
 
-const SKILL_MODES = ['auto', 'link', 'copy']
+// 허용값의 단일 출처. flow.mjs(실행 시 검증)와 record.mjs(기록 읽기)가 함께 쓴다 —
+// 셋이 따로 들고 있으면 한 곳에 값이 늘 때 나머지가 그 값을 거부한다.
+export const SKILL_MODES = ['auto', 'link', 'copy']
 
 // 인자 사양: 플래그 이름 → 'bool'(값 없음) | 'value'(값 하나를 소비).
 // 미지 인자를 조용히 삼키지 않기 위한 것이다 — 오타(`--dryrun`)나 지원하지
