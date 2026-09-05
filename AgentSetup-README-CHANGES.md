@@ -5,6 +5,45 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Large installs no longer fail on output size, and update reports its failures (2026-09-05, 1.20.0)
+
+**A whole-source review turned up three bugs that hid behind "success" and a
+few places where a read-only command did less than it claimed.** None of them
+shows up in tests that stub the child process or the file system, so each fix
+comes with a test that runs the real thing.
+
+- **Child output over 1MB no longer kills the install.** `makeExec` never set
+  `maxBuffer`, so Node's 1MB default applied: past it Node kills the child and
+  reports "stdout maxBuffer length exceeded". An install that prints a line
+  per file — gsd's 3,500 files, hallmark's hundred references — could end up
+  half written and marked failed. The limit is now 64MB, verified with a real
+  2MB-output child process.
+- **`update` reports adapter failures and exits 1.** The adapter step returned
+  `ok: false` in isolation, but the summary counted only updated, created,
+  and drifted, and the entry point never set an exit code — a broken skill
+  link ended as "0 updated" and exit 0. Failures now print in the same
+  `✖ path — reason` form as the bootstrap, and `update` returns non-zero.
+- **`update --force` ignores untracked files.** The clean-tree check used
+  `git status --porcelain`, which lists untracked files as `??`, so a scratch
+  file blocked `--force`. Only tracked files can be overwritten, so only
+  tracked changes are counted (`--untracked-files=no`).
+- **`--help` works outside a Git repository.** The repository check ran
+  before the help check, so `agent-setup --help` in a plain directory died
+  with "Run this inside a Git repository".
+- **`status` shows the latest published version.** The `· latest X` text and
+  the report field both existed, but `runStatus` never supplied the value.
+  It now asks the npm registry with a 5-second limit; any failure (offline,
+  404, odd payload) leaves the field empty instead of failing the command.
+- **Broken JSON is refused, not repaired.** jsonc-parser's `parse` never
+  throws — a file missing its closing brace parsed to a "recovered" value,
+  `has()` reported the MCP as installed, and `setKey` wrote a new key into
+  the still-broken file. Read and write paths now check the parse error list
+  and stop with "invalid JSON: CloseBraceExpected (line N)" naming the file;
+  nothing is written. Comments and trailing commas stay allowed — these are
+  JSONC files.
+- **The publish workflow pins npm to major 11** instead of `@latest`, so the
+  tool that signs the provenance does not change under a tag.
+
 ## The screen says what will change, and the CLI count is 11 (2026-09-05, 1.19.0)
 
 **The check mark only said "is it ticked", so working out what Enter would do
