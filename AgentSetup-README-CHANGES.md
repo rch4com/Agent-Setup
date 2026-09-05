@@ -5,6 +5,85 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## The screen says what will change, and the CLI count is 11 (2026-09-05, 1.19.0)
+
+**The check mark only said "is it ticked", so working out what Enter would do
+was a subtraction the user had to perform in their head.** An installed item's
+`×` looked the same as a freshly picked `×`, and unticking an installed item
+left a blank that only meant "to be removed" once combined with the hint's
+"Installed". This release makes the selection screen state the outcome, aligns
+the supported-CLI count with the bootstrap's 11, and folds in two facts that
+measurement overturned.
+
+- **The check mark states the pending change.** `[×]` installed and left
+  alone, `[+]` to be installed (or completed), `[-]` installed but unticked,
+  so to be removed, `[ ]` absent and not chosen. The header always carries
+  `3 pending change(s) (+2 -1)` — `selected 3 / 106` was a sum of install
+  state and said nothing about Enter. The verdict comes from the same function
+  as `planChanges`, so the review screen cannot disagree.
+- **Coverage follows one rule regardless of tab.** Names when four or fewer
+  CLIs are supported (`claude·opencode`), `CLI n/11` otherwise; previously
+  only the PLUGIN tab printed names. The review screen uses the same rule — a
+  bare number sent you back with Esc to find out which CLI. Global items drop
+  CLIs missing from this machine from the list and note them as `gemini
+  missing` — the detail said "no CLI" while the row printed the name anyway.
+- **The CLI count is 11.** The bootstrap claims eleven tools while the screen
+  printed `CLI 10/10` — Antigravity was missing. It is now on the list; it has
+  no project-scoped MCP file, so MCP items show `10/11` with that reason, but
+  it reads the shared `.agents/skills` natively, so skill items show `11/11`.
+- **The Copilot CLI stdio restriction was not true.** The README said the root
+  `.mcp.json`'s `type: "stdio"` fails to connect in Copilot CLI. Reading
+  Copilot CLI 1.0.82's `app.js` shows the local-server check accepts a missing
+  `type`, `"local"`, and `"stdio"` alike, so that entry connects too. stdio
+  MCP is wired for copilot as before and the README is corrected.
+- **The grok global editions are wired.** `global.superpowers` (`grok plugin
+  install superpowers@xai-official --trust`) and `global.ponytail` (`grok
+  plugin install DietrichGebert/ponytail --trust`) were measured on this
+  machine (grok 1.0.5) through the install/detect/remove round trip. The
+  record is `repos[*].plugins` in `~/.grok/installed-plugins/registry.json`,
+  and detection reads only that — removal (`grok plugin uninstall …
+  --confirm`) leaves the name in `[plugins].enabled` of `~/.grok/config.toml`
+  (upstream behavior), so reading `enabled` would report the plugin installed
+  forever. The leftover is noted and left alone.
+- **The footer folds onto two lines at 80 columns.** The Korean hint used to
+  break at `Ctrl+A 전체   C…`, leaving no way to discover the CLI filter
+  (`Ctrl+F`), the detail panel (`Ctrl+D`), or preview (`Ctrl+O`). The quit key
+  stays at the far right of the last line, and list height and PgUp/PgDn use
+  the same arithmetic. `F1` opens a key guide (the key that closes it is not
+  interpreted as a command), `Home`/`End` jump to the first/last row, and
+  resizing the terminal redraws at the new size without a keypress.
+- **More of the detail panel fits in 80×24.** Wired CLIs fold into one or two
+  lines broken at name boundaries instead of ten vertical lines; MCP packs
+  `cli path` pairs across each line. Unwired name lists wrap at name
+  boundaries too.
+- **Small cleanups.** The CLI filter position counts among CLIs only, as in
+  `codex (2/11)` (it counted "All" and showed `3/11`). The three design.md
+  sync actions move to the top of the DESIGN.MD tab, leaving Language and Run
+  bootstrap on the Actions tab. Tab counts include items only, so DESIGN.MD
+  reads `76` (it read `79` with the action rows). The label column grows with
+  long labels on wide screens and stays 24 at 80 columns. The header falls
+  back to the repository's last directory name when there is no room.
+- **`--list` prints what the screen prints** — coverage, target file, and
+  install location. CI reads this path, and status plus name could not answer
+  "does this work in my CLI".
+- **External commands get a 10-minute limit.** `npx` and `git clone` used to
+  wait forever when the network stalled, and Ctrl+C is only checked between
+  items. Past the limit the item fails with "stopped after Ns without
+  finishing: command".
+- **Verification dates became data.** Every item carries `verified`, and
+  `status` flags items past 90 days as `stale check` — an unwired reason is a
+  fact from the day upstream was measured and, as the Copilot case shows,
+  turns false when it goes stale. Reason texts gained a "to do it by hand"
+  hint.
+- **Docs.** A five-minute start section at the top of the README, and a
+  "tools not covered" note (Cursor, Windsurf, Cline/Roo, Amp, Droid, Qwen
+  Code) after the per-tool wiring section stating that they are unwired
+  because they could not be measured on this machine, and where an adapter
+  would go.
+
+kiro's binary launches the IDE, so skill discovery cannot be measured
+headlessly; gstack's kiro reason stays unverified.
+
 ## Strix and Prompt Master come in; bkit goes out (2026-09-02, 1.18.0)
 
 Two registry skills join the catalog and one plugin item is retired. The
