@@ -474,4 +474,5 @@ export default {
   'error.ambiguousDesignId': '중복된 이름 \'{token}\' — 제공자를 지정하세요: {options}',
   'error.designDownload': '{provider}/{name}: DESIGN.md 다운로드 실패',
   'error.readmeFetch': 'README 가져오기 실패: HTTP {status}',
+  'error.indexFetch': '색인 가져오기 실패: HTTP {status} ({url})',
 }

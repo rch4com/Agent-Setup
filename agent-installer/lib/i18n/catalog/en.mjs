@@ -489,4 +489,5 @@ export default {
   'error.ambiguousDesignId': 'ambiguous name \'{token}\' — pick a provider: {options}',
   'error.designDownload': '{provider}/{name}: DESIGN.md download failed',
   'error.readmeFetch': 'README fetch failed: HTTP {status}',
+  'error.indexFetch': 'index fetch failed: HTTP {status} ({url})',
 }
