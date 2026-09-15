@@ -282,6 +282,7 @@ export default {
   'item.skill.karpathy.note': '과설계와 모호한 완료 기준을 줄이는 행동 지침',
   'item.skill.prompt-master.note': 'AI 도구용 프롬프트를 만들고 다듬는 스킬. 프롬프트 작성·수정을 명시적으로 요청할 때만 활성화됩니다. 본문이 하네스 중립이라 11개 CLI가 함께 씁니다',
   'item.skill.strix.note': '보안 테스트 스킬 9종(침투 테스트·OWASP Top 10·취약점 탐지와 수정 흐름)을 공유 .agents/skills에 복사합니다. 스킬이 Strix 에이전트를 구동하므로 PATH에 strix 바이너리가 필요합니다 — 자체 호스팅은 pipx install strix-agent에 Docker와 STRIX_LLM·LLM_API_KEY, 관리형은 strix cloud login. 승인된 대상에만 쓰세요',
+  'item.skill.officecli.note': 'Word·Excel·PowerPoint(.docx·.xlsx·.pptx) 문서를 읽고 고치고 만드는 스킬을 공유 .agents/skills에 복사합니다. 스킬이 officecli 바이너리를 구동하므로 PATH에 officecli가 필요합니다 — npm install -g @officecli/officecli 또는 상류 install.sh·install.ps1. Office 설치는 필요 없습니다',
   'item.skill.gstack.note': '저장소 로컬 clone + setup (bash 필요, Windows는 Git Bash). 런타임 상태(~/.gstack)는 전역에 생길 수 있음. 부트스트랩 저장소에서는 .claude/skills가 Junction이라 실물이 공유 .agents/skills에 앉습니다 — codex·opencode는 재귀 스캔이라 개별 스킬까지 함께 봅니다',
   'item.skill.gsd.note': 'npx @opengsd/gsd-core 프로젝트 로컬 설치 — claude·codex·opencode·copilot·kilo 다섯 런타임을 한 번에 배선합니다(.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). 런타임마다 700개 안팎의 파일이 생깁니다. gemini는 상류가 제거했고 kimi는 프로젝트 설치를 아직 막습니다',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — en.mjs 쪽 주석 참고.

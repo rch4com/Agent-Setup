@@ -8,9 +8,9 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 30개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 31개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 30)
+  assert.equal(items.length, 31)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -35,6 +35,7 @@ test('loadItems는 30개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('skill.mattpocock-skills'))
   assert.ok(ids.includes('skill.prompt-master'))
   assert.ok(ids.includes('skill.strix'))
+  assert.ok(ids.includes('skill.officecli'))
 })
 
 // 같은 상류를 플러그인과 공유 스킬 양쪽으로 넣으면 같은 스킬이 두 경로에서
