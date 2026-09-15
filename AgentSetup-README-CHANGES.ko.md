@@ -5,6 +5,19 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## OfficeCLI 스킬을 넣는다 (2026-09-15, 1.22.0)
+
+- **`skill.officecli`.** iOfficeAI/OfficeCLI의 Office 문서(.docx·.xlsx·.pptx)
+  스킬을 공유 `.agents/skills`에 복사해 11개 CLI가 함께 본다. 스킬이
+  `officecli` 바이너리를 구동하므로 PATH에 있는 것이 전제다(`npm install -g
+  @officecli/officecli` 또는 상류 `install.sh`·`install.ps1`). source는
+  저장소 루트가 아니라 `skills/officecli` 하위 경로다 — 상류가 루트에도
+  같은 SKILL.md를 두고 있어 루트를 주면 레지스트리가 저장소 전체(94MB,
+  1,208개 파일)를 스킬로 복사했다(실측). 하위 경로로는 SKILL.md 하나만
+  들어온다.
+- **미발행분을 함께 싣는다.** 오빠두 갤러리 design.md 프로바이더 코드
+  (재배포 허가 대기라 미등록)와 Dependabot 설정.
+
 ## 상류에서 온 이름이 정규식이 되는 자리를 막고, 조용한 오판 셋을 고친다 (2026-09-06, 1.21.1)
 
 **보안 감사 관점으로 네 번째 검토를 했다.** 경로·명령 인용은 세 차례 검토가

@@ -5,6 +5,21 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## OfficeCLI skill added (2026-09-15, 1.22.0)
+
+- **`skill.officecli`.** Copies the Office-document skill (.docx, .xlsx,
+  .pptx) from iOfficeAI/OfficeCLI into the shared `.agents/skills`, where all
+  11 CLIs see it. The skill drives the `officecli` binary, so it is presumed
+  on PATH (`npm install -g @officecli/officecli`, or the upstream
+  `install.sh`/`install.ps1`). The source is the `skills/officecli` subpath,
+  not the repository root — upstream keeps an identical SKILL.md at the root
+  too, and pointing there made the registry copy the whole repository
+  (94MB, 1,208 files) as the skill (measured). The subpath brings in the one
+  SKILL.md.
+- **Unreleased work ships alongside.** The Oppadu gallery design.md provider
+  code (unregistered, pending redistribution permission) and the Dependabot
+  configuration.
+
 ## Upstream names no longer become regexes, and three quiet misjudgements are fixed (2026-09-06, 1.21.1)
 
 **A fourth pass, this time with a security-audit lens.** Three earlier passes
