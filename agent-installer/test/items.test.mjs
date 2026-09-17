@@ -8,9 +8,9 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 31개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 33개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 31)
+  assert.equal(items.length, 33)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -23,11 +23,13 @@ test('loadItems는 31개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('mcp.notion'))
   assert.ok(ids.includes('mcp.graphify'))
   assert.ok(ids.includes('mcp.headroom'))
+  assert.ok(ids.includes('mcp.graft'))
   assert.ok(ids.includes('plugin.superpowers'))
   assert.ok(ids.includes('plugin.mattpocock-skills'))
   assert.ok(ids.includes('plugin.ponytail'))
   assert.ok(ids.includes('skill.gstack'))
   assert.ok(ids.includes('skill.caveman'))
+  assert.ok(ids.includes('skill.i-have-adhd'))
   assert.ok(ids.includes('skill.taste'))
   assert.ok(ids.includes('skill.hallmark'))
   assert.ok(ids.includes('skill.diagram-design'))
