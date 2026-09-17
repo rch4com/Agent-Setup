@@ -5,6 +5,23 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Graft MCP와 I Have ADHD 스킬을 넣는다 (2026-09-17, 1.23.0)
+
+- **`mcp.graft`.** trailhq/Graft의 코드베이스 지식 그래프를 MCP 도구 6종으로
+  배선한다. 상류 README가 수동 등록용으로 적은 계약 그대로 `npx -y
+  @nanonets/graft mcp`(stdio)를 프로젝트 MCP 설정에 쓰므로 따로 설치할 것이
+  없고, `graft build`로 그래프를 먼저 만들면 된다. 상류 `graft init`의 깊은
+  연동은 `AGENTS.md`·`GEMINI.md`·Claude 훅·`~/.codex`를 직접 고치는데 그
+  파일들은 부트스트랩이 관리하므로 쓰지 않는다. Windows에서는 의존성
+  `tree-sitter-kotlin`이 prebuild 없이 C++ 툴체인 컴파일을 요구하고 Node
+  24는 컴파일이 안 된다(상류 #400) — 서버 기동은 실측하지 못했고 설정
+  쓰기·감지·제거 왕복만 검증했다. note와 README에 적어 두었다.
+- **`skill.i-have-adhd`.** ayghri/i-have-adhd의 ADHD 독자용 출력 형식
+  스킬(다음 행동부터, 번호 매긴 단계, 곁길 억제, 서두·맺음말 없음)을 공유
+  `.agents/skills`에 복사해 11개 CLI가 함께 본다. `/i-have-adhd`로 켜고
+  "stop adhd mode"로 끈다. 상류 Claude 플러그인 판이 더 주는 것은 opt-in
+  상시 적용 플래그용 SessionStart 훅 하나라 스킬 판을 택했다.
+
 ## OfficeCLI 스킬을 넣는다 (2026-09-15, 1.22.0)
 
 - **`skill.officecli`.** iOfficeAI/OfficeCLI의 Office 문서(.docx·.xlsx·.pptx)

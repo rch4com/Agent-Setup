@@ -5,6 +5,25 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Graft MCP and the I Have ADHD skill added (2026-09-17, 1.23.0)
+
+- **`mcp.graft`.** Wires trailhq/Graft, a codebase knowledge graph, as six
+  MCP tools. It writes the exact command upstream documents for manual
+  registration, `npx -y @nanonets/graft mcp` (stdio), into the project MCP
+  configs, so there is nothing to install — build the graph first with
+  `graft build`. The upstream `graft init` deep integration is not used: it
+  edits `AGENTS.md`, `GEMINI.md`, Claude hooks and `~/.codex` directly, files
+  this bootstrap owns. On Windows the `tree-sitter-kotlin` dependency ships no
+  prebuilds and needs a C++ toolchain, and Node 24 cannot compile it at all
+  (upstream #400) — the server could not be started, so only the config
+  write, detect and remove round trip was verified. The note and README say so.
+- **`skill.i-have-adhd`.** Copies the output-shaping skill for ADHD readers
+  from ayghri/i-have-adhd (next action first, numbered steps, no tangents, no
+  preamble or closers) into the shared `.agents/skills`, where all 11 CLIs see
+  it. Turn on with `/i-have-adhd`, off with "stop adhd mode". The upstream
+  Claude plugin edition adds only a SessionStart hook for an opt-in always-on
+  flag, so the skill edition was chosen.
+
 ## OfficeCLI skill added (2026-09-15, 1.22.0)
 
 - **`skill.officecli`.** Copies the Office-document skill (.docx, .xlsx,
