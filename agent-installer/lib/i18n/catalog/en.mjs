@@ -278,6 +278,7 @@ export default {
   'item.plugin.ecc.note': 'skills, instincts, memory and security for agent harnesses. Installed as a plugin — its skills/ holds 284 entries, too many to copy into the shared skills directory',
   'item.plugin.impeccable.note': 'design language for AI harnesses. Plugin route on purpose: npx impeccable install replaces .claude/skills and breaks the shared .agents/skills link',
   'item.plugin.understand-anything.note': 'turns the codebase into an explorable knowledge graph. The script for other CLIs clones into ~/.understand-anything (user scope), so only the plugin is wired',
+  'item.skill.eli5.note': 'eli5 from the Anthropic community marketplace — turns /eli5 <topic> into an HTML picture explainer with big visuals and few words. Upstream ships it as a Claude plugin, but it is a single skill with no hooks or commands, so it is installed as the shared skill all 11 CLIs see',
   'item.skill.i-have-adhd.note': 'output shaping for an ADHD reader — next action first, numbered steps, no tangents, restated progress, no preamble or closers. Turn on with /i-have-adhd, off with "stop adhd mode". Always-on is what the upstream Claude plugin edition adds through its hook; this item instead installs the shared skill that all 11 CLIs see',
   'item.skill.caveman.note': 'cuts output tokens by answering in caveman-speak; code and errors stay byte-exact. Toggle with /caveman',
   'item.skill.taste.note': 'anti-slop frontend skill for landing pages, portfolios and redesigns (skill name: design-taste-frontend)',

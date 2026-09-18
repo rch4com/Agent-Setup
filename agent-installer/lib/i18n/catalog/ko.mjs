@@ -271,6 +271,7 @@ export default {
   'item.plugin.ecc.note': '에이전트 하네스용 스킬·본능·메모리·보안 묶음. skills/에 284개가 들어 있어 공유 스킬 디렉터리에 복사하지 않고 플러그인으로 설치합니다',
   'item.plugin.impeccable.note': 'AI 하네스용 디자인 언어. 플러그인 경로를 쓰는 이유는 npx impeccable install이 .claude/skills를 갈아치워 공유 .agents/skills 연결을 끊기 때문입니다',
   'item.plugin.understand-anything.note': '코드베이스를 탐색 가능한 지식 그래프로 만듭니다. 다른 CLI용 스크립트는 ~/.understand-anything에 클론하는 사용자 스코프라 플러그인만 배선합니다',
+  'item.skill.eli5.note': 'Anthropic 커뮤니티 마켓플레이스의 eli5 — /eli5 <주제>를 큰 그림과 짧은 글의 HTML 설명서로 만듭니다. 상류는 Claude 플러그인이지만 훅·명령 없이 스킬 하나라, 11개 CLI가 함께 보는 공유 스킬로 넣습니다',
   'item.skill.i-have-adhd.note': 'ADHD 독자를 위한 출력 형식 — 다음 행동부터, 단계는 번호로, 곁길 억제, 진행 상태 재진술, 서두·맺음말 없음. /i-have-adhd로 켜고 "stop adhd mode"로 끕니다. 상시 적용은 상류 Claude 플러그인 판의 훅이 담당하는데, 이 항목은 그 대신 11개 CLI가 함께 보는 공유 스킬로 넣습니다',
   'item.skill.caveman.note': '원시인 말투로 답해 출력 토큰을 줄입니다. 코드와 오류는 그대로 둡니다. /caveman으로 켜고 끕니다',
   'item.skill.taste.note': '랜딩 페이지·포트폴리오·리디자인용 안티슬롭 프런트엔드 스킬 (스킬 이름: design-taste-frontend)',
