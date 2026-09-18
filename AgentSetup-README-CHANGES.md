@@ -5,6 +5,16 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## ELI5 skill added (2026-09-18, 1.24.0)
+
+- **`skill.eli5`.** Copies the single skill inside the eli5 plugin of the
+  Anthropic community marketplace (anthropics/claude-plugins-community) into
+  the shared `.agents/skills`, where all 11 CLIs see it. `/eli5 <topic>`
+  produces an HTML picture explainer with big visuals and few words. Upstream
+  ships it as a Claude plugin, but it carries no hooks or commands, so the
+  skill edition was chosen; the marketplace repository holds many plugins, so
+  the source is the `eli5/` subpath rather than the repository root.
+
 ## Graft MCP and the I Have ADHD skill added (2026-09-17, 1.23.0)
 
 - **`mcp.graft`.** Wires trailhq/Graft, a codebase knowledge graph, as six

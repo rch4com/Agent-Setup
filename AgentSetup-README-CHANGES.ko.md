@@ -5,6 +5,15 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## ELI5 스킬을 넣는다 (2026-09-18, 1.24.0)
+
+- **`skill.eli5`.** Anthropic 커뮤니티 마켓플레이스
+  (anthropics/claude-plugins-community)의 eli5 플러그인이 담은 스킬 하나를
+  공유 `.agents/skills`에 복사해 11개 CLI가 함께 본다. `/eli5 <주제>`를 큰
+  그림과 짧은 글의 HTML 설명서로 만든다. 상류의 본래 경로는 Claude
+  플러그인이지만 훅·명령 없이 스킬 하나라 스킬 판을 택했고, 마켓 저장소에는
+  플러그인이 여럿이라 루트가 아니라 `eli5/` 하위 경로를 source로 준다.
+
 ## Graft MCP와 I Have ADHD 스킬을 넣는다 (2026-09-17, 1.23.0)
 
 - **`mcp.graft`.** trailhq/Graft의 코드베이스 지식 그래프를 MCP 도구 6종으로
