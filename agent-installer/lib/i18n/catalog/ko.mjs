@@ -276,6 +276,7 @@ export default {
   'item.skill.caveman.note': '원시인 말투로 답해 출력 토큰을 줄입니다. 코드와 오류는 그대로 둡니다. /caveman으로 켜고 끕니다',
   'item.skill.taste.note': '랜딩 페이지·포트폴리오·리디자인용 안티슬롭 프런트엔드 스킬 (스킬 이름: design-taste-frontend)',
   'item.skill.hallmark.note': '네 가지 동사(신규 제작·audit·redesign·study)를 갖춘 안티 AI슬롭 디자인 스킬. 테마 21종과 슬롭 테스트 57종. 상류는 Cursor·Codex 경로도 안내하지만 공유 스킬 디렉터리 하나로 11개 CLI가 함께 봅니다',
+  'item.skill.archify.note': '아키텍처·워크플로·시퀀스·데이터 흐름·라이프사이클 다이어그램을 검증을 거친 단독 HTML(인라인 SVG, 다크/라이트, PNG·SVG·WebM 내보내기)로 만듭니다. 붙여 넣은 Mermaid도 다시 그립니다. 동봉된 검증기를 돌리려면 Node 18+가 필요합니다(npm install 불필요). 첫 다이어그램 뒤 상류 릴리스 매니페스트를 한 번 확인하며, ARCHIFY_UPDATE_CHECK_DISABLED=1로 끕니다',
   'item.skill.diagram-design.note': '브랜드 색·폰트로 다이어그램 27종을 그리는 HTML/SVG 스킬. Mermaid·draw.io 원본도 다시 그립니다. 기본 폰트(Instrument Serif·Geist)에 한글 글리프가 없어 style-guide.md에서 바꿔야 하고, PNG 내보내기는 Playwright·Chromium이 따로 필요합니다. 상류 플러그인의 명령 3개는 빠지지만 그 본문인 references/는 그대로 옵니다',
   'item.skill.superpowers.note': '공유 .agents/skills에 스킬 14종을 복사해 11개 CLI가 함께 봅니다. 플러그인 판과 하나만 고를 수 있습니다 — 이쪽은 session-start 훅이 없어 대화 시작 시 자동 주입이 되지 않고, 스킬을 불러서 씁니다',
   'item.skill.agent-browser.note': '브라우저 자동화 CLI를 쓰게 하는 스킬. PATH에 agent-browser 바이너리 필요 — npm i -g agent-browser 후 최초 1회 agent-browser install(Chrome for Testing 다운로드). SKILL.md는 안내 스텁이라 실제 지침은 설치된 CLI가 제공합니다. 본문이 하네스 중립이라 11개 CLI가 함께 씁니다(allowed-tools 줄만 Claude 문법)',
