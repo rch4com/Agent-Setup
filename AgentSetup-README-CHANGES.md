@@ -5,6 +5,17 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Archify skill added (2026-09-27, 1.25.0)
+
+- **`skill.archify`.** Copies the archify skill from tt-a1i/archify into the
+  shared `.agents/skills`, where all 11 CLIs see it. It renders architecture,
+  workflow, sequence, data-flow and lifecycle diagrams as validated standalone
+  HTML. Upstream also carries a contributor-only `archify-review` skill, and
+  `--skill archify` takes only the one wanted. The bundled validator runs with
+  Node 18+ and no `npm install`; after the first diagram the skill checks the
+  upstream release manifest once, which `ARCHIFY_UPDATE_CHECK_DISABLED=1`
+  turns off.
+
 ## ELI5 skill added (2026-09-18, 1.24.0)
 
 - **`skill.eli5`.** Copies the single skill inside the eli5 plugin of the

@@ -5,6 +5,16 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Archify 스킬을 넣는다 (2026-09-27, 1.25.0)
+
+- **`skill.archify`.** tt-a1i/archify의 archify 스킬을 공유
+  `.agents/skills`에 복사해 11개 CLI가 함께 본다. 아키텍처·워크플로·
+  시퀀스·데이터 흐름·라이프사이클 다이어그램을 검증을 거친 단독 HTML로
+  만든다. 상류에는 기여자용 `archify-review` 스킬도 있어 `--skill archify`로
+  하나만 받는다. 동봉 검증기는 `npm install` 없이 Node 18+로 돌고, 첫
+  다이어그램 뒤 상류 릴리스 매니페스트를 한 번 확인하며
+  `ARCHIFY_UPDATE_CHECK_DISABLED=1`로 끈다.
+
 ## ELI5 스킬을 넣는다 (2026-09-18, 1.24.0)
 
 - **`skill.eli5`.** Anthropic 커뮤니티 마켓플레이스
