@@ -5,6 +5,10 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Patch release (2026-10-03, 1.25.1)
+
+- **Republish.** Publishes a new patch version without installer behavior changes.
+
 ## Archify skill added (2026-09-27, 1.25.0)
 
 - **`skill.archify`.** Copies the archify skill from tt-a1i/archify into the

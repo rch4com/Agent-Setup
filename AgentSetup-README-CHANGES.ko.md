@@ -5,6 +5,10 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 패치 버전을 발행한다 (2026-10-03, 1.25.1)
+
+- **재발행.** 인스톨러 기능 변경 없이 새 패치 버전으로 발행한다.
+
 ## Archify 스킬을 넣는다 (2026-09-27, 1.25.0)
 
 - **`skill.archify`.** tt-a1i/archify의 archify 스킬을 공유
