@@ -9,6 +9,28 @@ Newest entries come first. For detailed usage, see
 
 - **Republish.** Publishes a new patch version without installer behavior changes.
 
+## CLI-Anything, HyperFrames and Remotion added; commit template wires VS Code (2026-10-06, 1.26.0)
+
+- **`plugin.cli-anything`.** The Claude Code plugin from HKUDS/CLI-Anything
+  (Apache-2.0), `--scope project`. `/cli-anything` generates an agent-ready
+  Python CLI for GUI/desktop software. Other CLIs are skipped with a reason:
+  Codex installs per user, OpenCode has only a manual copy.
+- **`plugin.hyperframes`.** The upstream-recommended `hyperframes@hyperframes`
+  bundle of 21 skills from heygen-com/hyperframes. It is a plugin rather than
+  a skill because a non-interactive `skills add` copies all 21. Rendering needs
+  Node.js 22+ and FFmpeg.
+- **`skill.remotion`.** Copies `remotion-best-practices` from
+  remotion-dev/skills into the shared `.agents/skills`; it holds the other 11
+  skills (141 files, 1.1MB), so only it is taken. The Remotion License needs a
+  company license for for-profit organizations above 3 employees.
+- **Commit template now wires VS Code.** `config.gitmessage.*` adds
+  `git.useEditorAsCommitInput` and
+  `github.copilot.chat.commitMessageGeneration.instructions` to
+  `.vscode/settings.json` when absent. Existing keys are never overwritten, and
+  removal deletes only a key whose value is exactly the one written. Before
+  this, the keys existed only in the settings of this repository itself and
+  were never deployed.
+
 ## Archify skill added (2026-09-27, 1.25.0)
 
 - **`skill.archify`.** Copies the archify skill from tt-a1i/archify into the

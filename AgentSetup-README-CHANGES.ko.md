@@ -9,6 +9,27 @@
 
 - **재발행.** 인스톨러 기능 변경 없이 새 패치 버전으로 발행한다.
 
+## CLI-Anything·HyperFrames·Remotion을 넣고 커밋 템플릿이 VS Code를 배선한다 (2026-10-06, 1.26.0)
+
+- **`plugin.cli-anything`.** HKUDS/CLI-Anything(Apache-2.0)의 Claude Code
+  플러그인, `--scope project`. `/cli-anything`이 GUI·데스크톱 소프트웨어용
+  에이전트 친화 Python CLI를 만든다. 다른 CLI는 사유를 밝히고 건너뛴다 —
+  Codex는 사용자 스코프 설치, OpenCode는 수동 복사뿐이다.
+- **`plugin.hyperframes`.** heygen-com/hyperframes의 상류 권장 번들
+  `hyperframes@hyperframes`(스킬 21종). 비대화형 `skills add`가 21종을 전부
+  복사하기 때문에 스킬이 아닌 플러그인으로 넣었다. 렌더에는 Node.js 22+와
+  FFmpeg가 필요하다.
+- **`skill.remotion`.** remotion-dev/skills의 `remotion-best-practices`를 공유
+  `.agents/skills`에 복사한다. 나머지 11개 스킬을 품고 있어(141개 파일,
+  1.1MB) 이것만 받는다. Remotion License는 직원 3명을 넘는 영리 조직에 회사
+  라이선스를 요구한다.
+- **커밋 템플릿이 VS Code도 배선한다.** `config.gitmessage.*`가
+  `.vscode/settings.json`에 `git.useEditorAsCommitInput`과
+  `github.copilot.chat.commitMessageGeneration.instructions`를 없을 때만
+  더한다. 이미 있는 키는 덮지 않고, 제거는 넣은 값과 정확히 같은 키만
+  지운다. 그전에는 이 키들이 이 저장소 자신의 설정에만 있어 배포되지
+  않았다.
+
 ## Archify 스킬을 넣는다 (2026-09-27, 1.25.0)
 
 - **`skill.archify`.** tt-a1i/archify의 archify 스킬을 공유
