@@ -10,15 +10,30 @@
 // 통째로 실패한다.
 import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { isDeepStrictEqual } from 'node:util'
 import { normalizeBody } from './bootstrap/text.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
+import { readJson, removeKey, setKey } from './jsonfile.mjs'
 
 export const GITMESSAGE_REL = '.gitmessage.txt'
 // 한 파일을 두고 다투는 항목들의 묶음 이름.
 export const GITMESSAGE_EXCLUSIVE = 'gitmessage'
 
 const CONFIG_KEY = 'commit.template'
+
+// VS Code가 이 템플릿을 쓰게 하는 설정. 커밋 입력을 COMMIT_EDITMSG 에디터로
+// 열어야 git이 commit.template을 그대로 채운다(SCM 입력창은 주석(#)뿐인
+// 템플릿을 표시하지 못한다). instructions는 Copilot 커밋 메시지 생성에 같은
+// 템플릿을 적용한다 — 비어 있지 않으면 생성이 조용히 실패하던 상류 버그
+// microsoft/vscode#315997은 2026-05-23에 닫혔다.
+// 키가 이미 있으면 값이 달라도 손대지 않고, 제거는 우리가 넣은 값과 정확히
+// 같을 때만 지운다 — 사용자가 다른 값으로 바꿨다면 그것은 사용자의 설정이다.
+const VSCODE_SETTINGS = '.vscode/settings.json'
+const VSCODE_KEYS = {
+  'git.useEditorAsCommitInput': true,
+  'github.copilot.chat.commitMessageGeneration.instructions': [{ file: GITMESSAGE_REL }],
+}
 
 // 이 저장소 루트의 .gitmessage.txt와 같은 내용이다 —
 // test/items.gitmessage.test.mjs가 두 값이 갈리지 않게 고정한다.
@@ -212,6 +227,15 @@ export function defineGitmessage({ id, label, body, note }) {
 
       const r = await exec('git', ['config', '--local', CONFIG_KEY, GITMESSAGE_REL], { cwd: root })
       if (!r.ok) throw new LocalizedError('error.gitmessageConfig', { output: r.output })
+
+      // 깨진 settings.json은 readJson이 파일 이름과 줄을 말하며 던진다.
+      const file = repoPathStrict(root, VSCODE_SETTINGS)
+      const data = readJson(file) ?? {}
+      for (const [key, value] of Object.entries(VSCODE_KEYS)) {
+        if (data[key] !== undefined) log(t('log.gitmessage.settingsKeep', { path: VSCODE_SETTINGS, key }))
+        else if (dryRun) log(t('log.gitmessage.settingsAdd', { path: VSCODE_SETTINGS, key }))
+        else setKey(file, [key], value)
+      }
     },
 
     async uninstall({ root, dryRun, exec, log = () => {}, t }) {
@@ -225,6 +249,14 @@ export function defineGitmessage({ id, label, body, note }) {
 
       // 남의 값이나 빈 값에 --unset을 걸면 git이 실패를 돌려준다.
       if (pointsHere(root)) await exec('git', ['config', '--local', '--unset', CONFIG_KEY], { cwd: root })
+
+      const file = repoPathStrict(root, VSCODE_SETTINGS)
+      const data = readJson(file) ?? {}
+      for (const [key, value] of Object.entries(VSCODE_KEYS)) {
+        if (!isDeepStrictEqual(data[key], value)) continue
+        if (dryRun) log(t('log.gitmessage.settingsRemove', { path: VSCODE_SETTINGS, key }))
+        else removeKey(file, [key])
+      }
     },
   }
 }

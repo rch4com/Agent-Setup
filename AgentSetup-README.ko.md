@@ -250,7 +250,7 @@ npx @rch4com/agent-setup bootstrap --adopt
 | `global.*` (`global.superpowers`, `global.ponytail`) | **저장소 밖에 씁니다.** `PATH`에 있는 CLI마다 `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, `grok plugin install <소스> --trust`를 실행하고, 사용자 전역 `opencode.json`의 plugin 배열을 직접 고칩니다. 상세 패널과 검토 화면이 전역임을 표시하며 `--set`은 이 항목을 제거하지 않습니다 |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
 | `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
-| `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — 저장소의 `.git/config`만 고칩니다(네트워크 없음). 전역·시스템 설정은 읽지도 쓰지도 않습니다 |
+| `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — `.vscode/settings.json`에 `git.useEditorAsCommitInput`과 `github.copilot.chat.commitMessageGeneration.instructions`도 없을 때만 더합니다(이미 있는 키는 덮지 않고, 제거는 넣은 값과 정확히 같은 키만 지웁니다). 저장소 안만 고칩니다(네트워크 없음). 전역·시스템 설정은 읽지도 쓰지도 않습니다 |
 | design.md | `raw.githubusercontent.com`에서 `DESIGN.md`를 내려받습니다(문서 파일이며 실행되지 않습니다). 동봉 번들에 있으면 네트워크를 쓰지 않습니다 |
 
 - 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.

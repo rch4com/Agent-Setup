@@ -303,11 +303,14 @@ export default {
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project — wires five runtimes in one run: claude, codex, opencode, copilot, kilo (.claude/commands, .codex/skills, .opencode/skills, .github/skills, .kilo/skills). Each runtime writes roughly 700 files. gemini was dropped upstream and kimi still blocks project installs',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고
   // 무엇이 설정되는가"를 대신 말한다(상세 패널에 배선표가 없다).
-  'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository',
-  'item.config.gitmessage.ko.note': 'commit messages in Korean. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository',
+  'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set)',
+  'item.config.gitmessage.ko.note': 'commit messages in Korean. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set)',
   'item.gitmessage.unregistered': 'file is in place, but commit.template does not point at it yet',
   'log.gitmessage.write': '  [dry-run] write {path}',
   'log.gitmessage.remove': '  [dry-run] remove {path}',
+  'log.gitmessage.settingsAdd': '  [dry-run] add {path} — {key}',
+  'log.gitmessage.settingsKeep': '  settings key kept (already set): {path} — {key}',
+  'log.gitmessage.settingsRemove': '  [dry-run] remove {path} — {key}',
   'error.gitmessageForeign': '{path} already exists and was not written by this tool. A hand-written template is never overwritten — move or delete it first.',
   'error.gitmessageConfig': 'git config commit.template failed: {output}',
   'error.exclusiveItems': 'These items compete for the same slot, so only one can be chosen: {ids}',

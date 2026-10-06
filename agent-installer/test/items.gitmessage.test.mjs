@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { parse } from 'jsonc-parser'
 import { join } from 'node:path'
 import { loadItems, makeExec } from '../lib/catalog.mjs'
 import { assertExclusive } from '../lib/engine.mjs'
@@ -186,4 +187,79 @@ test('그룹 헤더가 대상 파일과 배타 규칙을 밝힌다', () => {
     assert.match(label, /\.gitmessage\.txt/, `${locale}: 헤더에 대상 파일이 없다`)
     assert.notEqual(label, '__commit', `${locale}: 헤더가 번역되지 않았다`)
   }
+})
+
+const SETTINGS = '.vscode/settings.json'
+const EDITOR_KEY = 'git.useEditorAsCommitInput'
+const INSTR_KEY = 'github.copilot.chat.commitMessageGeneration.instructions'
+
+function settings(root) {
+  return readFileSync(join(root, SETTINGS), 'utf8')
+}
+
+test('설치는 VS Code 설정 두 키를 넣고 기존 키·주석을 지킨다', async () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, SETTINGS), '{\n  // 내 설정\n  "editor.tabSize": 4\n}\n')
+  const { ko } = await items()
+  await ko.install(ctx(root))
+  const text = settings(root)
+  assert.ok(text.includes('// 내 설정'))
+  const data = parse(text)
+  assert.equal(data['editor.tabSize'], 4)
+  assert.equal(data[EDITOR_KEY], true)
+  assert.deepEqual(data[INSTR_KEY], [{ file: GITMESSAGE_REL }])
+})
+
+test('설정 파일이 없으면 만들고, 다시 설치해도 그대로다', async () => {
+  const root = makeTempRepo()
+  const { ko } = await items()
+  await ko.install(ctx(root))
+  const first = settings(root)
+  await ko.install(ctx(root))
+  assert.equal(settings(root), first)
+})
+
+test('이미 있는 키는 값이 달라도 덮지 않는다', async () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.vscode'))
+  writeFileSync(join(root, SETTINGS), `{ "${EDITOR_KEY}": false }\n`)
+  const { ko } = await items()
+  const c = ctx(root)
+  await ko.install(c)
+  assert.equal(parse(settings(root))[EDITOR_KEY], false)
+  assert.ok(c.lines.some((l) => l.includes(EDITOR_KEY)))
+})
+
+test('제거는 우리가 넣은 값과 같은 키만 지운다', async () => {
+  const root = makeTempRepo()
+  const { ko } = await items()
+  await ko.install(ctx(root))
+  const data = parse(settings(root))
+  data[INSTR_KEY] = [{ file: 'mine.txt' }] // 사용자가 바꾼 값
+  data['editor.tabSize'] = 4
+  writeFileSync(join(root, SETTINGS), JSON.stringify(data, null, 2))
+  await ko.uninstall(ctx(root))
+  const after = parse(settings(root))
+  assert.equal(EDITOR_KEY in after, false)
+  assert.deepEqual(after[INSTR_KEY], [{ file: 'mine.txt' }])
+  assert.equal(after['editor.tabSize'], 4)
+})
+
+test('언어를 바꿔도 VS Code 설정은 남는다', async () => {
+  const root = makeTempRepo()
+  const { en, ko } = await items()
+  await ko.install(ctx(root))
+  await en.install(ctx(root))
+  await ko.uninstall(ctx(root))
+  assert.equal(parse(settings(root))[EDITOR_KEY], true)
+})
+
+test('dry-run은 VS Code 설정 파일을 만들지 않고 키를 알린다', async () => {
+  const root = makeTempRepo()
+  const { ko } = await items()
+  const c = ctx(root, { dryRun: true })
+  await ko.install(c)
+  assert.equal(existsSync(join(root, SETTINGS)), false)
+  assert.ok(c.lines.some((l) => l.includes(EDITOR_KEY)))
 })

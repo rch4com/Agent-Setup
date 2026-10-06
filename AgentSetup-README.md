@@ -261,7 +261,7 @@ when you pick something.
 | `global.*` (`global.superpowers`, `global.ponytail`) | **Writes outside the repository.** Runs `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, and `grok plugin install <source> --trust` for each CLI found on `PATH`, and edits the plugin array of the user-global `opencode.json` directly. The detail panel and review screen mark these as global; `--set` never removes them |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — downloads and runs the latest version with no confirmation prompt (`-y`) |
 | `skill.gstack` | Shallow-clones the default branch of `github.com/garrytan/gstack` and then runs `bash ./setup` inside the repository. It does not pin a commit or verify integrity |
-| `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — touches only the repository's `.git/config` (no network). Global and system settings are neither read nor written |
+| `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — also adds `git.useEditorAsCommitInput` and `github.copilot.chat.commitMessageGeneration.instructions` to `.vscode/settings.json` when absent (existing keys are never overwritten; removal deletes only a key whose value is exactly the one written). Touches only the repository (no network). Global and system settings are neither read nor written |
 | design.md | Downloads `DESIGN.md` from `raw.githubusercontent.com` (a document file; it is not executed). If it exists in the bundled cache, no network is used |
 
 - Make sure you trust the target repository/package before picking an item.
