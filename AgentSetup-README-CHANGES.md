@@ -9,6 +9,21 @@ Newest entries come first. For detailed usage, see
 
 - **Republish.** Publishes a new patch version without installer behavior changes.
 
+## impeccable shared-skill edition added (2026-10-07, 1.27.0)
+
+- **`skill.impeccable`.** Copies the impeccable skill from pbakaus/impeccable
+  into the shared `.agents/skills` (62 files, 2.3MB), so all 11 CLIs see it.
+  It excludes `plugin.impeccable` — the same upstream cannot be registered
+  twice. The engine binary is not bundled; on first run the skill's
+  `scripts/impeccable` downloads it into `~/.impeccable`, which writes outside
+  the repository.
+- **The old reason is withdrawn.** The skill route used to be blocked because
+  `npx impeccable install` replaced the `.claude/skills` link (measured on
+  3.6.0). On 4.1.0 it no longer does: the link survived for claude and kiro
+  (Junction) and for codex, antigravity, gemini, opencode, grok and copilot
+  (symlink). `plugin.impeccable` now points the other CLIs to the skill
+  edition instead.
+
 ## CLI-Anything, HyperFrames and Remotion added; commit template wires VS Code (2026-10-06, 1.26.0)
 
 - **`plugin.cli-anything`.** The Claude Code plugin from HKUDS/CLI-Anything

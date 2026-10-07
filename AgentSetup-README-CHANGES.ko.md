@@ -9,6 +9,19 @@
 
 - **재발행.** 인스톨러 기능 변경 없이 새 패치 버전으로 발행한다.
 
+## impeccable 공유 스킬 판을 넣는다 (2026-10-07, 1.27.0)
+
+- **`skill.impeccable`.** pbakaus/impeccable의 impeccable 스킬을 공유
+  `.agents/skills`에 복사해(62개 파일, 2.3MB) 11개 CLI가 함께 본다.
+  `plugin.impeccable`과 배타다 — 같은 상류를 두 번 등록할 수 없다. 엔진
+  바이너리는 들어 있지 않고, 첫 실행 때 스킬의 `scripts/impeccable`이
+  `~/.impeccable`로 내려받는다. 저장소 밖에 쓰는 동작이다.
+- **예전 사유를 걷는다.** 스킬 경로는 `npx impeccable install`이
+  `.claude/skills` 연결을 갈아치운다는 이유(3.6.0 측정)로 막혀 있었다.
+  4.1.0에서는 그렇지 않다 — claude·kiro(Junction)와 codex·antigravity·
+  gemini·opencode·grok·copilot(symlink) 모두 링크가 남았다.
+  `plugin.impeccable`은 이제 다른 CLI를 스킬 판으로 안내한다.
+
 ## CLI-Anything·HyperFrames·Remotion을 넣고 커밋 템플릿이 VS Code를 배선한다 (2026-10-06, 1.26.0)
 
 - **`plugin.cli-anything`.** HKUDS/CLI-Anything(Apache-2.0)의 Claude Code
