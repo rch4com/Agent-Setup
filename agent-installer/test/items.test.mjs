@@ -8,9 +8,9 @@ import { LABEL_WIDTH, width } from '../lib/tui/render.mjs'
 import { categoryLabel } from '../lib/design-md/flow.mjs'
 import EN from '../lib/i18n/catalog/en.mjs'
 
-test('loadItems는 38개 항목을 id순으로 로드한다', async () => {
+test('loadItems는 39개 항목을 id순으로 로드한다', async () => {
   const items = await loadItems()
-  assert.equal(items.length, 38)
+  assert.equal(items.length, 39)
   const ids = items.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   assert.ok(ids.includes('config.gitmessage.en'))
@@ -38,6 +38,7 @@ test('loadItems는 38개 항목을 id순으로 로드한다', async () => {
   assert.ok(ids.includes('skill.diagram-design'))
   assert.ok(ids.includes('skill.archify'))
   assert.ok(ids.includes('skill.remotion'))
+  assert.ok(ids.includes('skill.impeccable'))
   assert.ok(ids.includes('skill.superpowers'))
   assert.ok(ids.includes('skill.mattpocock-skills'))
   assert.ok(ids.includes('skill.prompt-master'))
@@ -54,6 +55,7 @@ test('같은 상류의 플러그인 판과 스킬 판은 배타다', async () =>
   for (const [pluginId, skillId, key] of [
     ['plugin.superpowers', 'skill.superpowers', 'superpowers'],
     ['plugin.mattpocock-skills', 'skill.mattpocock-skills', 'mattpocock'],
+    ['plugin.impeccable', 'skill.impeccable', 'impeccable'],
   ]) {
     assert.equal(pick(pluginId).exclusive, key, `${pluginId}: 배타 키가 없다`)
     assert.equal(pick(skillId).exclusive, key, `${skillId}: 배타 키가 없다`)
@@ -110,8 +112,8 @@ test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', as
   // superpowers: 상류가 하니스별 설치로 지원하는 CLI / 경로 없는 CLI
   assert.equal(why('plugin.superpowers', 'codex'), 'item.unsupported.superpowersSeparate')
   assert.equal(why('plugin.superpowers', 'kiro'), 'item.unsupported.upstreamNone')
-  // impeccable: 상류가 지원하는 CLI는 Junction 파괴가 미배선 사유
-  assert.equal(why('plugin.impeccable', 'grok'), 'item.unsupported.impeccableJunction')
+  // impeccable: 상류가 지원하는 CLI는 공유 스킬 판(skill.impeccable)이 맡는다
+  assert.equal(why('plugin.impeccable', 'grok'), 'item.unsupported.impeccableSkill')
   assert.equal(why('plugin.impeccable', 'kilo'), 'item.unsupported.upstreamNone')
   // gstack: 공유 Junction 도달 여부와 스캔 깊이가 사유를 가른다(2026-08-15 실측)
   assert.equal(why('skill.gstack', 'codex'), 'item.unsupported.gstackShared')

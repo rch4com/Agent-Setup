@@ -1,32 +1,28 @@
 import { definePlugin } from '../catalog.mjs'
 import { CLI_IDS } from '../clis.mjs'
 import { msg } from '../i18n/index.mjs'
-// 상류의 멀티 CLI 경로(`npx impeccable install --providers=... --scope=project`)는
-// 쓰지 않는다. 실측 결과 그 명령이 `.claude/skills`를 **실제 디렉터리로 갈아치워**
-// 부트스트랩이 만든 `.agents/skills` Junction을 끊는다 — 공유 스킬이 전부
-// Claude Code 화면에서 사라진다. 버그가 아니라 설계다: 상류
-// `cli/bin/commands/skills.mjs`의 isInProjectProviderLink가 "프로젝트 안 다른
-// 프로바이더의 skills를 가리키는 링크"를 의도적으로 unlink한다(3.6.0 재확인,
-// 2026-08-15 — 저장소 밖을 가리키는 링크는 보존하지만, 부트스트랩 Junction은
-// 프로젝트 안 `.agents/skills`를 가리켜 여전히 파괴 대상이다).
-// 플러그인 경로는 `.claude/skills`를 건드리지 않는다.
-// 또 그 명령은 `--providers`와 `--scope`를 함께 주지 않으면 대화형으로 물으며,
-// 비TTY에서는 조용히 global을 골라 홈에 설치한다.
-// 상류 공식 프로바이더는 3.6.0 기준 16개(.agent=antigravity·.hermes가 새로
-// 들어옴 — README는 아직 수동 복사만 안내해 코드가 앞선다). 이 저장소의 CLI와
-// 겹치는 것은 아래 UPSTREAM 그대로다.
+// 같은 상류를 공유 스킬(skill.impeccable)로도 넣을 수 있다. 플러그인은 Claude
+// 하나에만 닿고 스킬 판은 11개 CLI가 함께 본다. 둘을 함께 켜면 같은 스킬이 두
+// 경로에서 잡혀 중복 등록되므로 배타로 묶는다.
+// 예전에는 `npx impeccable install`이 `.claude/skills` Junction을 실제
+// 디렉터리로 갈아치운다는 이유(3.6.0 측정)로 스킬 경로를 막았지만, 4.1.0을
+// 2026-10-06에 다시 재 보니 claude·kiro(Junction)와 codex·antigravity·gemini
+// ·opencode·grok·copilot(symlink)에서 링크가 그대로 남았다. 그 사유는 폐기한다.
+// 다만 그 명령은 provider마다 엔진 바이너리(약 19MB)를 따로 복사하고 비TTY에서
+// 범위를 묻지 않으므로, 이 저장소는 레지스트리 스킬 경로를 쓴다.
 const UPSTREAM = ['codex', 'gemini', 'opencode', 'kiro', 'grok', 'copilot', 'antigravity']
 export default definePlugin({
   id: 'plugin.impeccable', label: 'impeccable', group: '__style',
   installId: 'impeccable@impeccable',
   detectIds: ['impeccable@impeccable'],
   marketplace: { name: 'impeccable', repo: 'pbakaus/impeccable' },
+  exclusive: 'impeccable',
   note: 'item.plugin.impeccable.note',
-  verified: '2026-08-15',
+  verified: '2026-10-06',
   unsupported: Object.fromEntries(
     CLI_IDS.filter((c) => c !== 'claude').map((c) => [
       c,
-      UPSTREAM.includes(c) ? msg('item.unsupported.impeccableJunction') : msg('item.unsupported.upstreamNone'),
+      UPSTREAM.includes(c) ? msg('item.unsupported.impeccableSkill') : msg('item.unsupported.upstreamNone'),
     ]),
   ),
 })
