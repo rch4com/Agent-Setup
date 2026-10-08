@@ -5,6 +5,15 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## im-not-ai Korean humanizer skill added (2026-10-08, 1.28.0)
+
+- **`skill.im-not-ai`.** Copies the four skills from epoko77-ai/im-not-ai
+  (humanize-korean plus the humanize, humanize-scan and humanize-redo entry
+  points) into the shared `.agents/skills` (22 files, 420KB), so all 11 CLIs
+  see them. Only the skills come along — upstream's 9 subagents sit outside
+  the skill folders, so the multi-call heavy route runs only where the CLI
+  can run subagents itself, or through the upstream Claude plugin.
+
 ## Patch release (2026-10-03, 1.25.1)
 
 - **Republish.** Publishes a new patch version without installer behavior changes.

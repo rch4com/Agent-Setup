@@ -5,6 +5,15 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## im-not-ai 한글 윤문 스킬을 넣는다 (2026-10-08, 1.28.0)
+
+- **`skill.im-not-ai`.** epoko77-ai/im-not-ai의 스킬 4종(humanize-korean과
+  humanize·humanize-scan·humanize-redo 진입점)을 공유 `.agents/skills`에
+  복사해(22개 파일, 420KB) 11개 CLI가 함께 본다. 스킬만 들어온다 — 상류
+  서브에이전트 9종은 스킬 폴더 밖에 있어, 다중 호출 heavy 경로는 CLI가
+  서브에이전트를 직접 돌릴 수 있거나 상류 Claude 플러그인을 쓸 때만
+  동작한다.
+
 ## 패치 버전을 발행한다 (2026-10-03, 1.25.1)
 
 - **재발행.** 인스톨러 기능 변경 없이 새 패치 버전으로 발행한다.
