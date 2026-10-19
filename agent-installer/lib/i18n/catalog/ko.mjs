@@ -261,6 +261,7 @@ export default {
   'item.mcp.notion.note': '인증: 각 CLI 첫 사용 시 OAuth',
   'item.mcp.vercel.note': '인증: 첫 사용 시 OAuth (승인된 클라이언트만 연결 가능)',
   'item.mcp.supabase.note': '인증: OAuth 동적 등록. 프로젝트 고정이 필요하면 URL에 ?project_ref=<id> 추가',
+  'item.mcp.ai-memory.note': 'PATH에 ai-memory 바이너리와 실행 중인 서비스가 필요합니다(ai-memory setup이 서비스를 띄웁니다. 설치: 상류 install.sh 또는 install.ps1, Windows 네이티브는 상류가 실험적이라 하며 WSL2를 지원합니다). 저장소에는 stdio 브리지(ai-memory mcp-bridge --no-session-id)만 등록하고, 토큰은 브리지가 데이터 디렉터리에서 읽어 저장소에 닿지 않습니다. 훅과 전역 배선은 쓰지 않습니다',
   'item.mcp.codebase-memory.note': 'PATH에 codebase-memory-mcp 바이너리 필요. 설치: https://github.com/DeusData/codebase-memory-mcp (install.sh / install.ps1)',
   'item.mcp.graft.note': '코드베이스 지식 그래프를 MCP 도구 6종(find_code·trace_calls·file_api 등)으로 냅니다. npx -y @nanonets/graft mcp로 실행하므로 별도 설치는 없지만, graft build로 그래프(graft/)를 먼저 만드세요(구조 그래프는 LLM 키 불필요). Windows는 의존성 tree-sitter-kotlin이 C++ 툴체인 컴파일을 요구하고 Node 24는 컴파일이 안 됩니다(상류 #400) — Node 22 + VS C++ 워크로드가 필요합니다. 상류 graft init은 AGENTS.md·GEMINI.md·훅을 직접 고치므로 쓰지 않습니다',
   'item.mcp.graphify.note': 'PATH에 graphify-mcp 바이너리 필요. 설치: uv tool install "graphifyy[mcp]". graphify-out/graph.json을 읽으므로 /graphify .로 그래프를 먼저 만드세요',
