@@ -149,3 +149,19 @@ test('runSteps: 단계의 timeout을 exec에 넘긴다', async () => {
   })
   assert.deepEqual(seen, [20000, undefined])
 })
+
+// 실행할 명령이 하나도 없는데 ✔로 끝나면 --set을 쓰는 CI가 조용한 무동작을 성공으로 받는다.
+test('install: 감지가 실패해 실행할 단계가 없으면 실패로 보고한다', async () => {
+  const user = bindScope(sample(), 'user')
+  await assert.rejects(
+    () => user.install({ root: '/r', exec: async () => ({ ok: true, output: '' }), state: { present: [], failed: ['claude', 'codex'], targets: ['claude', 'codex'] } }),
+    (err) => err.key === 'item.probeFailed' && err.params.list === 'claude, codex',
+  )
+})
+
+test('install: 대상 CLI가 이 머신에 없으면 성공이되 그 사실을 메시지로 남긴다', async () => {
+  const user = bindScope(sample(), 'user')
+  const r = await user.install({ root: '/r', exec: async () => ({ ok: true, output: '' }), state: { present: [], failed: [], targets: [], excluded: ['claude', 'codex'] } })
+  assert.equal(r.message.key, 'item.global.noCli')
+  assert.equal(r.message.params.list, 'claude, codex')
+})

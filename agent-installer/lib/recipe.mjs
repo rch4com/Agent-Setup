@@ -113,7 +113,19 @@ export function bindScope(def, scope) {
     },
 
     async install(ctx) {
-      await runSteps(this.steps('install', ctx.state), ctx)
+      const state = ctx.state ?? {}
+      const steps = this.steps('install', state)
+      // 실행할 명령이 없는데 ✔로 끝나면 --set을 쓰는 CI가 무동작을 성공으로 받는다.
+      // 감지 실패는 실패로, CLI가 이 머신에 없는 것은 사연 있는 성공으로 돌려준다.
+      if (steps.length === 0) {
+        const failed = state.failed ?? []
+        const excluded = state.excluded ?? []
+        if (failed.length > 0) throw new LocalizedError('item.probeFailed', { list: failed.join(', ') })
+        if (excluded.length > 0) return { message: msg('item.global.noCli', { list: excluded.join(', ') }) }
+        return undefined
+      }
+      await runSteps(steps, ctx)
+      return undefined
     },
 
     async uninstall(ctx) {

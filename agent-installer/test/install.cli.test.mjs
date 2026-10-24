@@ -288,3 +288,13 @@ test('--global --list는 전역 범위 항목과 범위 접미사를 낸다', ()
   assert.match(r.stdout, /plugin\.superpowers — superpowers \(전역\)/)
   assert.doesNotMatch(r.stdout, /skill\.gsd/, '저장소 전용 항목은 전역 목록에 없다')
 })
+
+// 감지가 실패해 실행할 명령이 없으면 ✖와 종료 코드 1이다 — 무동작을 성공으로 보고하지 않는다.
+test('감지 실패로 아무것도 못 한 --set은 실패로 끝난다', () => {
+  const root = makeTempRepo()
+  const fake = makeFakeClis(['npx'], { 'npx -y skills@latest list -g --json': { out: 'offline', code: 1 } })
+  const r = runInstaller(root, ['--global', '--set', 'skill.caveman'], { env: at(root, fake) })
+  assert.equal(r.status, 1, r.stdout)
+  assert.match(r.stdout, /✖ Install caveman — could not read install state/)
+  assert.ok(!fake.calls().some((c) => c.includes(' add ')), '설치 명령을 부르면 안 된다')
+})

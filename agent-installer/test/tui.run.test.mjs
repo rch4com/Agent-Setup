@@ -91,6 +91,11 @@ test('Tab은 탭을 옮긴다 — 활성 표시가 따라 움직인다', async (
 })
 
 test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적용', async () => {
+  // 가짜 claude가 PATH에 있어야 실제 설치 단계가 돈다 — CLI가 없으면 "CLI 없음"
+  // 사연이 붙어 성공 결과도 로그에 나온다(그쪽은 다른 테스트가 본다).
+  const fake = makeFakeClis(['claude'])
+  const saved = Object.fromEntries(Object.keys(fake.env).map((k) => [k, process.env[k]]))
+  Object.assign(process.env, fake.env)
   const { screen, frames, log } = await drive([
     ...TO_MCP,
     ...type('supabase'), // 검색칸 포커스로 올라가 걸러진다
@@ -100,10 +105,16 @@ test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적
     ENTER,               // 적용
     ANY,                 // "계속하려면 아무 키나"
     ...QUIT,
-    // dry-run은 이제 명령 출력 모드다. 실제 적용 경로를 태운다 — PATH에 CLI가
-    // 없어(isolateGlobalHome) 실행할 단계가 없으니 부작용도 없다.
-  ], { dryRun: false })
+    // dry-run은 이제 명령 출력 모드다. 실제 적용 경로를 태운다 — 가짜 claude가
+    // 명령을 기록만 하므로 부작용이 없다.
+  ], { dryRun: false }).finally(() => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  })
   assert.equal(screen.includes('제출 검토'), true, '검토 화면이 뜨지 않았다')
+  assert.ok(fake.calls().includes('claude mcp add -s project -t http supabase https://mcp.supabase.com/mcp'), fake.calls().join('\n'))
   // Task 11부터 성공한 항목은 로그에 나열되지 않는다 — 진행 화면이 대신
   // 보여 준다(runApply의 onProgress). log는 실패 사연 전용으로 좁혀졌다.
   //
@@ -111,7 +122,8 @@ test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적
   // 진행 화면이 통째로 비어 있어도 통과한다. 진행 화면만 골라 그 안에서 본다.
   const progressFrame = frames.filter((f) => f.includes('적용 중')).pop() ?? ''
   assert.ok(progressFrame.includes('Supabase MCP'), '진행 화면에 항목 라벨이 없다')
-  assert.equal(log.includes('Supabase'), false, '성공한 항목은 log에 남지 않아야 한다')
+  // 설치 후 할 일(OAuth 안내)에는 이름이 나온다 — 결과 줄만 없어야 한다.
+  assert.doesNotMatch(log, /✔[^\n]*Supabase/, '성공한 항목은 결과 로그에 남지 않아야 한다')
 })
 
 // 이 UX의 핵심: 검색칸에서는 스페이스가 검색어로 들어가 두 단어 검색이 된다.
@@ -455,4 +467,10 @@ test('--print로 띄우면 Enter도 명령만 보여 준다', async () => {
   const { log, screen } = await drive([...TO_MCP, ...type('notion'), DOWN, SPACE, ENTER, ENTER, ANY, ...QUIT])
   assert.ok(log.includes('명령 없음') || log.includes('이번 변경에 필요한 명령입니다'), `명령 출력이 없다: ${log}`)
   assert.ok(!screen.includes('적용 중'), '출력 모드인데 적용이 돌았다')
+})
+
+// 대상 CLI가 하나도 없으면 설치는 성공이되 그 사연이 화면 밖 로그에 남는다.
+test('CLI가 없는 항목을 적용하면 결과에 CLI 없음 사연이 남는다', async () => {
+  const { log } = await drive([...TO_MCP, ...type('supabase'), DOWN, SPACE, ENTER, ENTER, ANY, ...QUIT], { dryRun: false })
+  assert.match(log, /✔[^\n]*Supabase MCP — CLI 없음: claude, opencode/)
 })
