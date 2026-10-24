@@ -34,6 +34,12 @@
   OpenCode·Antigravity에는 `ai-memory mcp-bridge` MCP를 건다. ECC·Matt
   Pocock은 Codex 플러그인도 배선한다. 스킬 묶음(`skill: '*'`)과
   `skill.gsd`·`skill.gstack`·`config.gitmessage.*`는 저장소 범위 전용이다.
+- **1.x에서 올릴 때.** 1.x가 저장소 `.codex/config.toml`에 쓴
+  `[mcp_servers.<이름>]` 항목은 2.0이 감지·제거하지 않는다(Codex MCP는 이제
+  전역 전용이다) — 필요 없으면 손으로 지운다. `--set global.ponytail`·
+  `global.superpowers`는 이제 알 수 없는 항목이므로 `--global --set
+  plugin.ponytail`·`plugin.superpowers`를 쓴다. `--set mcp.ai-memory`는
+  `plugin.ai-memory`로 바꾼다.
 
 ## im-not-ai 한글 윤문 스킬을 넣는다 (2026-10-08, 1.28.0)
 

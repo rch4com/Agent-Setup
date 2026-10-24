@@ -38,6 +38,12 @@ Newest entries come first. For detailed usage, see
   and Matt Pocock also wire their Codex plugins. Skill bundles (`skill: '*'`),
   `skill.gsd`, `skill.gstack` and `config.gitmessage.*` are repository-scope
   only.
+- **Upgrading from 1.x.** The `[mcp_servers.<name>]` entries 1.x wrote into the
+  repository's `.codex/config.toml` are neither detected nor removed by 2.0
+  (Codex MCP is user-global only now) — delete them by hand if you no longer
+  need them. `--set global.ponytail` and `global.superpowers` are now unknown
+  items; use `--global --set plugin.ponytail` / `plugin.superpowers`. Replace
+  `--set mcp.ai-memory` with `plugin.ai-memory`.
 
 ## im-not-ai Korean humanizer skill added (2026-10-08, 1.28.0)
 
