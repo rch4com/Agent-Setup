@@ -29,6 +29,7 @@ const COMMON_SPEC = { '-h': 'bool', '--help': 'bool', '--lang': 'value' }
 const ROOT_SPEC = {
   ...COMMON_SPEC, '--dry-run': 'bool', '--list': 'bool',
   '--set': 'value', '--skill-mode': 'value', '--design-dir': 'value',
+  '--global': 'bool', '--print': 'bool',
 }
 const DESIGN_SPEC = {
   ...COMMON_SPEC, '--dry-run': 'bool', '--list': 'bool', '--set': 'value',
@@ -191,14 +192,16 @@ export function parseSetArg(argv) {
 export function parseRootArgs(argv, t = createT('en')) {
   const usage = rootUsage(t)
   if (wantsHelp(argv)) {
-    return { help: true, dryRun: false, listOnly: false, setArg: null, skillMode: 'auto', designDirs: [], lang: null, interactive: false }
+    return { help: true, dryRun: false, scope: 'project', listOnly: false, setArg: null, skillMode: 'auto', designDirs: [], lang: null, interactive: false }
   }
   assertKnownArgs(argv, ROOT_SPEC, usage)
   assertSingleAction(argv, ['--list', '--set'], usage)
   const setArg = parseSetArg(argv)
   return {
     help: false,
-    dryRun: argv.includes('--dry-run'),
+    // --print는 --dry-run의 새 이름이다. 두 런처가 아직 --dry-run을 넘긴다.
+    dryRun: argv.includes('--dry-run') || argv.includes('--print'),
+    scope: argv.includes('--global') ? 'user' : 'project',
     listOnly: argv.includes('--list'),
     setArg,
     // 대화형 화면에서 실행하는 부트스트랩이 이 값을 쓴다. 예전에는 루트에서

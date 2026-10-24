@@ -7,6 +7,8 @@ import { MANIFEST } from './bootstrap/manifest.mjs'
 import { updateBlocks, updateFiles } from './bootstrap/apply.mjs'
 import { readRecord, toolVersion } from './bootstrap/record.mjs'
 import { createT } from './i18n/index.mjs'
+import { makeExec } from './catalog.mjs'
+import { createProbe } from './probe.mjs'
 
 // 미배선 사유는 상류를 실측한 날의 사실이다. 그 날짜(item.verified)가 이보다
 // 오래되면 status가 알린다 — 사유 문장이 화면에 낡은 채 남는 것을 막는 유일한
@@ -18,7 +20,7 @@ function daysSince(iso, now) {
   return Number.isFinite(ms) ? Math.floor(ms / 86_400_000) : 0
 }
 
-export async function collectStatus(root, { manifest = MANIFEST, items = [], latest, now = Date.now() } = {}) {
+export async function collectStatus(root, { manifest = MANIFEST, items = [], latest, now = Date.now(), probe = null } = {}) {
   const record = readRecord(root)
 
   // dry-run으로 갱신 판정만 얻는다 — 판정 로직을 두 벌 두면 status와 update가
@@ -33,10 +35,12 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
 
   const count = (action) => verdicts.filter((v) => v.action === action).length
 
+  // 화면·--list와 같은 감지 경로 — 레시피 항목은 CLI 목록 캐시(probe)를 읽는다.
+  const shared = probe ?? createProbe({ root, scope: 'project', exec: makeExec(false) })
   const states = []
   for (const item of items) {
     try {
-      const r = await item.detect({ root })
+      const r = await item.detect({ root, probe: shared })
       states.push({ id: item.id, status: r.status })
     } catch {
       // 감지 실패로 status 전체가 죽으면 진단 도구가 아니다.
@@ -123,7 +127,7 @@ export async function fetchLatestVersion(fetchImpl = fetch) {
 
 export async function runStatus(root, { json = false, log = console.log, fetchImpl = fetch, t = createT('en') } = {}) {
   const { loadItems } = await import('./catalog.mjs')
-  const report = await collectStatus(root, { items: await loadItems(), latest: await fetchLatestVersion(fetchImpl) })
+  const report = await collectStatus(root, { items: await loadItems({ scope: 'project' }), latest: await fetchLatestVersion(fetchImpl) })
   log(json ? JSON.stringify(report, null, 2) : formatStatus(report, t))
   return report
 }

@@ -42,21 +42,26 @@ let sessionT = null
 const STATUS_KEYS = ['status.installed', 'status.partial', 'status.absent']
 
 // 대화형 화면은 TUI가 맡는다.
-async function openTui(root, { dryRun, skillMode, designDirs, t, localeForced }) {
+async function openTui(root, { dryRun, skillMode, designDirs, scope, t, localeForced }) {
   const { runTui } = await withDeps(() => import('./lib/tui/run.mjs'), t)
   // skillMode는 화면 안의 '부트스트랩 실행' 작업이 쓴다. design 경로에서는
   // 없으므로 undefined가 넘어가고 runTui의 기본값(auto)이 적용된다.
-  await runTui(root, { dryRun, skillMode, designDirs, t, localeForced })
+  await runTui(root, { dryRun, skillMode, designDirs, scope, t, localeForced })
 }
 
 // --list / --set 전용 비대화형 경로.
-async function runClassic(root, { dryRun, listOnly, setArg, t }) {
-  const { loadItems } = await withDeps(() => import('./lib/catalog.mjs'), t)
+async function runClassic(root, { dryRun, listOnly, setArg, scope = 'project', t }) {
+  const { loadItems, makeExec } = await withDeps(() => import('./lib/catalog.mjs'), t)
   const { scan, planChanges, apply, assertExclusive } = await withDeps(() => import('./lib/engine.mjs'), t)
+  const { createProbe } = await withDeps(() => import('./lib/probe.mjs'), t)
+  const { planCommands, formatCommands } = await withDeps(() => import('./lib/commands.mjs'), t)
+  const { activationLines } = await withDeps(() => import('./lib/activation.mjs'), t)
   const { plainLine } = await withDeps(() => import('./lib/tui/progress.mjs'), t)
   const { coverageText } = await withDeps(() => import('./lib/tui/rows.mjs'), t)
-  const items = await loadItems()
-  const states = await scan(root, items)
+  const items = await loadItems({ scope })
+  // 스캔마다 새 probe — 적용 뒤 재스캔이 적용 전 캐시를 읽으면 안 된다.
+  const freshProbe = () => createProbe({ root, scope, exec: makeExec(false) })
+  const states = await scan(root, items, { probe: freshProbe() })
   const statusWidth = labelWidth(t, STATUS_KEYS)
 
   if (listOnly) {
@@ -94,10 +99,18 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
   }
   if (changes.length === 0) { console.log(t('apply.noChanges')); return }
 
+  // 출력 모드(--print, 옛 --dry-run): 실행 모드와 같은 steps()로 명령만 낸다.
+  // 아무것도 실행하거나 쓰지 않는다.
+  if (dryRun) {
+    for (const line of formatCommands(planCommands(changes), { t, scope })) console.log(line)
+    const notes = activationLines(changes, t)
+    if (notes.length > 0) console.log(notes.join('\n'))
+    return
+  }
+
   // 비대화형 경로다 — 바를 그리지 않고 평문 한 줄씩 흘린다.
   // ANSI 제어문자로 CI 로그를 더럽히지 않기 위해서다.
   const results = await apply(root, changes, {
-    dryRun,
     t,
     onProgress: (event) => {
       const line = plainLine(event, t)
@@ -108,9 +121,13 @@ async function runClassic(root, { dryRun, listOnly, setArg, t }) {
     console.log(`${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${r.message ? ` — ${toText(t, r.message)}` : ''}`)
   }
 
-  const after = await scan(root, items)
+  const after = await scan(root, items, { probe: freshProbe() })
   console.log(`\n${t('apply.finalState')}`)
   for (const s of after) console.log(`  ${pad(t(`status.${s.status}`), statusWidth)} ${scopedLabel(s.item, t)}`)
+  // 성공한 설치만 안내한다 — 실패한 항목에 "새 세션을 시작하라"고 하면 거짓이다.
+  const done = new Set(results.filter((r) => r.ok).map((r) => r.item.id))
+  const notes = activationLines(changes.filter((c) => done.has(c.item.id)), t)
+  if (notes.length > 0) console.log(`\n${notes.join('\n')}`)
   console.log(`\n${t('apply.seeGitDiff')}`)
   if (results.some((r) => !r.ok)) process.exitCode = 1
 }

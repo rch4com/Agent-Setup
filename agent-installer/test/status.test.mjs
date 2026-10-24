@@ -170,3 +170,13 @@ test('fetchLatestVersion은 네트워크 실패를 null로 떨어뜨린다', asy
   assert.equal(await fetchLatestVersion(makeFetch([])), null, '404도 null이어야 한다')
   assert.equal(await fetchLatestVersion(makeFetch([{ match: 'registry', body: '{}' }])), null, 'version 없는 응답')
 })
+
+// 레시피 항목의 detect는 probe(CLI 목록 캐시)를 읽는다 — status도 같은 경로로 감지해야
+// 화면·--list와 같은 답을 낸다.
+test('collectStatus는 항목 detect에 probe를 넘긴다', async () => {
+  const root = makeTempRepo()
+  const probe = { has: () => true, marker: 'probe' }
+  const item = { id: 'plugin.x', detect: async (ctx) => ({ status: ctx.probe?.marker === 'probe' ? 'installed' : 'absent' }) }
+  const report = await collectStatus(root, { items: [item], probe })
+  assert.deepEqual(report.items.installed, ['plugin.x'])
+})

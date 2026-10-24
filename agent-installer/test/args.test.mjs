@@ -295,3 +295,13 @@ test('사용법은 t를 받아 로케일에 맞게 나온다', () => {
   assert.match(rootUsage(createT('ko')), /사용법:/)
   assert.match(bootstrapUsage(createT('en')), /--skill-mode/)
 })
+
+test('루트: --global은 user 범위, --print는 --dry-run과 같다', () => {
+  assert.equal(parseRootArgs([]).scope, 'project')
+  assert.equal(parseRootArgs(['--help']).scope, 'project')
+  assert.equal(parseRootArgs(['--global', '--list']).scope, 'user')
+  assert.equal(parseRootArgs(['--print', '--set', 'a']).dryRun, true)
+  assert.equal(parseRootArgs(['--dry-run', '--set', 'a']).dryRun, true)
+  assert.equal(parseRootArgs(['--set', 'a']).dryRun, false)
+  assert.throws(() => parseRootArgs(['--global=1']), /takes no value|값을 줄 수 없습니다/)
+})

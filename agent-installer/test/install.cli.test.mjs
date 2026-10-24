@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { makeTempRepo, runInstaller, KO } from './helpers.mjs'
+import { makeFakeClis, makeTempRepo, runInstaller, KO } from './helpers.mjs'
 import { resolveLocale } from '../lib/i18n/index.mjs'
 import { detectLocale } from '../lib/i18n/detect.mjs'
 
@@ -222,8 +222,9 @@ test('--lang은 오류 메시지에도 적용된다', () => {
 // CI 로그에 ANSI 제어문자를 흘리지 않는다. 비TTY에서는 평문 한 줄씩만 낸다.
 test('비대화형 --set은 평문 진행 줄을 낸다', () => {
   const root = makeTempRepo()
-  const r = runInstaller(root, ['--set', 'mcp.notion', '--dry-run'], { env: KO })
-  assert.equal(r.status, 0)
+  const fake = makeFakeClis(['claude'])
+  const r = runInstaller(root, ['--set', 'mcp.notion'], { env: { ...KO, ...fake.env } })
+  assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /\[1\/1\]/)
   assert.ok(!r.stdout.includes(String.fromCharCode(27)), 'CI 로그에 ANSI 제어문자가 없어야 한다')
 })
@@ -238,4 +239,52 @@ test('--help는 Git 저장소 밖에서도 사용법을 낸다', () => {
     assert.match(r.stdout, /Usage|usage/i)
     assert.doesNotMatch(r.stderr, /Git repository/)
   }
+})
+
+// ── CLI 명령 실행·출력 ────────────────────────────────────────────
+
+// 감지를 홈 대신 저장소에 묶는다 — ~/.claude.json 등은 임시 저장소 안에서 찾는다.
+const at = (root, fake) => ({ ...fake.env, AGENT_SETUP_LANG: 'en', HOME: root, USERPROFILE: root })
+
+test('--set이 CLI 명령을 실행하고 설치 후 할 일을 알린다', () => {
+  const root = makeTempRepo()
+  const fake = makeFakeClis(['claude'], { 'claude plugin list --json': { out: '[]' } })
+  const r = runInstaller(root, ['--set', 'mcp.notion'], { env: at(root, fake) })
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(fake.calls().includes('claude mcp add -s project -t http notion https://mcp.notion.com/mcp'), fake.calls().join('\n'))
+  assert.match(r.stdout, /After installing:\n {2}Claude Code: start a new session/)
+})
+
+test('--print는 명령만 출력하고 아무것도 실행하지 않는다', () => {
+  const root = makeTempRepo()
+  const fake = makeFakeClis(['claude', 'codex'], {
+    'codex plugin list --json': { out: '{"installed":[]}' },
+    'claude plugin list --json': { out: '[]' },
+  })
+  const r = runInstaller(root, ['--global', '--print', '--set', 'plugin.ponytail'], { env: at(root, fake) })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /# Codex — user-global\ncodex plugin marketplace add DietrichGebert\/ponytail\ncodex plugin add ponytail@ponytail/)
+  assert.match(r.stdout, /hooks \(Ponytail\): in codex type \/hooks/)
+  assert.ok(fake.calls().every((c) => c.includes(' list')), `목록 명령 외에는 부르지 않는다: ${fake.calls()}`)
+})
+
+// --set은 목록 밖 항목을 제거하는 선언인데, 전역 항목까지 그 규칙에 태우면
+// 무관한 --set 실행 하나가 머신 전체 설치를 걷어 간다(2026-08-15 실측).
+test('--global --set은 목록 밖 전역 항목을 지우지 않는다', () => {
+  const root = makeTempRepo()
+  const list = JSON.stringify([{ id: 'ecc@ecc', scope: 'user', enabled: true }])
+  const fake = makeFakeClis(['claude'], { 'claude plugin list --json': { out: list } })
+  const r = runInstaller(root, ['--global', '--set', 'plugin.ponytail'], { env: at(root, fake) })
+  assert.equal(r.status, 0, r.stderr)
+  assert.ok(!fake.calls().some((c) => c.includes('uninstall ecc@ecc')), fake.calls().join('\n'))
+  assert.ok(fake.calls().includes('claude plugin install ponytail@ponytail --scope user'))
+  assert.match(r.stdout, /plugin\.ecc is a user-global item/)
+})
+
+test('--global --list는 전역 범위 항목과 범위 접미사를 낸다', () => {
+  const root = makeTempRepo()
+  const r = runInstaller(root, ['--global', '--list'], { env: KO })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /plugin\.superpowers — superpowers \(전역\)/)
+  assert.doesNotMatch(r.stdout, /skill\.gsd/, '저장소 전용 항목은 전역 목록에 없다')
 })
