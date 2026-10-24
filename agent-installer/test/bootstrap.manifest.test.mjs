@@ -14,7 +14,8 @@ test('MANIFEST는 여섯 종류를 모두 선언한다', () => {
   assert.ok(Array.isArray(MANIFEST.blocks) && MANIFEST.blocks.length > 0)
   assert.ok(Array.isArray(MANIFEST.adapters) && MANIFEST.adapters.length > 0)
   assert.ok(Array.isArray(MANIFEST.ignore) && MANIFEST.ignore.length > 0)
-  assert.ok(Array.isArray(MANIFEST.settings) && MANIFEST.settings.length > 0)
+  // 설정 키 보장은 지금 비어 있다(VS Code Copilot 지원 종료) — 기구는 남는다.
+  assert.ok(Array.isArray(MANIFEST.settings))
 })
 
 test('MANIFEST.tools는 비어 있지 않은 문자열 배열이다', () => {
@@ -23,6 +24,20 @@ test('MANIFEST.tools는 비어 있지 않은 문자열 배열이다', () => {
     assert.equal(typeof tool, 'string', `도구 이름은 문자열이어야 한다: ${tool}`)
     assert.ok(tool.trim().length > 0, '빈 문자열 도구 이름 금지')
   }
+})
+
+test('부트스트랩은 네 도구만 다룬다', () => {
+  assert.deepEqual(MANIFEST.tools, ['Claude Code', 'Codex', 'OpenCode', 'Antigravity'])
+  const paths = MANIFEST.files.map((f) => f.path)
+  for (const gone of ['.gemini/settings.json', '.grok/config.toml', 'kilo.jsonc', '.kiro/settings/mcp.json', '.kimi-code/mcp.json', '.github/mcp.json', '.github/copilot/settings.json', '.vscode/mcp.json']) {
+    assert.ok(!paths.includes(gone), gone)
+  }
+  for (const kept of ['AGENTS.md', '.agents/skills/README.md', '.agents/skills/repository-check/SKILL.md', '.agent-kit/README.md', '.claude/settings.json', '.codex/config.toml', 'opencode.jsonc']) {
+    assert.ok(paths.includes(kept), kept)
+  }
+  assert.deepEqual(MANIFEST.blocks.map((b) => b.path), ['CLAUDE.md'])
+  assert.deepEqual(MANIFEST.adapters.map((a) => a.path), ['.claude/skills'])
+  assert.deepEqual(MANIFEST.settings, [])
 })
 
 test('경로는 저장소 상대 경로이고 중복이 없다', () => {
@@ -62,19 +77,11 @@ test('어댑터 경로는 모두 .gitignore 대상이다', () => {
   }
 })
 
-// VisualStudio.gitignore가 `.vscode/*`를 통째로 무시하므로, 부트스트랩이
-// .vscode/ 아래에 만들거나 손대는 파일은 전부 부정 항목을 가져야 한다.
-// 빠뜨리면 파일은 만들어지는데 커밋되지 않아 팀 공유가 조용히 깨진다.
-test('.vscode/ 아래 산출물은 모두 gitignore 부정 항목을 갖는다', () => {
-  const touched = [
-    ...MANIFEST.files.map((f) => f.path),
-    ...MANIFEST.settings.map((s) => s.path),
-  ].filter((p) => p.startsWith('.vscode/'))
-
-  assert.ok(touched.length > 0, '.vscode/ 산출물이 하나는 있어야 의미 있는 검증이다')
-  for (const p of touched) {
-    assert.ok(MANIFEST.ignore.includes(`!${p}`), `!${p}가 ignore에 없음`)
-  }
+// VisualStudio.gitignore가 `.vscode/*`를 통째로 무시한다. config.gitmessage.*가
+// VS Code 커밋 템플릿을 .vscode/settings.json에 배선하므로, 부정 항목이 빠지면
+// 그 파일은 만들어지는데 커밋되지 않아 팀 공유가 조용히 깨진다.
+test('.vscode/settings.json 부정 항목을 유지한다', () => {
+  assert.deepEqual(MANIFEST.ignore, ['.claude/skills', '!.vscode/settings.json'])
 })
 
 test('템플릿에 CRLF와 BOM이 없다', () => {
@@ -85,45 +92,10 @@ test('템플릿에 CRLF와 BOM이 없다', () => {
   }
 })
 
-test('11개 도구의 설정 파일이 모두 선언되어 있다', () => {
-  const files = MANIFEST.files.map((f) => f.path)
-  for (const expected of [
-    'AGENTS.md',
-    '.agents/skills/README.md',
-    '.agents/skills/repository-check/SKILL.md',
-    '.agent-kit/README.md',
-    '.claude/settings.json',
-    '.codex/config.toml',
-    '.gemini/settings.json',
-    '.grok/config.toml',
-    'opencode.jsonc',
-    'kilo.jsonc',
-    '.kiro/settings/mcp.json',
-    '.kimi-code/mcp.json',
-    '.github/mcp.json',
-    '.github/copilot/settings.json',
-    '.vscode/mcp.json',
-  ]) {
-    assert.ok(files.includes(expected), `누락: ${expected}`)
+test('템플릿 문서가 지원을 끝낸 도구를 말하지 않는다', () => {
+  for (const name of ['SKILL_README', 'AGENT_KIT_README', 'CODEX_CONFIG']) {
+    assert.doesNotMatch(templates[name], /Gemini|Kiro|Grok|Copilot|Kilo|Kimi/, name)
   }
-})
-
-test('settings 항목은 path·key·value를 모두 갖는다', () => {
-  assert.ok(Array.isArray(MANIFEST.settings) && MANIFEST.settings.length > 0)
-  for (const s of MANIFEST.settings) {
-    assert.equal(typeof s.path, 'string')
-    assert.ok(s.path.trim().length > 0, `빈 경로 금지: ${JSON.stringify(s)}`)
-    assert.equal(typeof s.key, 'string')
-    assert.ok(s.key.trim().length > 0, `빈 키 금지: ${s.path}`)
-    assert.notEqual(s.value, undefined, `${s.path}: value 누락`)
-  }
-})
-
-test('VS Code가 AGENTS.md를 읽도록 설정 키를 보장한다', () => {
-  const entry = MANIFEST.settings.find((s) => s.path === '.vscode/settings.json')
-  assert.ok(entry, '.vscode/settings.json 항목이 있어야 한다')
-  assert.equal(entry.key, 'chat.useAgentsMdFile')
-  assert.equal(entry.value, true)
 })
 
 // 이 저장소 자신도 부트스트랩 산출물을 커밋해 두고 있어, 템플릿만 고치면
@@ -149,12 +121,4 @@ test('저장소에 커밋된 사본이 템플릿과 일치한다', () => {
     )
   }
   assert.ok(checked > 0 || !existsSync(join(REPO_ROOT, '.agent-kit')), '사본이 있는데 하나도 검사하지 못했다')
-})
-
-// setKey는 없는 키를 새로 만들어 버리므로, 템플릿의 최상위 키가 틀려도
-// clis.test.mjs의 add() 경로는 통과한다. 두 MCP 템플릿이 서로 다른 최상위
-// 키를 실제로 갖는지는 여기서만 검증된다 (F-2).
-test('두 Copilot MCP 템플릿의 최상위 키는 서로 다르다 (F-2)', () => {
-  assert.deepEqual(JSON.parse(templates.COPILOT_MCP_CONFIG), { mcpServers: {} })
-  assert.deepEqual(JSON.parse(templates.VSCODE_MCP_CONFIG), { servers: {} })
 })

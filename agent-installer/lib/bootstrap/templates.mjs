@@ -134,10 +134,6 @@ export const CLAUDE_BLOCK = `<!-- agent-kit:begin -->
 @AGENTS.md
 <!-- agent-kit:end -->`
 
-export const GEMINI_BLOCK = `<!-- agent-kit:begin -->
-@./AGENTS.md
-<!-- agent-kit:end -->`
-
 export const SKILL_README = `# Shared repository skills
 
 Create each shared skill in:
@@ -153,10 +149,9 @@ description: Explain when this skill should be used.
 ---
 \`\`\`
 
-Claude Code, Kiro, and Grok Build receive these skills through project-local
-adapters at \`.claude/skills\`, \`.kiro/skills\`, and \`.grok/skills\`. Codex,
-Gemini CLI, OpenCode, Kilo Code, Kimi Code, Antigravity, GitHub Copilot CLI,
-and VS Code Copilot discover \`.agents/skills\` directly.`
+Claude Code receives these skills through the project-local adapter at
+\`.claude/skills\`. Codex, OpenCode, and Antigravity discover \`.agents/skills\`
+directly.`
 
 export const EXAMPLE_SKILL = `---
 name: repository-check
@@ -182,13 +177,10 @@ The installer bootstrap:
 - creates only project-scoped configuration;
 - never writes to user-home or system-wide agent configuration;
 - preserves existing configuration files;
-- adds a small managed import block to \`CLAUDE.md\` and \`GEMINI.md\`;
-- exposes \`.agents/skills\` to Claude Code, Kiro, and Grok Build through
-  local adapters;
-- adds \`chat.useAgentsMdFile\` to \`.vscode/settings.json\` only when the key
-  is absent, so VS Code Copilot reads the shared \`AGENTS.md\`;
-- relies on the native support of Kilo Code, Kimi Code, Antigravity, GitHub
-  Copilot CLI, and VS Code Copilot for \`AGENTS.md\` and \`.agents/skills\`.`
+- adds a small managed import block to \`CLAUDE.md\`;
+- exposes \`.agents/skills\` to Claude Code through a local adapter;
+- relies on the native support of Codex, OpenCode, and Antigravity for
+  \`AGENTS.md\` and \`.agents/skills\`.`
 
 export const CLAUDE_SETTINGS = `{}`
 
@@ -196,51 +188,6 @@ export const CODEX_CONFIG = `# Repository-local Codex configuration.
 # Personal or machine-wide defaults belong outside this repository.
 project_doc_max_bytes = 65536`
 
-export const GEMINI_SETTINGS = `{
-  "skills": {
-    "enabled": true
-  },
-  "security": {
-    "folderTrust": {
-      "enabled": true
-    },
-    "disableAlwaysAllow": true,
-    "enablePermanentToolApproval": false
-  }
-}`
-
-export const GROK_CONFIG = `# Repository-local Grok Build configuration.
-# Project scope supports mcp_servers, plugins, and permission rules only.
-# Personal or machine-wide defaults belong in ~/.grok/config.toml.
-# Grok Build reads the root AGENTS.md natively.`
-
 export const OPENCODE_CONFIG = `{
   "$schema": "https://opencode.ai/config.json"
-}`
-
-export const KILO_CONFIG = `{
-  // Project-local Kilo Code configuration.
-  // Kilo Code automatically loads ./AGENTS.md and ./.agents/skills/.
-}`
-
-export const KIRO_MCP_CONFIG = `{
-  "mcpServers": {}
-}`
-
-export const KIMI_MCP_CONFIG = `{
-  "mcpServers": {}
-}`
-
-export const COPILOT_MCP_CONFIG = `{
-  "mcpServers": {}
-}`
-
-// 모델·추론 강도·컨텍스트 티어를 저장소 단위로 고정하는 공유 설정 자리.
-// 구체적인 값은 팀이 정한다. 개인 오버라이드는 settings.local.json이며
-// .gitignore 대상이다.
-export const COPILOT_SETTINGS = `{}`
-
-// VS Code는 최상위 키가 servers다 (Copilot CLI의 mcpServers와 다르다).
-export const VSCODE_MCP_CONFIG = `{
-  "servers": {}
 }`

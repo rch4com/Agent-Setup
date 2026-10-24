@@ -1,5 +1,4 @@
 {
-  "chat.useAgentsMdFile": true,
   // 커밋 입력을 에디터(COMMIT_EDITMSG)로 연다 — git이 commit.template
   // (.gitmessage.txt)을 그대로 채워 템플릿 안내가 전부 보인다. SCM 입력창은
   // 주석(#)뿐인 이 템플릿을 표시하지 못한다.

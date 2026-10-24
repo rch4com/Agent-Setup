@@ -21,7 +21,7 @@ test('갓 배선한 저장소는 관리 파일이 전부 최신이다', async ()
   assert.equal(report.hasRecord, true)
   assert.equal(report.files.drift, 0)
   assert.equal(report.files.pending, 0)
-  assert.ok(report.files.current >= 17)
+  assert.equal(report.files.current, 8)
 })
 
 test('사용자가 고친 파일은 드리프트로 센다', async () => {

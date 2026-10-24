@@ -41,24 +41,18 @@ test('두 번 실행해도 두 번째는 아무것도 만들지 않는다', () =
   assert.deepEqual(second.failed, [])
 })
 
-test('settings 선언대로 VS Code 설정 키를 넣는다', () => {
+// VS Code Copilot 지원을 끝내 chat.useAgentsMdFile을 더는 보장하지 않는다 —
+// 부트스트랩이 .vscode/settings.json을 만들거나 고치면 안 된다.
+test('부트스트랩은 .vscode/settings.json에 손대지 않는다', () => {
   const root = makeTempRepo()
   runBootstrap(root, { t, log() {} })
+  assert.equal(existsSync(join(root, '.vscode/settings.json')), false)
 
-  const text = readFileSync(join(root, '.vscode/settings.json'), 'utf8')
-  assert.deepEqual(JSON.parse(text), { 'chat.useAgentsMdFile': true })
-})
-
-test('기존 .vscode/settings.json의 다른 키를 보존한다', () => {
-  const root = makeTempRepo()
-  mkdirSync(join(root, '.vscode'))
-  writeFileSync(join(root, '.vscode/settings.json'), '{\n  "editor.tabSize": 2\n}\n')
-
-  runBootstrap(root, { t, log() {} })
-
-  const parsed = JSON.parse(readFileSync(join(root, '.vscode/settings.json'), 'utf8'))
-  assert.equal(parsed['editor.tabSize'], 2)
-  assert.equal(parsed['chat.useAgentsMdFile'], true)
+  const kept = makeTempRepo()
+  mkdirSync(join(kept, '.vscode'))
+  writeFileSync(join(kept, '.vscode/settings.json'), '{\n  "editor.tabSize": 2\n}\n')
+  runBootstrap(kept, { t, log() {} })
+  assert.equal(readFileSync(join(kept, '.vscode/settings.json'), 'utf8'), '{\n  "editor.tabSize": 2\n}\n')
 })
 
 test('기존 파일을 보존한다', () => {
@@ -120,7 +114,8 @@ test('bootstrap이 설치 기록을 남긴다', () => {
   assert.equal(record.skillMode, 'auto')
   // 갓 만든 파일은 정의상 템플릿과 같으므로 전부 채택된다.
   const values = Object.values(record.managed)
-  assert.ok(values.length >= 17, `관리 항목이 ${values.length}개뿐이다`)
+  // 파일 7개 + CLAUDE.md 블록 1개
+  assert.equal(values.length, 8, `관리 항목이 ${values.length}개다`)
   assert.equal(values.filter((v) => v === null).length, 0, '갓 만든 파일이 미채택으로 잡혔다')
 })
 
