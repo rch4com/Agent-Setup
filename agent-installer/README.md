@@ -3,8 +3,7 @@
 Repository-scoped bootstrap for using many coding agents in one repo — plus an
 optional picker for plugins, MCP servers, skills, and DESIGN.md documents.
 
-Supports **Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
-Grok Build, Antigravity, GitHub Copilot CLI, and VS Code Copilot.**
+Supports **Claude Code, Codex, OpenCode, and Antigravity.**
 
 One shared instruction file (`AGENTS.md`) and one shared skills directory
 (`.agents/skills`) serve every tool. Only the per-tool config files are written,
@@ -23,8 +22,15 @@ npx @rch4com/agent-setup bootstrap
 # Show what would be created, without writing anything
 npx @rch4com/agent-setup bootstrap --dry-run
 
-# Interactive picker for plugins, MCP servers, skills, and DESIGN.md
+# Interactive picker for plugins, MCP servers, skills, and DESIGN.md —
+# installs with each CLI's own install commands
 npx @rch4com/agent-setup
+
+# Install user-globally instead of into this repository
+npx @rch4com/agent-setup --global
+
+# Print the CLI commands instead of running them (--dry-run is an alias)
+npx @rch4com/agent-setup --print --set plugin.ponytail
 ```
 
 The package name is scoped, but the installed command is just `agent-setup` —
@@ -54,8 +60,8 @@ The decision is made per file, using hashes stored in the install record
 | File missing | Created (this is how support for new tools arrives) |
 | No hash in the record | Origin unknown → left alone |
 
-The managed blocks in `CLAUDE.md` and `GEMINI.md` are replaced **between the
-markers only**, so anything you wrote around them survives.
+The managed block in `CLAUDE.md` is replaced **between the markers only**, so
+anything you wrote around it survives.
 
 Hashes are computed after normalizing line endings to LF, so a CRLF checkout on
 Windows is not mistaken for drift.
@@ -79,11 +85,11 @@ show up in `status` and can be pulled in later with `update --force`.
 ## Safety
 
 The rules below are what the **bootstrap** (`bootstrap`, `update`, `status`)
-upholds. The optional-item picker runs third-party installers, and its two
-`global.*` items (`global.superpowers`, `global.ponytail`) deliberately write
-to per-user CLI configuration under your home directory — the screen marks
-them as machine-global and `--set` never removes them. The full list of what
-each item runs is in the
+upholds. The optional-item picker runs each CLI's official install commands,
+which fetch third-party code, and with `--global` (or the Install scope row) it
+deliberately installs into per-user CLI configuration under your home directory
+— the review screen warns before that happens. The full list of what each item
+runs is in the
 [usage guide](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.md#what-the-installer-runs).
 
 - Runs only inside a Git repository, and never writes outside the repository root.
@@ -112,9 +118,8 @@ MIT
 
 # 한국어
 
-Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
-Grok Build, Antigravity, GitHub Copilot CLI, VS Code Copilot을 **한 저장소에서
-함께** 쓰기 위한 저장소 범위 부트스트랩과 선택 항목 설치기입니다.
+Claude Code, Codex, OpenCode, Antigravity를 **한 저장소에서 함께** 쓰기 위한
+저장소 범위 부트스트랩과 선택 항목 설치기입니다.
 
 공통 지침은 루트 `AGENTS.md` 하나, 공통 스킬은 `.agents/skills` 하나로 두고,
 도구별 설정 파일만 각 도구가 읽는 위치에 만듭니다.
@@ -130,8 +135,15 @@ npx @rch4com/agent-setup bootstrap
 # 무엇이 만들어질지만 확인한다
 npx @rch4com/agent-setup bootstrap --dry-run
 
-# 플러그인·MCP·스킬·DESIGN.md를 골라 설치하는 대화형 화면
+# 플러그인·MCP·스킬·DESIGN.md를 골라 설치하는 대화형 화면 —
+# 각 CLI의 공식 설치 명령으로 설치한다
 npx @rch4com/agent-setup
+
+# 이 저장소 대신 사용자 전역에 설치한다
+npx @rch4com/agent-setup --global
+
+# 실행하지 않고 CLI 명령만 출력한다 (--dry-run과 같음)
+npx @rch4com/agent-setup --print --set plugin.ponytail
 ```
 
 패키지 이름에는 스코프가 붙지만 설치 후 실행 명령은 `agent-setup`입니다 —
@@ -160,8 +172,8 @@ npx @rch4com/agent-setup status                    # 의도 / 실제 / 버전 �
 | 파일이 없음 | 새로 생성 (새 도구 지원이 이 경로로 들어옵니다) |
 | 기록에 해시가 없음 | 출처 불명 → 건드리지 않음 |
 
-`CLAUDE.md`·`GEMINI.md`의 관리 블록은 **마커 사이만** 교체하므로 주변에 쓴
-내용은 그대로 남습니다.
+`CLAUDE.md`의 관리 블록은 **마커 사이만** 교체하므로 주변에 쓴 내용은 그대로
+남습니다.
 
 해시는 줄바꿈을 LF로 정규화한 뒤 계산하므로, Windows에서 CRLF로 체크아웃해도
 드리프트로 오판하지 않습니다.
@@ -185,10 +197,9 @@ npx @rch4com/agent-setup bootstrap --adopt
 ## 안전 원칙
 
 아래는 **부트스트랩**(`bootstrap`·`update`·`status`)이 지키는 규칙입니다.
-선택 항목 화면은 제3자 설치기를 실행하며, 그중 `global.*` 두 항목
-(`global.superpowers`, `global.ponytail`)은 의도적으로 홈 디렉터리 아래
-CLI별 사용자 설정에 씁니다 — 화면이 머신 전역임을 표시하고 `--set`은 이
-항목을 제거하지 않습니다. 항목마다 무엇을 실행하는지는
+선택 항목 화면은 제3자 코드를 내려받는 각 CLI의 공식 설치 명령을 실행하며,
+`--global`(또는 설치 범위 행)을 고르면 의도적으로 홈 디렉터리 아래 CLI별 사용자
+설정에 설치합니다 — 그 전에 검토 화면이 경고합니다. 항목마다 무엇을 실행하는지는
 [사용 안내](https://github.com/rch4com/Agent-Setup/blob/main/AgentSetup-README.ko.md#설치기가-실행하는-것)에
 있습니다.
 

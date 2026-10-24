@@ -5,6 +5,36 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## CLI 공식 명령으로 설치하고 지원 CLI를 넷으로 줄인다 (2026-10-24, 2.0.0)
+
+**하위 호환이 깨지는 변경이다.**
+
+- **지원 CLI는 Claude Code·Codex·OpenCode·Antigravity 넷이다.** Gemini CLI,
+  Kilo Code, Kiro, Kimi Code, Grok Build, GitHub Copilot CLI, VS Code Copilot
+  지원을 끝냈다. 부트스트랩은 그 도구들의 파일(`GEMINI.md`, `.gemini/`,
+  `kilo.jsonc`, `.kiro/`, `.kimi-code/`, `.grok/`, `.github/mcp.json`,
+  `.github/copilot/`, `.vscode/mcp.json`)과 `chat.useAgentsMdFile`을 더는 만들지
+  않는다. 이미 만들어진 파일은 지우지 않는다.
+- **선택 항목은 각 CLI의 공식 설치 명령으로 설치한다.** 설정 파일을 직접
+  고치던 방식을 버리고 `claude plugin`·`claude mcp`, `codex plugin`·`codex mcp`,
+  `opencode plugin`, `agy plugin`·`agy mcp`, `npx skills add`를 부른다.
+  OpenCode MCP는 `opencode mcp add`가 대화형뿐이라 `opencode run`으로 편집을
+  맡기고 설정 파일을 다시 읽어 확인한다(이 머신에서 OpenCode가 실행되지 않아
+  실제 OpenCode로는 검증하지 못했다).
+- **설치 범위를 고른다.** 기본은 저장소, `--global`(대화형 화면은 작업 탭의
+  `설치 범위` 행)이면 사용자 전역이다. Codex·Antigravity는 플러그인·MCP를
+  전역으로만 설치한다. 전역 `--set`은 목록 밖 항목을 지우지 않는다.
+- **명령만 볼 수 있다.** `--print`(옛 `--dry-run`의 새 이름, 별칭 유지)와
+  검토 화면의 `p`가 실행 대신 같은 명령을 출력한다.
+- **설치 후 할 일을 알린다.** CLI마다 한 번씩 새 세션·재시작을, 훅이 있는
+  항목은 Codex `/hooks` Trust 단계를, 항목 고유의 전제를 함께 적는다.
+- **항목 정리.** `global.ponytail`·`global.superpowers`는 `plugin.ponytail`·
+  `plugin.superpowers`의 전역 범위로 합쳤다. ai-memory는
+  `plugin.ai-memory`가 되어 Claude Code·Codex에는 상류 마켓플레이스 플러그인을,
+  OpenCode·Antigravity에는 `ai-memory mcp-bridge` MCP를 건다. ECC·Matt
+  Pocock은 Codex 플러그인도 배선한다. 스킬 묶음(`skill: '*'`)과
+  `skill.gsd`·`skill.gstack`·`config.gitmessage.*`는 저장소 범위 전용이다.
+
 ## im-not-ai 한글 윤문 스킬을 넣는다 (2026-10-08, 1.28.0)
 
 - **`skill.im-not-ai`.** epoko77-ai/im-not-ai의 스킬 4종(humanize-korean과

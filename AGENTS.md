@@ -25,10 +25,10 @@ Bootstrap logic lives in `agent-installer`; the shell scripts are launchers.
   launchers with `bash ./setup-agents.sh --dry-run` and
   `pwsh -File ./setup-agents.ps1 -DryRun`. For behavior changes, run both
   launchers twice in a scratch Git repository and confirm the second run is
-  idempotent and `git status` stages no `.claude/skills`, `.kiro/skills`, or
-  `.grok/skills` entries. Also confirm `git status` *does* stage
-  `.vscode/mcp.json` and `.vscode/settings.json` — both depend on gitignore
-  negation entries, so a missing one fails silently.
+  idempotent and `git status` stages no `.claude/skills` entries. Also
+  confirm `git status` *does* stage `.vscode/settings.json` after installing
+  a `config.gitmessage.*` item — it depends on a gitignore negation entry,
+  so a missing one fails silently.
 
 ## Commit messages
 

@@ -2,10 +2,10 @@
 
 **한국어** · [English](AgentSetup-README.md) · [변경 이력](AgentSetup-README-CHANGES.ko.md)
 
-Claude Code, Codex, Gemini CLI, OpenCode, Kilo Code, Kiro, Kimi Code,
-Grok Build(xAI grok CLI), Antigravity(Google 에이전트 IDE/CLI),
-GitHub Copilot CLI, VS Code Copilot을 한 저장소에서 함께 사용할 때 공통
-지침과 공통 Agent Skills를 **저장소 범위로만** 초기화하는 스크립트입니다.
+Claude Code, Codex, OpenCode, Antigravity(Google 에이전트 IDE/CLI)를 한
+저장소에서 함께 사용할 때 공통 지침과 공통 Agent Skills를 **저장소 범위로만**
+초기화하는 스크립트와, 플러그인·MCP·스킬을 **각 CLI의 공식 설치 명령으로**
+설치하는 선택 항목 설치기입니다.
 
 ## 5분 안에 써 보기
 
@@ -27,9 +27,7 @@ npx @rch4com/agent-setup                       # 플러그인·MCP·스킬을 �
 repository/
 ├─ AGENTS.md
 ├─ CLAUDE.md
-├─ GEMINI.md
 ├─ opencode.jsonc
-├─ kilo.jsonc
 ├─ .agents/
 │  └─ skills/
 │     └─ repository-check/
@@ -39,24 +37,6 @@ repository/
 │  └─ skills/          # .agents/skills 링크 또는 관리되는 복제본
 ├─ .codex/
 │  └─ config.toml
-├─ .gemini/
-│  └─ settings.json
-├─ .github/
-│  ├─ mcp.json
-│  └─ copilot/
-│     └─ settings.json
-├─ .grok/
-│  ├─ config.toml
-│  └─ skills/          # .agents/skills 링크 또는 관리되는 복제본
-├─ .kiro/
-│  ├─ skills/          # .agents/skills 링크 또는 관리되는 복제본
-│  └─ settings/
-│     └─ mcp.json
-├─ .kimi-code/
-│  └─ mcp.json
-├─ .vscode/
-│  ├─ mcp.json
-│  └─ settings.json      # chat.useAgentsMdFile 키만 보장
 └─ .agent-kit/
    └─ README.md
 ```
@@ -66,57 +46,29 @@ repository/
 - **Claude Code:** `CLAUDE.md`가 `AGENTS.md`를 가져오며,
   `.claude/skills`가 `.agents/skills`에 연결됩니다.
 - **Codex:** 루트 `AGENTS.md`와 `.agents/skills`를 사용합니다.
-- **Gemini CLI:** `GEMINI.md`가 `AGENTS.md`를 가져오며,
-  `.agents/skills`를 사용합니다.
 - **OpenCode:** 루트 `AGENTS.md`, `.agents/skills`, `opencode.jsonc`를 사용합니다.
-- **Kilo Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용하며,
-  프로젝트 로컬 `kilo.jsonc`를 생성합니다. 프로젝트 MCP 파일은 별도 경로인
-  `.kilocode/mcp.json`이며, 부트스트랩이 아니라 설치기가 MCP 항목을 등록할 때
-  만듭니다.
-- **Kiro:** 루트 `AGENTS.md`를 직접 사용하며,
-  `.kiro/skills`가 `.agents/skills`에 연결됩니다.
-  프로젝트 MCP 파일은 `.kiro/settings/mcp.json`에만 생성됩니다.
-- **Kimi Code:** 루트 `AGENTS.md`와 `.agents/skills`를 직접 사용합니다.
-  프로젝트 MCP 파일은 `.kimi-code/mcp.json`에 생성되며, 머신별 설정인
-  `.kimi-code/local.toml`은 `.gitignore`에 추가됩니다.
-- **Grok Build (xAI grok CLI):** 루트 `AGENTS.md`를 직접 읽습니다
-  (커밋 메시지 규약 포함, import 배선 불필요). 프로젝트 설정과 MCP는
-  `.grok/config.toml`(`[mcp_servers.<name>]` 테이블)에 두며, 프로젝트
-  스킬 탐색 경로가 `.grok/skills`라서 `.agents/skills`에 연결됩니다.
-  플러그인은 `.grok/plugins/`에서 로드됩니다.
 - **Antigravity (Google 에이전트 IDE/CLI):** 루트 `AGENTS.md`와 `.agents/`
   디렉터리를 네이티브로 인식하므로 `AGENTS.md`와 `.agents/skills`를 그대로
-  사용합니다(import 배선·어댑터 불필요, 신규 파일 없음). MCP는 홈 글로벌
-  (`~/.gemini/config/mcp_config.json`)에서만 설정하고 프로젝트 스코프 MCP
-  파일이 없어 이 스크립트가 관리하는 범위 밖입니다.
-- **GitHub Copilot CLI:** 루트 `AGENTS.md`와 `.agents/skills`를 네이티브로
-  읽습니다(import 배선·어댑터 불필요). 프로젝트 MCP는 `.github/mcp.json`에
-  등록하며, 팀 공유 설정 자리로 `.github/copilot/settings.json`을 만듭니다.
-  개인 오버라이드인 `.github/copilot/settings.local.json`은 `.gitignore`에
-  추가됩니다. Copilot CLI는 `.github/mcp.json`과 함께 루트 `.mcp.json`(Claude
-  Code가 쓰는 파일)도 읽으며, 같은 이름의 서버가 양쪽에 있으면 `.mcp.json`이
-  우선합니다. 원격(HTTP) 서버는 두 파일에 같은 내용(`type: "http"`)이 들어가
-  차이가 없지만, **stdio 서버는 형식이 다릅니다** — `.mcp.json`에는 Claude
-  Code 형식인 `type: "stdio"`가, `.github/mcp.json`에는 Copilot 형식인
-  `type: "local"`이 기록됩니다. 우선순위 때문에 Copilot CLI가 보는 것은
-  `.mcp.json` 쪽인데, Copilot CLI 1.0.82의 소스를 읽어 확인한 바로는 로컬 서버
-  판정이 `type`이 없거나 `"local"`이거나 `"stdio"`일 때 전부 참이라 그 형식도
-  붙습니다(2026-09-05). 그래서 설치기는 stdio MCP도 copilot에 그대로
-  배선합니다. 붙지 않는 버전을 만나면 `.mcp.json`의 해당 항목을
-  `type: "local"`로 바꾸거나 지우고 `.github/mcp.json`만 남기세요.
-- **VS Code Copilot:** `.agents/skills`를 네이티브로 읽고, 루트 `AGENTS.md`는
-  `.vscode/settings.json`의 `chat.useAgentsMdFile` 키로 켭니다(키가 없을 때만
-  추가하고 기존 값은 보존합니다). 프로젝트 MCP는 `.vscode/mcp.json`이며,
-  최상위 키가 `servers`로 Copilot CLI와 형식이 다릅니다.
+  사용합니다(import 배선·어댑터 불필요, 신규 파일 없음). 프로젝트 스코프
+  MCP·플러그인 설정이 없어, 선택 항목 설치기는 Antigravity CLI(`agy`)의
+  명령으로 **사용자 전역**에만 설치합니다.
 
 ### 다루지 않는 도구
 
-Cursor, Windsurf, Cline/Roo Code, Amp, Factory Droid, Qwen Code는 지원 목록에
-없습니다. 이 저장소는 도구마다 실제 CLI로 "무엇을 읽고 어디에 쓰는지"를
-실측한 것만 배선하는데, 위 도구들은 이 머신에서 실측할 수 없었습니다.
-구조상 추가는 `agent-installer/lib/clis.mjs`(MCP 파일 어댑터)와
-`agent-installer/lib/bootstrap/manifest.mjs`(생성 파일)에 각각 한 항목이고,
-항목마다 미배선 사유를 붙이는 검사가 빠진 도구를 잡아 줍니다.
+2.0.0에서 Gemini CLI, Kilo Code, Kiro, Kimi Code, Grok Build, GitHub Copilot CLI,
+VS Code Copilot 지원을 끝냈습니다. 1.x가 만든 그 도구들의 파일(`GEMINI.md`,
+`.gemini/`, `kilo.jsonc`, `.kiro/`, `.kimi-code/`, `.grok/`,
+`.github/mcp.json`, `.github/copilot/`, `.vscode/mcp.json`)은 설치기가 지우지
+않습니다 — 더 쓰지 않으면 손으로 지우세요. `.vscode/settings.json`의
+`chat.useAgentsMdFile`도 더는 보장하지 않습니다.
+
+Cursor, Windsurf, Cline/Roo Code, Amp, Factory Droid, Qwen Code도 지원 목록에
+없습니다. 이 저장소는 도구마다 실제 CLI로 "무엇을 읽고 어떤 명령으로
+설치하는지"를 실측한 것만 배선합니다. 구조상 추가는
+`agent-installer/lib/clis.mjs`(CLI 이름·실행 파일), `agent-installer/lib/probe.mjs`
+(설치 상태를 읽는 목록 명령), `agent-installer/lib/bootstrap/manifest.mjs`
+(생성 파일)에 각각 한 항목이고, 항목마다 미배선 사유를 붙이는 검사가 빠진
+도구를 잡아 줍니다.
 
 ## 부트스트랩 실행 방법
 
@@ -185,7 +137,7 @@ npx @rch4com/agent-setup@latest status             # 의도 / 실제 / 버전 �
 | 파일이 없음 | 새로 생성 (새 도구 지원이 이 경로로 들어옵니다) |
 | 기록에 해시가 없음 | 출처 불명 → 건드리지 않음 |
 
-`CLAUDE.md`·`GEMINI.md`의 관리 블록은 마커(`<!-- agent-kit:begin -->`) 사이만
+`CLAUDE.md`의 관리 블록은 마커(`<!-- agent-kit:begin -->`) 사이만
 교체하므로 주변에 쓴 내용은 그대로 남습니다.
 
 드리프트 파일까지 반영하려면 `update --force`를 씁니다. git이 유일한 되돌리기
@@ -223,45 +175,45 @@ npx @rch4com/agent-setup bootstrap --adopt
 - 저장소 루트 밖의 경로에는 쓰기를 거부합니다.
 - 홈 디렉터리의 글로벌 설정을 읽거나 수정하지 않습니다.
 - 기존 설정 파일은 덮어쓰지 않습니다.
-- `CLAUDE.md`와 `GEMINI.md`에는 관리 블록이 없을 때만 추가합니다.
-- 기존 `.claude/skills`, `.kiro/skills`, `.grok/skills`가 사용자 관리
-  경로이면 보존합니다.
-- `.claude/skills`, `.kiro/skills`, `.grok/skills`를 `.gitignore`에
-  추가해 어댑터(링크/복제본)가 커밋되지 않도록 합니다.
-- 머신별 설정인 `.kimi-code/local.toml`도 `.gitignore`에 추가합니다.
-- 개인 설정인 `.github/copilot/settings.local.json`도 `.gitignore`에 추가합니다.
-- `.vscode/*`를 무시하는 `.gitignore`에서도 `.vscode/mcp.json`과
-  `.vscode/settings.json`이 커밋되도록 `!.vscode/mcp.json`,
-  `!.vscode/settings.json` 부정 항목을 추가합니다. `settings.json`이
-  무시되면 `chat.useAgentsMdFile`을 넣어도 팀에 전파되지 않습니다.
-- `.vscode/settings.json`에는 `chat.useAgentsMdFile` 키가 **없을 때만**
-  추가하며, 기존 키·주석·값은 그대로 둡니다.
+- `CLAUDE.md`에는 관리 블록이 없을 때만 추가합니다.
+- 기존 `.claude/skills`가 사용자 관리 경로이면 보존합니다.
+- `.claude/skills`를 `.gitignore`에 추가해 어댑터(링크/복제본)가 커밋되지
+  않도록 합니다.
+- `.vscode/*`를 무시하는 `.gitignore`에서도 `.vscode/settings.json`이
+  커밋되도록 `!.vscode/settings.json` 부정 항목을 추가합니다 — 커밋 템플릿
+  항목(`config.gitmessage.*`)이 VS Code 설정을 이 파일에 배선합니다.
 - 반복 실행할 수 있습니다.
 
 ## 설치기가 실행하는 것
 
 부트스트랩과 달리 선택 항목 설치기는 네트워크를 쓰고 외부 명령을 실행합니다.
-무엇을 고르면 무엇이 실행되는지 미리 알 수 있도록 적어 둡니다.
+2.0.0부터는 각 CLI의 설정 파일을 직접 고치지 않고 **그 CLI의 공식 설치 명령**을
+부릅니다. 무엇을 고르면 무엇이 실행되는지는 `--print`(대화형 화면에서는 검토
+화면의 `p`)로 실행 전에 그대로 볼 수 있습니다.
 
 | 항목 | 실행되는 것 |
 |---|---|
-| `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. `claude` 명령이 없으면 `.claude/settings.json`에 기록만 하고, 다음 Claude Code 실행 시 다운로드됩니다 |
-| `skill.*` (레지스트리 스킬: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | `npx -y skills@latest add <github 저장소> --copy` — 확인 프롬프트 없이(`-y`) 최신 `skills` CLI를 내려받고, 상류 저장소의 스킬 디렉터리를 `.agents/skills`에 복사합니다. 제거는 `npx -y skills@latest remove`를 돌린 뒤 디렉터리를 지웁니다 |
-| `global.*` (`global.superpowers`, `global.ponytail`) | **저장소 밖에 씁니다.** `PATH`에 있는 CLI마다 `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, `grok plugin install <소스> --trust`를 실행하고, 사용자 전역 `opencode.json`의 plugin 배열을 직접 고칩니다. 상세 패널과 검토 화면이 전역임을 표시하며 `--set`은 이 항목을 제거하지 않습니다 |
-| `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
+| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <범위>` + `claude plugin install <id> --scope <범위>`. Codex(전역): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <모듈>`(전역은 `-g`). Antigravity(전역): `agy plugin install <git URL>`. 항목마다 상류가 안내하는 CLI만 배선합니다. 마켓플레이스 등록이 "이미 있음"으로 실패하는 것은 무시합니다 |
+| `mcp.*` | Claude Code: `claude mcp add -s <범위> <이름> …`. Codex(전역): `codex mcp add <이름> …`. Antigravity(전역): `agy mcp add <이름> …`. OpenCode: `opencode mcp add`가 대화형뿐이라 `opencode run "<지시문>"`으로 OpenCode 에이전트에게 설정 편집을 맡기고, 설정 파일을 다시 읽어 반영됐는지 확인합니다 |
+| `skill.*` (레지스트리 스킬: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | 저장소 범위: `npx -y skills@latest add <github 저장소> --skill <이름> --agent universal --yes --copy` — 공유 `.agents/skills`에 복사합니다. 전역: `… -g -a claude-code codex antigravity-cli --yes --copy`(`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode는 앞의 둘을 읽습니다). 제거는 `npx -y skills@latest remove`를 돌린 뒤 남은 디렉터리와 `skills-lock.json` 항목을 지웁니다 |
+| `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<런타임> --local` — 런타임(claude·codex·opencode)마다 한 번씩, 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
 | `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
 | `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — `.vscode/settings.json`에 `git.useEditorAsCommitInput`과 `github.copilot.chat.commitMessageGeneration.instructions`도 없을 때만 더합니다(이미 있는 키는 덮지 않고, 제거는 넣은 값과 정확히 같은 키만 지웁니다). 저장소 안만 고칩니다(네트워크 없음). 전역·시스템 설정은 읽지도 쓰지도 않습니다 |
 | design.md | `raw.githubusercontent.com`에서 `DESIGN.md`를 내려받습니다(문서 파일이며 실행되지 않습니다). 동봉 번들에 있으면 네트워크를 쓰지 않습니다 |
 
 - 항목을 고르기 전에 대상 저장소·패키지를 신뢰할 수 있는지 확인하세요.
-  플러그인·스킬 항목은 전부 제3자 코드를 실행합니다 — 프로젝트 스코프
-  항목은 이 저장소 안에서, `global.*` 항목은 이 머신에서 실행합니다.
+  플러그인·스킬 항목은 전부 제3자 코드를 실행합니다 — 저장소 범위 항목은 이
+  저장소 안에, 전역 범위(`--global`) 항목은 이 머신 전체에 설치됩니다.
 - 네트워크 호출에는 20초 시간 제한과 8MiB 응답 본문 상한이 걸려 있습니다
   (데이터가 계속 오는 응답은 시간 제한에 걸리지 않으므로 크기도 함께 막습니다).
-- `--dry-run`을 붙이면 무엇이 실행·기록될지만 출력하고 아무것도 바꾸지
-  않습니다.
-- MCP 항목은 설정 파일에 URL·명령만 기록합니다. 인증(OAuth)은 각 CLI를
+- `--print`(옛 이름 `--dry-run`)를 붙이면 실행할 명령만 출력하고 아무것도
+  바꾸지 않습니다.
+- MCP 항목은 각 CLI 설정에 URL·명령만 등록합니다. 인증(OAuth)은 각 CLI를
   처음 쓸 때 진행되며 토큰은 이 저장소에 저장되지 않습니다.
+- `opencode run`은 LLM 실행이라 결과가 비결정적입니다. 설치기는 설정 파일을
+  다시 읽어 확인하고, 반영되지 않았거나 권한 요청에서 멈춰 시간 제한(10분)에
+  걸리면 실패로 보고합니다 — 그때는 `--print`가 낸 지시문을 OpenCode에서 직접
+  실행하세요. 2.0.0 시점 이 경로는 실제 OpenCode로 검증하지 못했습니다.
 
 ## Windows
 
@@ -277,7 +229,7 @@ PowerShell 7:
 pwsh -File .\setup-agents.ps1
 ```
 
-Claude, Kiro, Grok Build의 스킬 어댑터 방식:
+Claude Code의 스킬 어댑터 방식:
 
 ```powershell
 # Junction 우선, 실패하면 복사
@@ -316,7 +268,7 @@ chmod +x ./setup-agents.sh
 ./setup-agents.sh
 ```
 
-Claude, Kiro, Grok Build의 스킬 어댑터 방식:
+Claude Code의 스킬 어댑터 방식:
 
 ```bash
 # 심볼릭 링크 우선, 실패하면 복사
@@ -355,22 +307,13 @@ Claude, Kiro, Grok Build의 스킬 어댑터 방식:
 ```text
 AGENTS.md
 CLAUDE.md
-GEMINI.md
 .claude/settings.json
 .codex/config.toml
-.gemini/settings.json
-.github/mcp.json
-.github/copilot/settings.json
-.grok/config.toml
-.kiro/settings/mcp.json
-.kimi-code/mcp.json
-.vscode/mcp.json
 opencode.jsonc
-kilo.jsonc
 ```
 
-`CLAUDE.md`와 `GEMINI.md`는 파일이 존재하더라도 agent-kit 관리 블록이 없으면
-공통 지침 import 블록만 추가합니다.
+`CLAUDE.md`는 파일이 존재하더라도 agent-kit 관리 블록이 없으면 공통 지침
+import 블록만 추가합니다.
 
 ## 선택 항목 설치기 (agent-installer)
 
@@ -393,15 +336,16 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
 | `↑` / `↓` / `PgUp` `PgDn` (목록) | 커서 이동. 맨 위에서 `↑`는 검색칸으로 복귀 |
 | `Space` (목록) | 커서 항목 선택/해제 |
 | `Tab` / `Shift+Tab` / `←` `→` | 탭 이동 (선택은 탭을 넘나들며 누적됩니다) |
-| `Enter` (목록) | `[▶]` 작업 행(작업 탭의 언어·부트스트랩, DESIGN.MD 탭 맨 위의 동기화 셋)에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
+| `Enter` (목록) | `[▶]` 작업 행(작업 탭의 언어·설치 범위·부트스트랩, DESIGN.MD 탭 맨 위의 동기화 셋)에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
 | `Ctrl+A` | 지금 탭에서 보이는 항목 전체 선택/해제 |
 | `Ctrl+O` | 커서 항목 미리보기 (design.md는 브라우저) |
-| `Ctrl+F` / `Ctrl+B` | CLI 필터를 앞 / 뒤로 돌리기 (전체 → CLI 하나씩 순환, 검색줄 오른쪽에 `CLI › codex (2/11)`처럼 위치 표시) |
+| `Ctrl+F` / `Ctrl+B` | CLI 필터를 앞 / 뒤로 돌리기 (전체 → CLI 하나씩 순환, 검색줄 오른쪽에 `CLI › codex (2/4)`처럼 위치 표시) |
 | `Ctrl+D` | 상세 패널을 전체 화면으로 펼치기/접기 |
 | `Home` / `End` | 목록 처음 / 끝으로 |
 | `F1` | 키 안내 화면 (아무 키나 누르면 닫힙니다) |
 | `Ctrl+Q` | **종료** — 어느 포커스에서도, 검토 화면에서도 한 번에 나갑니다 |
 | `Esc` | 검색어 지우기 → 목록으로 → 한 번 더 누르면 종료 |
+| `p` (검토 화면) | 적용하지 않고, 실행할 CLI 명령과 설치 후 할 일을 화면 밖에 펼칩니다 |
 
 **나가는 키는 `Ctrl+Q`입니다.** `Ctrl+C`는 "중단"이고 `Esc`는 검색어와
 포커스를 먼저 되돌리느라 최대 세 번을 눌러야 나갑니다 — 어느 쪽도 "나가는
@@ -424,16 +368,13 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   예정, `[-]` 설치돼 있는데 풀어서 제거 예정, `[ ]` 없고 안 고름. 머리글에는
   `변경 예정 3건 (+2 -1)`처럼 건수와 내역이 늘 붙습니다 — `선택 3 / 전체 106`은
   설치 상태의 합계라 Enter를 누르면 무슨 일이 날지 말해 주지 않기 때문입니다.
-- **항목마다 CLI 커버리지가 상태 바로 뒤에 붙습니다** — 지원 CLI가 넷 이하면
-  이름을(`claude·opencode`), 그보다 많으면 `CLI n/11`을 찍습니다. 탭과 무관하게
-  한 규칙입니다. 분모 11은 부트스트랩이 지원하는 도구 수와 같습니다 —
-  Antigravity는 프로젝트 스코프 MCP 파일이 없어 MCP 항목에는 `CLI 10/11`로
-  빠지고 그 사유가 상세에 적히지만, 공유 `.agents/skills`는 네이티브로 읽으므로
-  스킬 항목에는 `CLI 11/11`로 들어갑니다. 전부 되는 항목도 커버리지를 찍습니다
-  — 표시가 없는 것과 "전부 된다"는 뜻이 다르기 때문입니다. 전역 항목은 이
-  머신에 없는 CLI를 나열에서 빼고 `gemini 없음`처럼 따로 적습니다. CONFIG 탭의
-  항목은 CLI 배선이 아니라 저장소 규약이라 이 표시가 없고, CLI 필터에도
-  걸러지지 않습니다.
+- **항목마다 CLI 커버리지가 상태 바로 뒤에 붙습니다** — 지원 CLI 이름을
+  `claude·opencode`처럼 찍습니다. 지원 CLI는 **고른 설치 범위**에 따라
+  달라집니다: Codex·Antigravity는 플러그인·MCP를 사용자 전역으로만 설치하므로
+  저장소 범위에서는 빠지고 "범위를 전역으로 바꾸세요"가 사유로 붙습니다. 이
+  머신의 PATH에 없는 CLI는 나열에서 빼고 `codex 없음`처럼 따로 적습니다.
+  CONFIG 탭의 항목은 CLI 배선이 아니라 저장소 규약이라 이 표시가 없고, CLI
+  필터에도 걸러지지 않습니다.
 - **`--list`도 같은 정보를 냅니다** — 상태·id·이름 뒤에 커버리지, 대상 파일,
   설치 위치가 붙습니다. CI가 읽는 경로라 화면과 어긋나면 안 됩니다.
 - **`F1`이 키 안내를 띄웁니다** — 바닥글 두 줄에 담기지 않는 키의 뜻까지 한
@@ -451,15 +392,13 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   CI처럼 화면을 열 수 없는 곳에서 인자 없이 실행하면 나오는 평평한 목록에도
   같은 정보가 실립니다 — 거기엔 그룹 헤더가 없어 달리 알 길이 없기
   때문입니다(`--list`에도 커버리지·대상 파일·설치 위치가 붙습니다).
-- **목록 아래 상세 패널이 커서 항목의 전문을 폅니다** — 어느 CLI에 실제로
-  배선됐는지(MCP는 설정 파일 경로까지), 안 된 CLI는 무엇이고 왜인지(같은
-  사유끼리 묶어서 `미배선 9곳: codex·gemini·… — 사유`처럼), 항목의 note·
-  설명까지 여러 줄로 보여 줍니다. 예전에는 이 전부가 한 줄 힌트에 이어 붙어
-  80칸 터미널에서 뒤쪽이 통째로 잘렸습니다 — 그래서 힌트에는 상태와 커버리지만
-  남기고 나머지는 패널로 옮겼습니다. 패널 높이는 **터미널 크기로만** 정해지고
-  커서 위치와는 무관합니다 — 커서를 옮길 때마다 높이가 바뀌면 목록이
+- **목록 아래 상세 패널이 커서 항목의 전문을 폅니다** — 어느 CLI에 배선되고
+  안 된 CLI는 무엇이고 왜인지(같은 사유끼리 묶어서 `미배선 2곳:
+  codex·antigravity — 사유`처럼), 항목의 note·설명까지 여러 줄로 보여 줍니다.
+  힌트에는 상태와 커버리지만 남깁니다. 패널 높이는 **터미널 크기로만**
+  정해지고 커서 위치와는 무관합니다 — 커서를 옮길 때마다 높이가 바뀌면 목록이
   출렁이기 때문입니다. 터미널이 낮으면 패널은 통째로 사라집니다. `Ctrl+D`로
-  패널을 전체 화면까지 펼쳐 긴 배선표를 한 번에 볼 수 있습니다.
+  패널을 전체 화면까지 펼칠 수 있습니다.
 - **`Ctrl+F`/`Ctrl+B`로 CLI 필터를 걸면** 그 CLI에 배선되지 않는 항목이
   목록에서 통째로 빠집니다. 상세 패널의 배선표가 항목 하나를 깊이 보여
   준다면, 이 필터는 반대 방향에서 같은 질문("이 CLI에서 뭐가 되나")에
@@ -468,19 +407,19 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   작업 방식 · 외부 서비스 순으로 소분류 헤더가 붙고 개수가 함께 나옵니다.
   탭(PLUGIN·MCP·SKILL)은 "무엇으로 설치되는가"라 고를 때 비교가 되지 않습니다 —
   같은 탭에 토큰을 아끼는 것과 디자인을 봐 주는 것이 섞여 있기 때문입니다.
-  **PLUGIN 탭만 설치 범위로 묶입니다** — "저장소 범위 — 이 저장소에만 적용"과
-  "머신 전역 — 이 컴퓨터 전체에 적용" 두 헤더로 갈라지고, 행 라벨에
-  `(저장소)`/`(전역)` 접미사가, 힌트에 대상 CLI 이름이 붙습니다. 같은 상류의
-  두 판(superpowers 등)이 무엇을 건드리는지가 이 탭에서 고르는 기준이기
-  때문입니다. 전역 항목을 켜는 순간 상태줄이 그 사실을 알립니다.
+  **설치 범위는 작업 탭의 `설치 범위` 행에서 고릅니다** — `Enter`로 저장소와
+  사용자 전역을 오가며, 바꾸면 그 범위의 항목으로 다시 스캔하고 선택을 실제
+  설치 상태로 되돌립니다. 전역 범위에서 항목을 켜는 순간 상태줄이 "이 컴퓨터
+  전체에 적용"임을 알립니다.
 - 검색과 CLI 필터는 모두 활성 탭 안에서 걸리지만, **탭 줄에 탭별 적중 수**가
   함께 표시되어 다른 탭의 결과를 놓치지 않습니다(`DESIGN.MD 19/76`). 여러
   단어는 AND로 좁힙니다.
 - 제출하면 적용 직전에 **무엇이 설치/보완/제거되는지 검토 화면**으로 확인한
   뒤 `Enter`로 일괄 적용합니다. 일부만 되는 항목은 이 화면에서도 커버리지를
-  한 번 더 보여 줍니다. 머신 전역 변경이 섞여 있으면 저장소 범위와 갈라
-  보여 주고 "이 저장소 밖 설정(~/.codex 등)이 바뀝니다" 경고를 답니다.
-  `Esc`로 되돌아갈 수 있습니다.
+  한 번 더 보여 주고, 전역 범위면 "이 저장소 밖 설정(~/.codex 등)이 바뀝니다"
+  경고를 답니다. `p`를 누르면 적용하지 않고 같은 명령을 화면 밖에 펼칩니다 —
+  복사해 직접 실행할 수 있습니다(`--print`로 띄운 화면에서는 `Enter`도 이렇게
+  동작합니다). `Esc`로 되돌아갈 수 있습니다.
 - **적용 중에는 진행 바가 실시간으로 돕니다** — 지금 실행 중인 항목과 명령,
   경과 시간, `완료/전체` 개수를 100ms 간격으로 갱신합니다. 외부 명령 실행이
   비동기라 이벤트 루프가 막히지 않으므로 경과 시간이 실제로 흐릅니다.
@@ -489,6 +428,13 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   때문입니다. 아직 시작하지 않았던 항목은 "건너뜀"으로 표시됩니다.
   건너뜀은 실패로 세지 않습니다 — 실패 집계와 종료 코드 모두에서 제외됩니다.
   의도적으로 멈춘 것과 무언가 잘못된 것은 다르기 때문입니다.
+- **적용이 끝나면 설치 후 할 일을 CLI마다 한 번씩 알립니다** — 새 세션 시작,
+  OpenCode·Antigravity 재시작, 그리고 훅이 있는 항목(Ponytail·ECC·ai-memory)을
+  Codex에 깔았다면 `codex`에서 `/hooks`를 열어 새 라이프사이클 훅을 Trust하는
+  단계까지 적습니다. 항목 고유의 전제(예: ai-memory 바이너리와 `ai-memory
+  setup`)는 그 아래 따로 붙습니다. 한 CLI의 명령이 실패하면 그 CLI의 남은
+  단계만 건너뛰고 다른 CLI는 계속합니다 — 실패한 명령과 출력 끝 몇 줄이
+  결과에 남습니다.
 - **비대화형(`--set`)과 CI(비TTY)에서는 바 대신 평문 진행 줄**이 항목마다
   한 줄씩 나옵니다 — ANSI 제어 문자로 로그를 더럽히지 않기 위해서입니다.
 - `Ctrl+A`는 **보이는 항목만** 건드립니다 — 화면 밖 설치본이 휩쓸리지 않습니다.
@@ -498,78 +444,89 @@ cd agent-installer && npm install && cd ..    # 최초 1회 (의존성 설치)
 
 node agent-installer/install.mjs              # 대화형: 체크 = 설치, 해제 = 제거
 node agent-installer/install.mjs --help       # 사용법 (design·bootstrap도 --help 지원)
-node agent-installer/install.mjs --list       # 현재 상태만 출력
+node agent-installer/install.mjs --list       # 현재 상태만 출력 (저장소 범위)
+node agent-installer/install.mjs --global --list
+                                              # 사용자 전역 범위의 상태
 node agent-installer/install.mjs --set mcp.notion,plugin.superpowers
                                               # 비대화형: 지정 집합을 목표 상태로
-node agent-installer/install.mjs --set ""     # 전체 제거 (빈 값은 반드시 명시,
-                                              #  값을 생략하면 오류로 종료)
-node agent-installer/install.mjs --list --dry-run
-                                              # --dry-run은 다른 플래그를 수식합니다.
-                                              #  단독으로 주면 dry-run 상태의
-                                              #  대화형 화면이 열립니다
+node agent-installer/install.mjs --global --set plugin.ponytail,plugin.ai-memory
+                                              # 사용자 전역에 설치 (목록 밖 전역
+                                              #  항목은 지우지 않습니다)
+node agent-installer/install.mjs --print --set plugin.ponytail
+                                              # 실행할 CLI 명령만 출력 (--dry-run과 같음)
+node agent-installer/install.mjs --set ""     # 저장소 범위 전체 제거 (빈 값은 반드시
+                                              #  명시, 값을 생략하면 오류로 종료)
 node agent-installer/install.mjs --design-dir 사내=//nas/design --list
                                               # design.md 소스 추가 (반복 지정 가능)
 node agent-installer/install.mjs --lang en    # 이번 실행만 표시 언어 지정
                                               #  (en|ko, 기본은 OS 언어 → 영어 순 폴백)
 ```
 
+`--print`로 본 출력의 예(`--global --print --set plugin.ponytail`, Claude Code와
+Codex가 PATH에 있는 머신):
+
+```text
+# Claude Code — 사용자 전역
+claude plugin marketplace add DietrichGebert/ponytail --scope user
+claude plugin install ponytail@ponytail --scope user
+
+# Codex — 사용자 전역
+codex plugin marketplace add DietrichGebert/ponytail
+codex plugin add ponytail@ponytail
+
+설치 후 할 일:
+  Claude Code: 새 세션을 시작하세요 (비활성으로 보이면 /plugin에서 확인)
+  Codex: codex를 실행해 새 세션을 시작하세요
+    훅(Ponytail): codex에서 /hooks를 입력해 새 라이프사이클 훅을 Trust한 뒤 새 세션을 시작하세요
+  · Ponytail: 상시 활성화 훅이 돌려면 Node.js가 PATH에 있어야 합니다
+```
+
 값을 받는 플래그는 `--set a,b`와 `--set=a,b` 두 형식을 모두 받습니다.
 모르는 인자나 오타(`--dryrun`)는 조용히 무시하지 않고 사용법과 함께
 오류로 종료합니다. 같은 이유로 동작을 고르는 플래그를 겹쳐 주는 것도
 거부합니다 — 루트는 `--list`·`--set`, `design`은 `--list`·`--set`·
-`--preview`·`--sync` 중 하나만 지정하세요(`--dry-run`·`--design-dir`처럼
+`--preview`·`--sync` 중 하나만 지정하세요(`--global`·`--print`·`--design-dir`처럼
 동작을 수식하는 플래그는 함께 쓸 수 있습니다).
 
 ### 설치 가능한 항목
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
-| 플러그인 | `plugin.superpowers`, `plugin.mattpocock-skills` | Claude Code 플러그인 기구로 `--scope project` 설치. superpowers는 상류가 Codex·Grok Build 등 14개 하니스를 하니스별 설치로, Matt Pocock은 `npx skills add`(공유 `.agents/skills`)로도 지원하지만 이 항목이 배선하는 것은 Claude 판뿐입니다 — CLI별 사유는 상세 패널에 표시. claude 명령이 없으면 `.claude/settings.json`에 기록만 하고 다음 Claude Code 실행 시 다운로드됩니다 |
-| 플러그인 | `plugin.ponytail` | Claude Code 플러그인과 OpenCode `opencode.jsonc`의 `plugin` 배열에 동시 배선(둘 다 프로젝트 스코프). 기존 `plugin` 항목은 보존하고 끝에만 덧붙입니다. 나머지 CLI는 상류 설치가 사용자 스코프이거나(Codex·Copilot·Gemini) 플러그인 기구가 없어 항목 note에 사유를 표시합니다 |
-| 플러그인 | `global.superpowers` | **사용자 전역** 항목 — PLUGIN 탭의 '머신 전역' 그룹에 `global.ponytail`과 함께 앉습니다. superpowers를 프로젝트 스코프로 배선할 수 없는 하니스에 각자의 공식 명령으로 설치합니다 — codex·copilot은 `obra/superpowers-marketplace` 마켓플레이스, gemini는 `gemini extensions install`, opencode는 전역 `opencode.json`의 `plugin` 배열, grok은 `grok plugin install superpowers@xai-official --trust`. 감지는 각 CLI의 전역 기록(`$CODEX_HOME/config.toml`, `~/.copilot/config.json`, `~/.gemini/extensions/`, 전역 `opencode.json`, `~/.grok/installed-plugins/registry.json`)을 읽고, 이 머신에 없는 CLI는 대상에서 빼고 그 사실을 표시합니다. grok 제거(`grok plugin uninstall … --confirm`)는 registry와 디렉터리만 지우고 `~/.grok/config.toml`의 `[plugins].enabled` 이름은 남깁니다(상류 동작, 2026-09-05 grok 1.0.5 실측) — 감지가 registry를 보는 이유입니다. kimi는 설치가 대화형 `/plugins`뿐이라 배선하지 않습니다. `skill.superpowers`와 배타가 아니므로 함께 켜면 겹치는 CLI는 같은 스킬을 두 곳에서 봅니다. `--set` 생략만으로는 제거되지 않습니다 — 제거는 TUI에서 명시적으로 해제합니다 |
-| 플러그인 | `global.ponytail` | Ponytail의 사용자 전역 판 — codex·copilot은 `DietrichGebert/ponytail` 마켓플레이스, gemini는 `gemini extensions install`, grok은 `grok plugin install DietrichGebert/ponytail --trust`(2026-09-05 실측). claude·opencode는 프로젝트 항목(`plugin.ponytail`)의 자리라 여기서 다루지 않습니다. codex는 설치 후 `/hooks`에서 훅 등록을 한 번 확인해야 하고, 상류는 제거 전 `scripts/uninstall.js`로 `~/.config/ponytail` 정리를 안내합니다(이 항목은 플러그인만 제거). 감지·건너뜀·`--set` 보호 규칙은 `global.superpowers`와 같습니다 |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL을 10개 CLI 프로젝트 설정에 동시 등록(Antigravity는 프로젝트 MCP 파일이 없어 제외). 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
-| MCP | `mcp.ai-memory` | stdio 방식 — PATH에 `ai-memory`와 실행 중인 서비스가 필요합니다(`ai-memory setup`이 서비스를 띄웁니다. 상류 `install.sh`/`install.ps1`로 설치하며, 네이티브 Windows는 상류가 실험적이라 하고 WSL2를 지원합니다). 상류 `docs/install.md`가 Claude 외 클라이언트에 쓰는 것과 같은 `ai-memory mcp-bridge --no-session-id`만 등록하며, 토큰은 브리지가 데이터 디렉터리에서 읽어 저장소에 쓰이지 않습니다. 훅·`ai-memory setup`의 전역 배선은 쓰지 않습니다 |
-| MCP | `mcp.codebase-memory` | stdio 방식 — PATH에 `codebase-memory-mcp` 바이너리가 필요합니다 (미설치 시 항목 note에 설치 안내 표시) |
-| MCP | `mcp.graphify` | stdio 방식 — PATH에 `graphify-mcp`가 필요합니다 (`uv tool install "graphifyy[mcp]"`). 인자 없이 실행 디렉터리의 `graphify-out/graph.json`을 읽으므로 그래프도 저장소 안에 남습니다 |
-| MCP | `mcp.graft` | stdio 방식 — 상류가 수동 등록용으로 적은 명령 그대로 `npx -y @nanonets/graft mcp`를 쓰므로 따로 설치할 것이 없습니다. 코드베이스 지식 그래프를 도구 6종으로 내며, `graft build`로 그래프를 먼저 만드세요(gitignore되는 `graft/`에 쓰고, 구조 그래프는 LLM 키가 필요 없습니다). 상류 `graft init` 깊은 연동은 `AGENTS.md`·`GEMINI.md`·Claude 훅·`~/.codex`를 직접 고치므로 쓰지 않습니다 — 이 저장소의 부트스트랩이 관리하는 파일들입니다. Windows에서는 의존성 `tree-sitter-kotlin`이 prebuild 없이 C++ 툴체인을 요구하고 Node 24는 컴파일이 안 됩니다(상류 #400) — Node 22 + VS C++ 워크로드가 필요하며, 관리자 머신에서는 서버를 띄우지 못해 배선만 검증했습니다 |
-| MCP | `mcp.headroom` | stdio 방식 — PATH에 `headroom`이 필요합니다 (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`). 상류 `server.json`과 같은 `headroom mcp serve` 계약으로 등록합니다 |
-| 플러그인 | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code 마켓플레이스 플러그인, `--scope project`. 세 도구 모두 다른 CLI용 설치 경로가 있지만 쓰지 않는 까닭이 각기 다릅니다 — ECC는 스킬이 284개라 공유 디렉터리를 덮고(Codex만 따로, 활성 `CODEX_HOME` 하나에만 설치돼 프로젝트 스코프가 없습니다), Understand Anything은 사용자 스코프이며, impeccable은 공유 스킬 판(`skill.impeccable`)이 다른 CLI를 맡습니다 — 항목 note와 상세 패널에 사유가 나옵니다 |
-| 플러그인 | `plugin.hyperframes` | `heygen-com/hyperframes`(Apache-2.0)의 Claude Code 마켓플레이스 플러그인, `--scope project` — 상류 권장인 스킬 21종 번들 `hyperframes@hyperframes`(`/hyperframes` 라우터가 제작 워크플로를 필요할 때 불러옴). 렌더에는 Node.js 22+와 FFmpeg가 필요합니다. 다른 CLI는 모두 상류의 별도 설치(Copilot·Gemini·Codex·VS Code·Cursor 플러그인, 또는 비대화형이면 21종 전부를 받는 `npx skills add` 단독 스킬)라 플러그인만 배선합니다 |
-| 플러그인 | `plugin.cli-anything` | `HKUDS/CLI-Anything`(Apache-2.0)의 Claude Code 마켓플레이스 플러그인, `--scope project`. `/cli-anything <소스 경로 또는 저장소>`로 GUI·데스크톱 소프트웨어용 에이전트 친화 Python CLI를 만들고, `refine`·`test`·`validate`·`list`가 이어집니다. Claude Code 전용 — 다른 CLI용 상류 스크립트는 사용자 스코프이거나 수동 복사입니다. 이미 만들어진 CLI는 별개의 `cli-hub-meta-skill`(`npx skills add HKUDS/CLI-Anything --skill cli-hub-meta-skill`)로 받으며, 이 저장소에는 배선하지 않았습니다 |
-| 스킬 | `skill.superpowers`, `skill.mattpocock-skills` | 같은 상류의 **플러그인 판과 하나만** 고를 수 있습니다 — 두 경로를 함께 켜면 같은 스킬이 플러그인 캐시와 공유 디렉터리 양쪽에서 잡혀 중복 등록됩니다(TUI는 형제를 자동으로 끄고, `--set`에 둘 다 주면 오류로 거절합니다). 스킬 판은 11개 CLI가 함께 보는 대신 상류 훅을 잃습니다 — superpowers는 session-start 자동 주입이 빠지고, Matt Pocock은 훅이 없어 잃는 것이 없습니다. 제거할 때 지울 대상은 `skills-lock.json`의 출처 기록으로 고릅니다 |
-| 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify` | `npx skills add … --agent universal --copy`로 공유 `.agents/skills`에 **복사**합니다. 그 경로를 11개 CLI가 함께 보므로 한 번 설치로 전부 적용되고, 커밋해서 팀과 나눌 수 있습니다. 상류 Hallmark는 Cursor·Codex용 경로도, Diagram Design은 Claude·Codex 플러그인 매니페스트도 따로 두지만 모두 CLI별 디렉터리라, 공유 경로 하나가 11개를 함께 덮습니다. agent-browser는 PATH의 `agent-browser` 바이너리(`npm i -g agent-browser` 후 최초 1회 `agent-browser install`)가 전제이고, mcp-builder는 reference/ 문서와 Apache-2.0 LICENSE.txt가 스킬 디렉터리에 함께 복사됩니다. i-have-adhd는 상류 Claude 마켓플레이스 플러그인 판도 있지만 더 주는 것은 opt-in 상시 적용 플래그용 SessionStart 훅 하나라, 11개 CLI가 함께 보는 공유 스킬로 넣습니다. eli5는 Anthropic 커뮤니티 마켓플레이스 플러그인(`anthropics/claude-plugins-community`, `eli5/` 하위 경로)에 든 스킬 하나입니다 — `/eli5 <주제>`가 HTML 그림 설명서를 만들며, 플러그인이 훅·명령을 더 주지 않아 공유 스킬로 넣습니다. archify(`tt-a1i/archify`)는 아키텍처·워크플로·시퀀스·데이터 흐름·라이프사이클 다이어그램을 검증을 거친 단독 HTML로 만듭니다 — 동봉된 `bin/archify.mjs` 검증기를 Node 18+로 돌리며 `npm install`은 필요 없습니다(파일 219개, 8.6MB 복사). 첫 다이어그램 뒤 선택적 업데이트 안내를 위해 상류 릴리스 매니페스트를 한 번 GET하며, `ARCHIFY_UPDATE_CHECK_DISABLED=1`로 끕니다 |
-| 스킬 | `skill.impeccable` | `pbakaus/impeccable`의 디자인 언어 스킬을 공유 `.agents/skills`에 복사해(62개 파일, 2.3MB) 11개 CLI가 함께 봅니다. `plugin.impeccable`과 **하나만** 고를 수 있습니다. 엔진 바이너리는 포함되지 않아 첫 실행 때 스킬의 `scripts/impeccable`이 받아 `~/.impeccable`에 캐시합니다 — 저장소 밖에 쓰는 동작입니다. 2026-10-06 상류 4.1.0으로 재측정했습니다: `npx impeccable install --scope=project`가 더는 `.claude/skills` 연결을 끊지 않아(claude·kiro는 Junction, 나머지는 symlink로 확인) 스킬 경로를 피하던 예전 사유는 사라졌습니다. 그 명령이 provider마다 약 19MB 엔진을 복사하므로 레지스트리 경로를 그대로 씁니다 |
-| 스킬 | `skill.im-not-ai` | AI가 쓴 한글을 사람 글처럼 윤문하는 `epoko77-ai/im-not-ai`(MIT)의 스킬 4종 — `humanize-korean`과 `humanize`·`humanize-scan`·`humanize-redo` 진입점 — 을 `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다(22개 파일 420KB, 2026-10-08 실측. 제거는 `skills-lock.json`의 source 기록에서 대상을 고릅니다). 스킬만 들어옵니다: 상류 서브에이전트 9종은 스킬 폴더 밖에 있어 다중 호출 heavy 경로는 CLI가 서브에이전트를 직접 돌릴 수 있거나 상류 Claude 플러그인(`/plugin install humanize-korean@im-not-ai`)을 쓸 때만 동작합니다 |
-| 스킬 | `skill.remotion` | Remotion 공식 스킬(`remotion-dev/skills`)을 공유 `.agents/skills`에 복사합니다. `remotion-best-practices` 하나만 받는데, 나머지 11개(create·markup·studio·render·captions·maps…)를 하위 폴더로 품고 있기 때문입니다(실측 141개 파일, 1.1MB). 개별 `/remotion-*` 슬래시 명령은 생기지 않습니다. **라이선스:** Remotion License는 개인·직원 3명 이하 영리 조직·비영리에 무료이고, 그보다 큰 영리 조직은 회사 라이선스가 필요합니다 |
-| 스킬 | `skill.strix` | 보안 테스트 스킬 9종(침투 테스트·OWASP Top 10·취약점 탐지와 수정 흐름)을 `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다(제거 대상은 `skills-lock.json`의 출처 기록으로 고릅니다). 스킬이 Strix 에이전트를 구동하므로 PATH의 `strix` 바이너리가 전제입니다 — 자체 호스팅은 `pipx install strix-agent`에 Docker와 `STRIX_LLM`·`LLM_API_KEY`가 더 필요하고, 관리형은 `strix cloud login`으로 시작합니다. 승인된 대상에만 쓰세요 |
-| 스킬 | `skill.officecli` | Word·Excel·PowerPoint(.docx·.xlsx·.pptx) 문서를 읽고 고치고 만드는 스킬을 상류 `skills/officecli` 폴더에서 공유 `.agents/skills`로 복사합니다(저장소 루트에도 `SKILL.md`가 있어 루트를 가리키면 레지스트리가 저장소 전체 94MB를 복사합니다 — 실측). 스킬이 `officecli` 바이너리를 구동하므로 PATH에 있는 것이 전제입니다 — `npm install -g @officecli/officecli` 또는 상류 `install.sh`·`install.ps1`. Microsoft Office 설치는 필요 없습니다 |
-| 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --local` 프로젝트 로컬 설치 — **런타임 다섯을 한 번에** 배선합니다(claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`, copilot→`.github/skills`, kilo→`.kilo/skills`). 상류가 플래그 동시 지정을 받아 호출 한 번으로 끝나고, 이미 설치된 런타임은 빼고 부릅니다. 런타임마다 700개 안팎(합계 3,500여 개)의 파일이 생기는 점에 유의하세요. 나머지 넷은 사유가 각기 다릅니다 — gemini는 상류가 제거, kimi는 `--local`을 아직 거부, kiro·grok·vscode는 상류 런타임 목록에 없음. 제거는 설치된 런타임 플래그를 전부 넘겨 지우지만, 상류가 `gsd-install-state.json`과 훅 파일 몇 개를 남깁니다(스킬은 남지 않아 상태 판정은 정확합니다) |
-| 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup (bash 필요, `.gitignore` 자동 처리). 부트스트랩 저장소에서는 그 경로가 Junction이라 실물이 공유 `.agents/skills/gstack`에 앉습니다 — 거기서부터는 CLI의 스킬 스캔 깊이가 도달 범위를 정하며, gstack은 라우터 SKILL.md 아래 개별 스킬이 한 단계 더 들어간 2단계 구조입니다. Codex·OpenCode는 재귀 스캔이라 개별 스킬까지, Copilot CLI는 1단계만 훑어 라우터 스킬만 봅니다(실측). 상류 `--host` 경로는 사용자 스코프라 쓰지 않습니다 |
-| 설정 | `config.gitmessage.en`, `config.gitmessage.ko` | 커밋 메시지 템플릿 `.gitmessage.txt`를 저장소 루트에 쓰고 `git config --local commit.template`이 그것을 가리키게 합니다. **영어판과 한국어판 중 하나만** 고를 수 있습니다 — 대상 파일이 하나라 둘을 함께 켜면 나중 것이 앞선 것을 덮어쓰기 때문입니다(TUI는 형제를 자동으로 끄고, `--set`에 둘 다 주면 오류로 거절합니다). 도구가 쓴 두 판 사이의 전환만 덮어쓰기로 보고, 손으로 쓴 템플릿이 이미 있으면 거절합니다 |
+| 플러그인 | `plugin.ponytail` | 군더더기 없는 코드 규칙(`DietrichGebert/ponytail`). Claude Code(저장소·전역), Codex(전역), OpenCode(`@dietrichgebert/ponytail`, 저장소·전역), Antigravity(전역) 네 CLI 모두 상류 공식 명령으로 설치합니다. Codex는 설치 뒤 `/hooks`에서 훅 두 개를 Trust해야 켜지고, 상시 활성화 훅에는 PATH의 Node.js가 필요합니다. 상류는 제거 전 `scripts/uninstall.js`로 `~/.config/ponytail` 정리를 안내합니다(이 항목은 플러그인만 제거) |
+| 플러그인 | `plugin.ai-memory` | 여러 에이전트가 장기 기억과 작업 맥락을 나누는 `akitaonrails/ai-memory`(MIT). Claude Code(저장소·전역)·Codex(전역)는 상류 마켓플레이스 플러그인(훅·스킬)을, OpenCode·Antigravity는 stdio 브리지 `ai-memory mcp-bridge --no-session-id`를 MCP로 겁니다 — 토큰은 브리지가 데이터 디렉터리에서 읽어 설정 파일에 남지 않습니다. 기억을 저장할 서버가 함께 돌아야 합니다: 바이너리를 상류 `install.sh`/`install.ps1`로 먼저 설치하고 `ai-memory setup`을 한 번 실행하세요. 세션을 이어받을 때는 `ai-memory run codex`처럼 실행합니다 |
+| 플러그인 | `plugin.superpowers` | Claude Code는 공식 마켓플레이스(`superpowers@claude-plugins-official`), Codex(전역)는 `obra/superpowers-marketplace`, OpenCode는 git 모듈, Antigravity(전역)는 `agy plugin install https://github.com/obra/superpowers`. `skill.superpowers`와 **하나만** 고를 수 있습니다 |
+| 플러그인 | `plugin.ecc`, `plugin.mattpocock-skills` | Claude Code(저장소·전역)와 Codex(전역) 마켓플레이스 플러그인. ECC는 OpenCode·Antigravity를 `install.sh --target`으로만 지원하고 스킬이 284개라 공유 디렉터리를 덮어 배선하지 않습니다(Codex 네이티브 훅은 Trust가 필요합니다). Matt Pocock의 나머지 CLI는 공유 스킬 판(`skill.mattpocock-skills`)이 맡고, 둘은 **하나만** 고를 수 있습니다 |
+| 플러그인 | `plugin.impeccable`, `plugin.understand-anything`, `plugin.hyperframes`, `plugin.cli-anything` | Claude Code 마켓플레이스 플러그인(저장소·전역). 다른 CLI는 사유가 각기 다릅니다 — impeccable은 공유 스킬 판(`skill.impeccable`, **하나만** 선택)이 맡고, Understand Anything은 홈에 클론하는 스크립트, HyperFrames는 CLI별 별도 설치, CLI-Anything은 스크립트·수동 복사뿐이라 CLI 명령으로 배선할 수 없습니다. HyperFrames 렌더에는 Node.js 22+와 FFmpeg가 필요합니다 |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL. Claude Code·OpenCode(저장소·전역), Codex·Antigravity(전역)에 등록합니다. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
+| MCP | `mcp.codebase-memory`, `mcp.graphify`, `mcp.headroom` | stdio 방식 — PATH에 각각 `codebase-memory-mcp`, `graphify-mcp`(`uv tool install "graphifyy[mcp]"`), `headroom`(`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`)이 필요합니다. graphify는 실행 디렉터리의 `graphify-out/graph.json`을 읽습니다 |
+| MCP | `mcp.graft` | stdio 방식 — `npx -y @nanonets/graft mcp`라 따로 설치할 것이 없습니다. `graft build`로 그래프를 먼저 만드세요(gitignore되는 `graft/`). 상류 `graft init`의 깊은 연동은 이 저장소가 관리하는 파일을 고치므로 쓰지 않습니다. Windows에서는 의존성 `tree-sitter-kotlin`이 C++ 툴체인을 요구하고 Node 24는 컴파일이 안 됩니다(상류 #400) |
+| 스킬 | `skill.superpowers`, `skill.mattpocock-skills`, `skill.strix`, `skill.im-not-ai` | 한 상류의 스킬을 `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다. 제거 대상은 `skills-lock.json`의 출처 기록으로 고르며, 전역에서는 그 근거가 없어 **저장소 범위 전용**입니다. superpowers·mattpocock-skills는 같은 상류의 플러그인 판과 **하나만** 고를 수 있습니다(superpowers 스킬 판에는 session-start 자동 주입이 없습니다). strix는 PATH의 `strix` 바이너리, im-not-ai는 상류 서브에이전트 없이 스킬만 들어옵니다 |
+| 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify`, `skill.impeccable`, `skill.remotion`, `skill.officecli` | 스킬 하나를 저장소 범위에서는 공유 `.agents/skills`에 복사해 네 CLI가 함께 보고(커밋해 팀과 나눌 수 있습니다), 전역 범위에서는 `claude-code`·`codex`·`antigravity-cli` 전역 경로에 넣습니다. agent-browser·officecli는 각자의 바이너리가 PATH에 있어야 하고, impeccable은 첫 실행 때 엔진을 `~/.impeccable`에 받으며(`plugin.impeccable`과 **하나만** 선택), Remotion은 규모가 큰 영리 조직에 회사 라이선스가 필요합니다 |
+| 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --<런타임> --local` 저장소 범위 설치 — claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`. 런타임마다 700개 안팎의 파일이 생깁니다. Antigravity는 상류 플래그가 있지만 설치 경로를 실측하지 못해 배선하지 않습니다 |
+| 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup(bash 필요, `.gitignore` 자동 처리). 부트스트랩 저장소에서는 그 경로가 Junction이라 실물이 공유 `.agents/skills/gstack`에 앉고, Codex·OpenCode는 재귀 스캔이라 개별 스킬까지 봅니다. 저장소 범위 전용입니다 |
+| 설정 | `config.gitmessage.en`, `config.gitmessage.ko` | 커밋 메시지 템플릿 `.gitmessage.txt`를 저장소 루트에 쓰고 `git config --local commit.template`이 그것을 가리키게 합니다. **영어판과 한국어판 중 하나만** 고를 수 있습니다. 파일을 직접 쓰는 항목이라 저장소 범위 전용이고, `--print`에서는 명령 대신 안내 한 줄이 나옵니다 |
 
 ### 동작 원칙
 
-- **실제 상태의 근거는 스캔입니다** — 실행할 때마다 실제 설정 파일을 스캔해
-  판정하므로 수동으로 설치·제거해도 항상 정확히 반영됩니다.
+- **실제 상태의 근거는 스캔입니다** — 실행할 때마다 각 CLI의 목록 명령
+  (`claude plugin list --json`, `codex plugin list --json`, `codex mcp list
+  --json`, `agy plugin list --json`, `agy mcp list`, `npx skills list -g --json`)과
+  설정 파일(`.mcp.json`·`~/.claude.json`, `opencode.jsonc`)을 **읽기만** 해
+  판정하므로, 손으로 설치·제거해도 정확히 반영됩니다. `claude mcp list`는
+  서버마다 연결을 검사해 느려 쓰지 않습니다. 목록 명령이 실패한 CLI(로그인 만료
+  등)는 "설치 상태를 읽지 못함"으로 표시하고 그 CLI에는 아무것도 하지 않습니다.
 - **설치 기록(`.agent-kit/agent-setup.json`)은 의도입니다** — 어느 버전으로
   배선했는지, 어떤 항목을 고르려 했는지, 관리 파일이 우리가 쓴 그대로인지를
   담습니다. 판정을 대체하지 않고 재현성과 버전 고정을 더합니다. 커밋 대상이라
   팀원이 같은 결과를 얻습니다.
 - `status`가 둘의 차이를 `기록에만 있음` / `저장소에만 있음`으로 보여줍니다.
-- 일부 CLI에만 등록된 MCP는 `(일부 설치됨)`으로 표시되고, 체크를 유지한 채
-  Submit하면 누락된 CLI에만 보완 설치됩니다.
-- MCP 항목이 쓰는 파일은 CLI별로 다릅니다 — `.mcp.json`(Claude Code),
-  `.codex/config.toml`, `.gemini/settings.json`, `opencode.jsonc`,
-  `.kilocode/mcp.json`(Kilo Code), `.kiro/settings/mcp.json`,
-  `.kimi-code/mcp.json`, `.grok/config.toml`, `.github/mcp.json`(Copilot CLI),
-  `.vscode/mcp.json`. 이 가운데 `.mcp.json`과 `.kilocode/mcp.json`은
-  부트스트랩이 만들지 않으므로 MCP를 처음 고를 때 새로 생깁니다(둘 다 커밋
-  대상입니다).
-- 기존 설정 파일의 다른 키·주석은 보존하며, 변경 내용은 `git diff`로
-  확인할 수 있습니다.
+- 일부 CLI에만 설치된 항목은 `(일부 설치됨)`으로 표시되고, 체크를 유지한 채
+  제출하면 빠진 CLI의 명령만 실행됩니다.
+- 실행 모드와 `--print`는 같은 명령 목록에서 나옵니다 — 화면에 보인 명령이 곧
+  설치기가 실행하는 명령입니다.
 - 새 항목 추가 = `agent-installer/lib/items/`에 파일 1개
-  (`defineMcp`/`definePlugin`/`defineSkill` 팩토리 사용, MCP는 5줄이면 충분).
+  (`defineRecipe`에 `marketplacePlugin`·`mcpServer`·`skillsAdd` 헬퍼를 펼쳐
+  쓰면 MCP는 7줄이면 충분합니다).
 - `agent-installer/` 폴더는 자기완결이라 다른 저장소에 복사해도 동작합니다.
 
 ### design.md 라이브러리
@@ -659,33 +616,23 @@ export AGENT_INSTALLER_DESIGN_MD_DIRS="사내=//nas/design"   # 경로 구분자
 ```text
 AGENTS.md
 CLAUDE.md
-GEMINI.md
 .agents/skills/
 .claude/settings.json
 .codex/config.toml
-.gemini/settings.json
-.github/mcp.json
-.github/copilot/settings.json
-.grok/config.toml
-.kiro/settings/mcp.json
-.kimi-code/mcp.json
-.vscode/mcp.json
-.vscode/settings.json
 opencode.jsonc
-kilo.jsonc
 ```
 
 오프라인 환경이거나 커밋된 진입점이 필요하면 `setup-agents.ps1`,
 `setup-agents.sh`, `agent-installer/`(node_modules 제외)를 함께 커밋하는
 기존 방식도 그대로 동작합니다.
 
-설치기로 MCP 항목을 등록하면 여기에 `.mcp.json`과 `.kilocode/mcp.json`이
-더해집니다 — 부트스트랩이 만들지 않는 두 파일이며, 나머지 MCP 파일과 같이
-팀과 공유하는 커밋 대상입니다.
+저장소 범위로 MCP 항목을 설치하면 Claude Code가 `.mcp.json`을, OpenCode가
+`opencode.jsonc`의 `mcp` 키를 씁니다 — 둘 다 팀과 공유하는 커밋 대상입니다.
+`config.gitmessage.*`를 설치했다면 `.gitmessage.txt`와 `.vscode/settings.json`도
+더해집니다.
 
-`.claude/skills`, `.kiro/skills`, `.grok/skills`가 로컬 Junction 또는 심볼릭
-링크라면 Git과 운영체제에 따라 다르게 처리될 수 있습니다(Windows에서 git은
-Junction을 일반 디렉터리로 취급해 스킬이 중복 커밋됩니다). 이를 막기 위해
-스크립트가 세 어댑터 경로를 `.gitignore`에 자동 추가합니다. 즉
-`.agents/skills`만 커밋하고 각 개발자가 bootstrap 스크립트를 실행해
-어댑터들을 만드는 방식입니다.
+`.claude/skills`가 로컬 Junction 또는 심볼릭 링크라면 Git과 운영체제에 따라
+다르게 처리될 수 있습니다(Windows에서 git은 Junction을 일반 디렉터리로 취급해
+스킬이 중복 커밋됩니다). 이를 막기 위해 스크립트가 이 어댑터 경로를
+`.gitignore`에 자동 추가합니다. 즉 `.agents/skills`만 커밋하고 각 개발자가
+bootstrap 스크립트를 실행해 어댑터를 만드는 방식입니다.

@@ -5,6 +5,40 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Install with each CLI's official commands; support narrowed to four CLIs (2026-10-24, 2.0.0)
+
+**This release breaks compatibility.**
+
+- **Four supported CLIs: Claude Code, Codex, OpenCode, Antigravity.** Support
+  for Gemini CLI, Kilo Code, Kiro, Kimi Code, Grok Build, GitHub Copilot CLI
+  and VS Code Copilot has ended. The bootstrap no longer creates their files
+  (`GEMINI.md`, `.gemini/`, `kilo.jsonc`, `.kiro/`, `.kimi-code/`, `.grok/`,
+  `.github/mcp.json`, `.github/copilot/`, `.vscode/mcp.json`) or
+  `chat.useAgentsMdFile`. Files that already exist are not deleted.
+- **Optional items install through each CLI's official commands.** Instead of
+  editing config files directly, the installer runs `claude plugin`/`claude
+  mcp`, `codex plugin`/`codex mcp`, `opencode plugin`, `agy plugin`/`agy mcp`
+  and `npx skills add`. `opencode mcp add` is interactive only, so OpenCode MCP
+  goes through `opencode run` and the config file is re-read to verify (OpenCode
+  does not run on the maintainer's machine, so this path is not verified
+  against a real OpenCode).
+- **Choose the install scope.** Repository by default; `--global` (or the
+  Install scope row on the action tab) installs user-globally. Codex and
+  Antigravity install plugins and MCP user-globally only. A global `--set`
+  never removes items left out of the list.
+- **See the commands only.** `--print` (the new name for `--dry-run`, which
+  stays as an alias) and `p` on the review screen print the same commands
+  instead of running them.
+- **After-install steps.** Once per CLI: start a new session or restart; for
+  items with hooks, the Codex `/hooks` trust step; plus item prerequisites.
+- **Item changes.** `global.ponytail` and `global.superpowers` merged into the
+  user-global scope of `plugin.ponytail` and `plugin.superpowers`. ai-memory is
+  now `plugin.ai-memory`: the upstream marketplace plugin for Claude Code and
+  Codex, and the `ai-memory mcp-bridge` MCP for OpenCode and Antigravity. ECC
+  and Matt Pocock also wire their Codex plugins. Skill bundles (`skill: '*'`),
+  `skill.gsd`, `skill.gstack` and `config.gitmessage.*` are repository-scope
+  only.
+
 ## im-not-ai Korean humanizer skill added (2026-10-08, 1.28.0)
 
 - **`skill.im-not-ai`.** Copies the four skills from epoko77-ai/im-not-ai

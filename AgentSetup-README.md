@@ -3,10 +3,10 @@
 **English** · [한국어](AgentSetup-README.ko.md) · [Changelog](AgentSetup-README-CHANGES.md)
 
 A script that initializes shared instructions and shared Agent Skills
-**within repository scope only**, so that Claude Code, Codex, Gemini CLI,
-OpenCode, Kilo Code, Kiro, Kimi Code, Grok Build (xAI grok CLI), Antigravity
-(Google agent IDE/CLI), GitHub Copilot CLI, and VS Code Copilot can all be
-used together in one repository.
+**within repository scope only**, so that Claude Code, Codex, OpenCode, and
+Antigravity (Google agent IDE/CLI) can all be used together in one repository,
+plus an optional-item installer that installs plugins, MCP servers, and skills
+**with each CLI's own official install commands**.
 
 ## Five-minute start
 
@@ -28,9 +28,7 @@ is reference material for later.
 repository/
 ├─ AGENTS.md
 ├─ CLAUDE.md
-├─ GEMINI.md
 ├─ opencode.jsonc
-├─ kilo.jsonc
 ├─ .agents/
 │  └─ skills/
 │     └─ repository-check/
@@ -40,24 +38,6 @@ repository/
 │  └─ skills/          # link to .agents/skills, or a managed copy
 ├─ .codex/
 │  └─ config.toml
-├─ .gemini/
-│  └─ settings.json
-├─ .github/
-│  ├─ mcp.json
-│  └─ copilot/
-│     └─ settings.json
-├─ .grok/
-│  ├─ config.toml
-│  └─ skills/          # link to .agents/skills, or a managed copy
-├─ .kiro/
-│  ├─ skills/          # link to .agents/skills, or a managed copy
-│  └─ settings/
-│     └─ mcp.json
-├─ .kimi-code/
-│  └─ mcp.json
-├─ .vscode/
-│  ├─ mcp.json
-│  └─ settings.json      # only the chat.useAgentsMdFile key is ensured
 └─ .agent-kit/
    └─ README.md
 ```
@@ -67,62 +47,32 @@ repository/
 - **Claude Code:** `CLAUDE.md` imports `AGENTS.md`, and `.claude/skills` is
   linked to `.agents/skills`.
 - **Codex:** uses the root `AGENTS.md` and `.agents/skills`.
-- **Gemini CLI:** `GEMINI.md` imports `AGENTS.md`, and it uses
-  `.agents/skills`.
 - **OpenCode:** uses the root `AGENTS.md`, `.agents/skills`, and
   `opencode.jsonc`.
-- **Kilo Code:** reads the root `AGENTS.md` and `.agents/skills` directly, and a
-  project-local `kilo.jsonc` is created. Its project MCP file lives at a separate
-  path, `.kilocode/mcp.json`, which is created by the installer when an MCP item
-  is registered — not by the bootstrap.
-- **Kiro:** reads the root `AGENTS.md` directly, and `.kiro/skills` is linked to
-  `.agents/skills`. The project MCP file is created only at
-  `.kiro/settings/mcp.json`.
-- **Kimi Code:** reads the root `AGENTS.md` and `.agents/skills` directly. Its
-  project MCP file is created at `.kimi-code/mcp.json`, and the machine-specific
-  `.kimi-code/local.toml` is added to `.gitignore`.
-- **Grok Build (xAI grok CLI):** reads the root `AGENTS.md` directly (including
-  the commit message convention — no import wiring needed). Project settings and
-  MCP live in `.grok/config.toml` (`[mcp_servers.<name>]` tables), and because
-  its project skill lookup path is `.grok/skills`, that path is linked to
-  `.agents/skills`. Plugins are loaded from `.grok/plugins/`.
 - **Antigravity (Google agent IDE/CLI):** natively recognizes the root
   `AGENTS.md` and the `.agents/` directory, so it uses `AGENTS.md` and
-  `.agents/skills` as-is (no import wiring, no adapter, no new files). MCP is
-  configured only in the home-global location
-  (`~/.gemini/config/mcp_config.json`); there is no project-scope MCP file, so it
-  falls outside what this script manages.
-- **GitHub Copilot CLI:** reads the root `AGENTS.md` and `.agents/skills`
-  natively (no import wiring, no adapter). Project MCP is registered in
-  `.github/mcp.json`, and `.github/copilot/settings.json` is created as the place
-  for team-shared settings. The personal override
-  `.github/copilot/settings.local.json` is added to `.gitignore`. Copilot CLI
-  reads both `.github/mcp.json` and the root `.mcp.json` (the file Claude Code
-  uses); when the same server name appears in both, `.mcp.json` wins. Remote
-  (HTTP) servers are identical in both files (`type: "http"`), but **stdio
-  servers differ in format** — `.mcp.json` records Claude Code's `type: "stdio"`
-  while `.github/mcp.json` records Copilot's `type: "local"`. Because of the
-  precedence, what Copilot CLI actually sees is the `.mcp.json` entry — and
-  reading the Copilot CLI 1.0.82 source shows its local-server check accepts a
-  missing `type`, `"local"`, and `"stdio"` alike (verified 2026-09-05), so that
-  entry connects too. The installer therefore wires stdio MCP for copilot as
-  well. If you hit a version where it does not connect, change that entry in
-  `.mcp.json` to `type: "local"` or delete it and keep only `.github/mcp.json`.
-- **VS Code Copilot:** reads `.agents/skills` natively, and the root `AGENTS.md`
-  is enabled through the `chat.useAgentsMdFile` key in `.vscode/settings.json`
-  (added only when the key is absent; an existing value is preserved). Project
-  MCP is `.vscode/mcp.json`, whose top-level key is `servers` — a different
-  format from Copilot CLI.
+  `.agents/skills` as-is (no import wiring, no adapter, no new files). It has no
+  project-scope MCP or plugin configuration, so the optional-item installer
+  installs into it **user-globally** only, with the Antigravity CLI (`agy`)
+  commands.
 
 ### Tools not covered
 
+Support for Gemini CLI, Kilo Code, Kiro, Kimi Code, Grok Build, GitHub Copilot
+CLI, and VS Code Copilot ended in 2.0.0. The installer does not delete the files
+1.x created for those tools (`GEMINI.md`, `.gemini/`, `kilo.jsonc`, `.kiro/`,
+`.kimi-code/`, `.grok/`, `.github/mcp.json`, `.github/copilot/`,
+`.vscode/mcp.json`) — remove them by hand if you no longer use them.
+`chat.useAgentsMdFile` in `.vscode/settings.json` is no longer ensured either.
+
 Cursor, Windsurf, Cline/Roo Code, Amp, Factory Droid, and Qwen Code are not on
-the list. This repository wires only what has been measured with the real CLI —
-what each tool reads and where it writes — and those tools could not be measured
-on this machine. Structurally, adding one is a single entry in
-`agent-installer/lib/clis.mjs` (the MCP file adapter) and in
-`agent-installer/lib/bootstrap/manifest.mjs` (generated files); the per-item
-check that demands a reason for every unwired CLI catches anything missed.
+the list either. This repository wires only what has been measured with the real
+CLI — what each tool reads and which commands install into it. Structurally,
+adding one is a single entry in each of `agent-installer/lib/clis.mjs` (CLI name
+and executable), `agent-installer/lib/probe.mjs` (the list commands that read
+install state), and `agent-installer/lib/bootstrap/manifest.mjs` (generated
+files); the per-item check that demands a reason for every unwired CLI catches
+anything missed.
 
 ## Running the bootstrap
 
@@ -194,8 +144,8 @@ The decision is based on the per-file hashes stored in the install record.
 | File missing | Created (this is how support for new tools arrives) |
 | No hash in the record | Origin unknown → left alone |
 
-The managed blocks in `CLAUDE.md` and `GEMINI.md` are replaced only between the
-markers (`<!-- agent-kit:begin -->`), so anything you wrote around them survives.
+The managed block in `CLAUDE.md` is replaced only between the markers
+(`<!-- agent-kit:begin -->`), so anything you wrote around it survives.
 
 Use `update --force` to take in drifted files too. Since git is the only way to
 undo it, it works **only when the working tree is clean** (untracked files
@@ -233,47 +183,51 @@ commands is described separately in
 - Refuses to write to any path outside the repository root.
 - Never reads or modifies global configuration in your home directory.
 - Never overwrites existing configuration files.
-- Adds the managed block to `CLAUDE.md` and `GEMINI.md` only when it is absent.
-- Preserves existing `.claude/skills`, `.kiro/skills`, and `.grok/skills` when
-  they are user-managed paths.
-- Adds `.claude/skills`, `.kiro/skills`, and `.grok/skills` to `.gitignore` so
-  the adapters (links/copies) are not committed.
-- Adds the machine-specific `.kimi-code/local.toml` to `.gitignore` as well.
-- Adds the personal `.github/copilot/settings.local.json` to `.gitignore` as well.
-- Adds the negation entries `!.vscode/mcp.json` and `!.vscode/settings.json` so
-  that both files are committed even in a `.gitignore` that ignores `.vscode/*`.
-  If `settings.json` is ignored, adding `chat.useAgentsMdFile` never reaches the
-  team.
-- Adds the `chat.useAgentsMdFile` key to `.vscode/settings.json` **only when it
-  is absent**, leaving existing keys, comments, and values untouched.
+- Adds the managed block to `CLAUDE.md` only when it is absent.
+- Preserves an existing `.claude/skills` when it is a user-managed path.
+- Adds `.claude/skills` to `.gitignore` so the adapter (link/copy) is not
+  committed.
+- Adds the negation entry `!.vscode/settings.json` so that the file is committed
+  even in a `.gitignore` that ignores `.vscode/*` — the commit template item
+  (`config.gitmessage.*`) wires VS Code settings into this file.
 - Safe to run repeatedly.
 
 ## What the installer runs
 
 Unlike the bootstrap, the optional-item installer uses the network and runs
-external commands. This is written down so you can know in advance what gets run
-when you pick something.
+external commands. From 2.0.0 it no longer edits each CLI's config files
+directly; it calls **that CLI's official install commands**. You can see exactly
+what will run for what you pick before anything runs, with `--print` (`p` on the
+review screen in the interactive UI).
 
 | Item | What runs |
 |---|---|
-| `plugin.*` | `claude plugin marketplace add <repo>` + `claude plugin install`. If the `claude` command is missing, it only records into `.claude/settings.json` and the download happens on the next Claude Code run |
-| `skill.*` (registry skills: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | `npx -y skills@latest add <github repo> --copy` — downloads the latest `skills` CLI with no confirmation prompt (`-y`) and copies the skill directory from the upstream repository into `.agents/skills`. Removal runs `npx -y skills@latest remove` and then deletes the directory |
-| `global.*` (`global.superpowers`, `global.ponytail`) | **Writes outside the repository.** Runs `codex plugin marketplace add` + `codex plugin add`, `copilot plugin marketplace add` + `copilot plugin install`, `gemini extensions install <git url>`, and `grok plugin install <source> --trust` for each CLI found on `PATH`, and edits the plugin array of the user-global `opencode.json` directly. The detail panel and review screen mark these as global; `--set` never removes them |
-| `skill.gsd` | `npx -y @opengsd/gsd-core@latest` — downloads and runs the latest version with no confirmation prompt (`-y`) |
+| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <scope>` + `claude plugin install <id> --scope <scope>`. Codex (global): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <module>` (`-g` for global). Antigravity (global): `agy plugin install <git URL>`. Each item wires only the CLIs its upstream documents. A marketplace registration failing with "already exists" is ignored |
+| `mcp.*` | Claude Code: `claude mcp add -s <scope> <name> …`. Codex (global): `codex mcp add <name> …`. Antigravity (global): `agy mcp add <name> …`. OpenCode: `opencode mcp add` is interactive only, so `opencode run "<instruction>"` asks the OpenCode agent to edit its config, and the installer re-reads the config file to confirm the change landed |
+| `skill.*` (registry skills: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | Repo scope: `npx -y skills@latest add <github repo> --skill <name> --agent universal --yes --copy` — copies into the shared `.agents/skills`. Global: `… -g -a claude-code codex antigravity-cli --yes --copy` (`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode reads the first two). Removal runs `npx -y skills@latest remove` and then deletes any leftover directory and the `skills-lock.json` entry |
+| `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<runtime> --local` — once per runtime (claude, codex, opencode), downloading and running the latest version with no confirmation prompt (`-y`) |
 | `skill.gstack` | Shallow-clones the default branch of `github.com/garrytan/gstack` and then runs `bash ./setup` inside the repository. It does not pin a commit or verify integrity |
 | `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — also adds `git.useEditorAsCommitInput` and `github.copilot.chat.commitMessageGeneration.instructions` to `.vscode/settings.json` when absent (existing keys are never overwritten; removal deletes only a key whose value is exactly the one written). Touches only the repository (no network). Global and system settings are neither read nor written |
 | design.md | Downloads `DESIGN.md` from `raw.githubusercontent.com` (a document file; it is not executed). If it exists in the bundled cache, no network is used |
 
 - Make sure you trust the target repository/package before picking an item.
-  Every plugin and skill item runs third-party code — inside this repository
-  for the project-scoped items, and on this machine for the `global.*` items.
+  Every plugin and skill item runs third-party code — repo-scope items install
+  into this repository, and global-scope (`--global`) items into this whole
+  machine.
 - Network calls have a 20-second time limit and an 8 MiB response body cap (a
   response that keeps streaming would never hit a time limit, so size is capped
   too).
-- Adding `--dry-run` prints only what would be run/recorded and changes nothing.
-- MCP items record only URLs and commands into config files. Authentication
-  (OAuth) happens the first time you use each CLI, and tokens are not stored in
-  this repository.
+- Adding `--print` (old name `--dry-run`) prints only the commands that would
+  run and changes nothing.
+- MCP items register only URLs and commands in each CLI's config.
+  Authentication (OAuth) happens the first time you use each CLI, and tokens are
+  not stored in this repository.
+- `opencode run` is an LLM run, so its result is nondeterministic. The installer
+  re-reads the config file to confirm, and reports a failure if the change did
+  not land or the run stalls on a permission prompt and hits the time limit
+  (10 minutes) — in that case, run the instruction `--print` shows directly in
+  OpenCode. As of 2.0.0 this path has not been verified against a real
+  OpenCode.
 
 ## Windows
 
@@ -289,7 +243,7 @@ PowerShell 7:
 pwsh -File .\setup-agents.ps1
 ```
 
-Skill adapter mode for Claude, Kiro, and Grok Build:
+Claude Code's skill adapter mode:
 
 ```powershell
 # Junction first, fall back to copying
@@ -329,7 +283,7 @@ chmod +x ./setup-agents.sh
 ./setup-agents.sh
 ```
 
-Skill adapter mode for Claude, Kiro, and Grok Build:
+Claude Code's skill adapter mode:
 
 ```bash
 # Symlink first, fall back to copying
@@ -369,22 +323,13 @@ The following files are preserved as-is if they already exist.
 ```text
 AGENTS.md
 CLAUDE.md
-GEMINI.md
 .claude/settings.json
 .codex/config.toml
-.gemini/settings.json
-.github/mcp.json
-.github/copilot/settings.json
-.grok/config.toml
-.kiro/settings/mcp.json
-.kimi-code/mcp.json
-.vscode/mcp.json
 opencode.jsonc
-kilo.jsonc
 ```
 
-Even when `CLAUDE.md` and `GEMINI.md` exist, if they have no agent-kit managed
-block, only the shared-instruction import block is added.
+Even when `CLAUDE.md` exists, if it has no agent-kit managed block, only the
+shared-instruction import block is added.
 
 ## Optional-item installer (agent-installer)
 
@@ -409,15 +354,16 @@ returns to the search box. **The meaning of `Space` depends on focus.**
 | `↑` / `↓` / `PgUp` `PgDn` (list) | Move the cursor. `↑` at the top returns to the search box |
 | `Space` (list) | Select/deselect the item under the cursor |
 | `Tab` / `Shift+Tab` / `←` `→` | Move between tabs (selections accumulate across tabs) |
-| `Enter` (list) | On a `[▶]` action row (Language and Run bootstrap on the Actions tab, the three sync actions at the top of the DESIGN.MD tab), run that action; otherwise **submit** (review screen → apply all) |
+| `Enter` (list) | On a `[▶]` action row (Language, Install scope, and Run bootstrap on the Actions tab, the three sync actions at the top of the DESIGN.MD tab), run that action; otherwise **submit** (review screen → apply all) |
 | `Ctrl+A` | Select/deselect all visible items in the current tab |
 | `Ctrl+O` | Preview the item under the cursor (design.md opens in a browser) |
-| `Ctrl+F` / `Ctrl+B` | Cycle the CLI filter forward / backward (All → one CLI at a time; the position shows at the right of the search line, as in `CLI › codex (2/11)`) |
+| `Ctrl+F` / `Ctrl+B` | Cycle the CLI filter forward / backward (All → one CLI at a time; the position shows at the right of the search line, as in `CLI › codex (2/4)`) |
 | `Ctrl+D` | Expand/collapse the detail panel to full screen |
 | `Home` / `End` | Jump to the first / last row |
 | `F1` | Key guide (any key closes it) |
 | `Ctrl+Q` | **Quit** — from any focus, and from the review screen, in one press |
 | `Esc` | Clear the query → go to the list → press again to quit |
+| `p` (review screen) | Without applying, lay out the CLI commands to run and the after-install steps outside the screen |
 
 **The key to leave is `Ctrl+Q`.** `Ctrl+C` means "abort", and `Esc` first undoes
 the query and focus, so it takes up to three presses to get out — neither was
@@ -443,15 +389,12 @@ the filter would make it impossible to type `codex` as a query.
   The header always carries the count and breakdown, as in `3 pending change(s)
   (+2 -1)` — `selected 3 / 106` is a sum of install state and says nothing about
   what Enter will do.
-- **Every item shows its CLI coverage right after its status** — names when four
-  or fewer CLIs are supported (`claude·opencode`), `CLI n/11` otherwise. One rule
-  regardless of tab. The denominator 11 equals the number of tools the bootstrap
-  supports — Antigravity has no project-scoped MCP file, so MCP items show
-  `CLI 10/11` with the reason in the detail panel, but it reads the shared
-  `.agents/skills` natively, so skill items show `CLI 11/11`. Items that cover
-  everything still print the coverage — "no indicator" and "everything works"
-  must not look the same. Global items drop CLIs missing from this machine from
-  the list and note them separately, as in `gemini missing`. Items on the CONFIG
+- **Every item shows its CLI coverage right after its status** — the supported
+  CLI names, as in `claude·opencode`. Which CLIs are supported depends on the
+  **chosen install scope**: Codex and Antigravity install plugins and MCP
+  servers only user-globally, so in repo scope they drop out with "switch the
+  scope to Global" as the reason. CLIs not on this machine's PATH are dropped
+  from the list and noted separately, as in `codex missing`. Items on the CONFIG
   tab are repository conventions rather than CLI wiring, so they carry no such
   indicator and are not filtered by the CLI filter.
 - **`--list` carries the same information** — coverage, target file, and
@@ -475,16 +418,13 @@ the filter would make it impossible to type `codex` as a query.
   group headers there, so there would be no other way to know (`--list` carries
   coverage, target file, and install location too).
 - **The detail panel below the list unfolds the full text of the item under the
-  cursor** — which CLIs it is actually wired into (with config file paths for
-  MCP), which ones are not and why (grouped by identical reason, as in
-  `Not wired in 9: codex·gemini·… — reason`), plus the item's note and
-  description across multiple lines. Previously all of that was appended to a
-  one-line hint and the tail was cut off entirely in an 80-column terminal — so
-  the hint keeps only status and coverage, and the rest moved into the panel. The
-  panel height is determined **by terminal size only**, independent of cursor
-  position — a height that changed as you moved the cursor would make the list
-  bounce. If the terminal is short, the panel disappears entirely. Use `Ctrl+D`
-  to expand the panel to full screen and see a long wiring table at once.
+  cursor** — which CLIs it is wired into, which ones are not and why (grouped by
+  identical reason, as in `not wired for 2: codex·antigravity — reason`), plus
+  the item's note and description across multiple lines. The hint keeps only
+  status and coverage. The panel height is determined **by terminal size only**,
+  independent of cursor position — a height that changed as you moved the cursor
+  would make the list bounce. If the terminal is short, the panel disappears
+  entirely. Use `Ctrl+D` to expand the panel to full screen.
 - **Applying a CLI filter with `Ctrl+F`/`Ctrl+B`** drops items not wired into
   that CLI out of the list entirely. Where the detail panel's wiring table shows
   one item in depth, this filter answers the same question from the other
@@ -494,21 +434,21 @@ the filter would make it impossible to type `codex` as a query.
   External services, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
   "what installs it", which makes comparison hard when picking — the same tab
   mixes something that saves tokens with something that reviews your design.
-  **The PLUGIN tab alone is grouped by install scope** — split under "Repo
-  scope — this repository only" and "Machine global — applies to this whole
-  computer", with `(repo)`/`(global)` suffixes on row labels and the target
-  CLI names in the hint. What the two editions of the same upstream
-  (superpowers etc.) actually touch is the deciding question on that tab.
-  Turning a machine-global item on announces the fact in the status line.
+  **The install scope is chosen on the `Install scope` row of the Actions tab**
+  — `Enter` switches between repo and user-global; switching rescans the items
+  for that scope and resets the picks to the actual install state. Turning an
+  item on in global scope announces in the status line that it applies to this
+  whole computer.
 - Search and the CLI filter both apply within the active tab, but the **per-tab
   hit counts on the tab row** keep you from missing results in another tab
   (`DESIGN.MD 19/76`). Multiple words narrow with AND.
 - On submit, a **review screen shows what will be installed/completed/removed**
   just before applying, and `Enter` applies them all. Partially covered items
-  show their coverage once more on this screen. When machine-global changes
-  are in the mix they are split from the repo-scope ones, with a warning that
-  settings outside this repo (`~/.codex` etc.) will change. You can go back
-  with `Esc`.
+  show their coverage once more on this screen, and in global scope a warning
+  says that settings outside this repo (`~/.codex` etc.) will change. Pressing
+  `p` lays out the same commands outside the screen without applying — you can
+  copy them and run them yourself (on a screen opened with `--print`, `Enter`
+  does this too). You can go back with `Esc`.
 - **A progress bar runs in real time while applying** — the item and command
   currently running, elapsed time, and a `done/total` count, refreshed every
   100 ms. External command execution is asynchronous so the event loop is not
@@ -518,6 +458,14 @@ the filter would make it impossible to type `codex` as a query.
   started are marked "skipped". Skipped does not count as failure — it is
   excluded from both the failure tally and the exit code. Stopping on purpose is
   different from something going wrong.
+- **When applying finishes, the after-install steps are announced once per
+  CLI** — start a new session, restart OpenCode or Antigravity, and, if an item
+  with hooks (Ponytail, ECC, ai-memory) went into Codex, the step of opening
+  `/hooks` in `codex` to trust the new lifecycle hooks. Item-specific
+  prerequisites (for example the ai-memory binary and `ai-memory setup`) are
+  listed separately below. If one CLI's command fails, only that CLI's remaining
+  steps are skipped and the other CLIs carry on — the failed command and the
+  last few lines of its output stay in the result.
 - **In non-interactive (`--set`) and CI (non-TTY) runs, plain progress lines**
   appear one per item instead of a bar — so as not to pollute logs with ANSI
   control characters.
@@ -529,19 +477,41 @@ cd agent-installer && npm install && cd ..    # once (install dependencies)
 
 node agent-installer/install.mjs              # interactive: check = install, uncheck = remove
 node agent-installer/install.mjs --help       # usage (design and bootstrap support --help too)
-node agent-installer/install.mjs --list       # print current state only
+node agent-installer/install.mjs --list       # print current state only (repo scope)
+node agent-installer/install.mjs --global --list
+                                              # state in user-global scope
 node agent-installer/install.mjs --set mcp.notion,plugin.superpowers
                                               # non-interactive: the given set becomes the target state
-node agent-installer/install.mjs --set ""     # remove everything (the empty value must be explicit;
-                                              #  omitting the value exits with an error)
-node agent-installer/install.mjs --list --dry-run
-                                              # --dry-run modifies other flags.
-                                              #  Given alone, it opens the interactive
-                                              #  screen in dry-run state
+node agent-installer/install.mjs --global --set plugin.ponytail,plugin.ai-memory
+                                              # install user-globally (global items not
+                                              #  in the list are not removed)
+node agent-installer/install.mjs --print --set plugin.ponytail
+                                              # print the CLI commands only (same as --dry-run)
+node agent-installer/install.mjs --set ""     # remove everything in repo scope (the empty value
+                                              #  must be explicit; omitting it exits with an error)
 node agent-installer/install.mjs --design-dir internal=//nas/design --list
                                               # add a design.md source (repeatable)
 node agent-installer/install.mjs --lang en    # display language for this run only
                                               #  (en|ko, defaults to OS language → English)
+```
+
+Example `--print` output (`--global --print --set plugin.ponytail`, on a machine
+with Claude Code and Codex on PATH):
+
+```text
+# Claude Code — user-global
+claude plugin marketplace add DietrichGebert/ponytail --scope user
+claude plugin install ponytail@ponytail --scope user
+
+# Codex — user-global
+codex plugin marketplace add DietrichGebert/ponytail
+codex plugin add ponytail@ponytail
+
+After installing:
+  Claude Code: start a new session (check /plugin if something looks inactive)
+  Codex: run codex and start a new session
+    hooks (Ponytail): in codex type /hooks, trust the new lifecycle hooks, then start a new session
+  · Ponytail: Node.js must be on PATH for the always-on hook to run
 ```
 
 Flags that take a value accept both `--set a,b` and `--set=a,b`. Unknown
@@ -549,41 +519,37 @@ arguments and typos (`--dryrun`) are not silently ignored — they exit with an
 error and the usage text. For the same reason, stacking flags that choose the
 action is rejected too: specify only one of `--list`/`--set` at the root, and one
 of `--list`/`--set`/`--preview`/`--sync` for `design` (flags that modify
-behavior, like `--dry-run` and `--design-dir`, can be combined).
+behavior, like `--global`, `--print`, and `--design-dir`, can be combined).
 
 ### Installable items
 
 | Kind | Item | Notes |
 |---|---|---|
-| Plugin | `plugin.superpowers`, `plugin.mattpocock-skills` | Installed with `--scope project` through the Claude Code plugin mechanism. Upstream superpowers supports 14 harnesses including Codex and Grok Build via per-harness installs, and Matt Pocock is also available through `npx skills add` (the shared `.agents/skills`), but what this item wires is only the Claude edition — per-CLI reasons are shown in the detail panel. If the `claude` command is missing, it only records into `.claude/settings.json` and downloads on the next Claude Code run |
-| Plugin | `plugin.ponytail` | Wired simultaneously into the Claude Code plugin mechanism and the `plugin` array of OpenCode's `opencode.jsonc` (both project scope). Existing `plugin` entries are preserved and only appended to. For the remaining CLIs, upstream installation is user-scoped (Codex, Copilot, Gemini) or there is no plugin mechanism at all, and the reason is shown in the item's note |
-| Plugin | `global.superpowers` | A **user-global** item — it sits in the PLUGIN tab's "Machine global" group alongside `global.ponytail`. Installs superpowers into the harnesses that cannot be wired at project scope, using each harness's own official command — the `obra/superpowers-marketplace` marketplace for codex/copilot, `gemini extensions install` for gemini, the `plugin` array of the global `opencode.json` for OpenCode, and `grok plugin install superpowers@xai-official --trust` for grok. Detection reads each CLI's global record (`$CODEX_HOME/config.toml`, `~/.copilot/config.json`, `~/.gemini/extensions/`, the global `opencode.json`, `~/.grok/installed-plugins/registry.json`); CLIs missing from this machine are excluded from the target set and reported as such. Removing from grok (`grok plugin uninstall … --confirm`) deletes the registry entry and directory but leaves the name in `[plugins].enabled` of `~/.grok/config.toml` (upstream behavior, measured 2026-09-05 with grok 1.0.5) — which is why detection reads the registry. kimi is not wired (interactive `/plugins` install only). Not exclusive with `skill.superpowers` — with both on, overlapping CLIs see the same skills twice. Omission from `--set` never removes it — removal happens by unchecking it explicitly in the TUI |
-| Plugin | `global.ponytail` | The user-global edition of Ponytail — the `DietrichGebert/ponytail` marketplace for codex/copilot, `gemini extensions install` for gemini, `grok plugin install DietrichGebert/ponytail --trust` for grok (measured 2026-09-05). claude and opencode belong to the project-scope item (`plugin.ponytail`) and are not handled here. After the codex install, check hook registration once via `/hooks`; upstream recommends `scripts/uninstall.js` to clean `~/.config/ponytail` before removal (this item removes the plugin only). Detection, skipping, and the `--set` protection rule are the same as `global.superpowers` |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | Remote URLs registered simultaneously into 10 CLIs' project settings (Antigravity is excluded: it has no project MCP file). Authentication (OAuth) happens the first time you use each CLI, and no secrets are committed |
-| MCP | `mcp.ai-memory` | stdio transport — requires `ai-memory` on PATH and its service running (`ai-memory setup` starts it; install with upstream `install.sh`/`install.ps1`, and upstream calls native Windows experimental and supports WSL2). Registers only `ai-memory mcp-bridge --no-session-id`, the same entry upstream `docs/install.md` writes for non-Claude clients; the bridge reads the token from the data dir so it never lands in the repository. Hooks and the global wiring of `ai-memory setup` are not used |
-| MCP | `mcp.codebase-memory` | stdio transport — requires the `codebase-memory-mcp` binary on PATH (if missing, install guidance is shown in the item's note) |
-| MCP | `mcp.graphify` | stdio transport — requires `graphify-mcp` on PATH (`uv tool install "graphifyy[mcp]"`). It takes no arguments and reads `graphify-out/graph.json` from the working directory, so the graph stays inside the repository too |
-| MCP | `mcp.graft` | stdio transport — the exact command upstream documents for manual registration, `npx -y @nanonets/graft mcp`, so nothing to install. Exposes the codebase knowledge graph as six tools; build the graph first with `graft build` (writes a gitignored `graft/`; the structural graph needs no LLM key). The upstream `graft init` deep integration is not used because it edits `AGENTS.md`, `GEMINI.md`, Claude hooks and `~/.codex` directly — files this repository's bootstrap owns. On Windows the `tree-sitter-kotlin` dependency ships no prebuilds and needs a C++ toolchain, and Node 24 cannot compile it (upstream #400) — Node 22 plus the VS C++ workload; the server could not be started on the maintainer's machine, so only the wiring was verified |
-| MCP | `mcp.headroom` | stdio transport — requires `headroom` on PATH (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`). Registered with the same `headroom mcp serve` contract as the upstream `server.json` |
-| Plugin | `plugin.ecc`, `plugin.impeccable`, `plugin.understand-anything` | Claude Code marketplace plugins, `--scope project`. All three have installation paths for other CLIs, but each is skipped for a different reason — ECC carries 284 skills that would swamp the shared directory (and on Codex it installs into the single active `CODEX_HOME`, which has no project scope), Understand Anything is user-scoped, and impeccable has a shared-skill edition (`skill.impeccable`) that covers the other CLIs instead — the reason appears in the item's note and detail panel |
-| Plugin | `plugin.hyperframes` | Claude Code marketplace plugin from `heygen-com/hyperframes` (Apache-2.0), `--scope project` — the upstream-recommended `hyperframes@hyperframes` bundle of 21 skills (the `/hyperframes` router loads each creation workflow on demand). Rendering needs Node.js 22+ and FFmpeg. Every other CLI is a separate upstream install (Copilot/Gemini/Codex/VS Code/Cursor plugins, or `npx skills add` standalone skills, whose non-interactive run installs all 21), so only the plugin is wired |
-| Plugin | `plugin.cli-anything` | Claude Code marketplace plugin from `HKUDS/CLI-Anything` (Apache-2.0), `--scope project`. `/cli-anything <source path or repo>` generates an agent-ready Python CLI for GUI/desktop software; `refine`, `test`, `validate` and `list` follow. Claude Code only — the upstream scripts for other CLIs are user-scope or manual copies. Already-built CLIs come from the separate `cli-hub-meta-skill` (`npx skills add HKUDS/CLI-Anything --skill cli-hub-meta-skill`), which is not wired here |
-| Skill | `skill.superpowers`, `skill.mattpocock-skills` | **Only one** of these and the plugin edition of the same upstream can be chosen — turning on both would register the same skills twice, once from the plugin cache and once from the shared directory (the TUI clears the sibling automatically, and passing both to `--set` is rejected with an error). The skill edition reaches all 11 CLIs but gives up the upstream hooks — superpowers loses its session-start injection, while Matt Pocock has no hooks to lose. On removal, what to delete is chosen from the source records in `skills-lock.json` |
-| Skill | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify` | **Copied** into the shared `.agents/skills` with `npx skills add … --agent universal --copy`. All 11 CLIs look at that path, so one install applies to all of them, and it can be committed and shared with the team. Upstream Hallmark documents Cursor and Codex paths of its own, and Diagram Design ships Claude and Codex plugin manifests, but those are all per-CLI directories — the shared path covers all 11 at once. agent-browser presumes the `agent-browser` binary on PATH (`npm i -g agent-browser`, then `agent-browser install` once); mcp-builder's reference/ documents and Apache-2.0 LICENSE.txt are copied along inside the skill directory. i-have-adhd also has an upstream Claude marketplace plugin whose only extra is a SessionStart hook for an opt-in always-on flag; the shared skill is used instead so all 11 CLIs see it. eli5 is the single skill inside the Anthropic community marketplace plugin (`anthropics/claude-plugins-community`, `eli5/` subpath) — `/eli5 <topic>` produces an HTML picture explainer; the plugin adds no hooks or commands, so the shared skill is used. archify (`tt-a1i/archify`) renders architecture, workflow, sequence, data-flow and lifecycle diagrams as validated standalone HTML; it runs its bundled `bin/archify.mjs` validator with Node 18+ and needs no `npm install` (219 files, 8.6MB copied). After the first diagram it GETs the upstream release manifest once to show an optional update notice — `ARCHIFY_UPDATE_CHECK_DISABLED=1` turns that off |
-| Skill | `skill.impeccable` | The design-language skill from `pbakaus/impeccable` copied into the shared `.agents/skills` (62 files, 2.3MB), so all 11 CLIs see it. **Only one** of this and `plugin.impeccable` can be chosen. The engine binary is not included: on first run the skill's `scripts/impeccable` downloads it and caches it in `~/.impeccable`, which writes outside the repository. Re-measured 2026-10-06 against upstream 4.1.0: `npx impeccable install --scope=project` no longer breaks the `.claude/skills` link (Junction checked for claude and kiro, symlink for the rest), so the earlier reason for avoiding the skill route is gone; the registry route is still used because that command copies a ~19MB engine per provider |
-| Skill | `skill.im-not-ai` | Four skills from `epoko77-ai/im-not-ai` (MIT) that rewrite AI-written Korean so it reads human — `humanize-korean` plus the `humanize`, `humanize-scan` and `humanize-redo` entry points — copied at once into the shared `.agents/skills` via `--skill '*'` (22 files, 420KB measured 2026-10-08; removal picks its targets from the source records in `skills-lock.json`). Only the skills come along: upstream's 9 subagents sit outside the skill folders, so the multi-call heavy route runs only where the CLI can run subagents itself, or through the upstream Claude plugin (`/plugin install humanize-korean@im-not-ai`) |
-| Skill | `skill.remotion` | Official Remotion skills (`remotion-dev/skills`) copied into the shared `.agents/skills`. Only `remotion-best-practices` is taken — it holds the other 11 skills (create, markup, studio, render, captions, maps…) as subfolders, 141 files / 1.1MB measured — so the individual `/remotion-*` slash commands do not appear. **License:** the Remotion License is free for individuals, for-profit organizations up to 3 employees and non-profits; larger for-profit organizations need a company license |
-| Skill | `skill.strix` | Nine security-testing skills (pentesting, OWASP Top 10, vulnerability discovery and fix flows) copied at once into the shared `.agents/skills` via `--skill '*'` (removal picks its targets from the source records in `skills-lock.json`). The skills drive the Strix agent, so the `strix` binary on PATH is presumed — self-hosted runs additionally need `pipx install strix-agent` plus Docker and `STRIX_LLM`/`LLM_API_KEY`; the managed service starts with `strix cloud login`. Use only against targets you are authorized to test |
-| Skill | `skill.officecli` | A skill for reading, editing and creating Word, Excel and PowerPoint documents (.docx, .xlsx, .pptx), copied from the upstream `skills/officecli` folder into the shared `.agents/skills` (the repository root also carries a `SKILL.md`, so pointing at the root would make the registry copy the whole repository — 94MB — measured). The skill drives the `officecli` binary, so it is presumed on PATH — `npm install -g @officecli/officecli`, or the upstream `install.sh`/`install.ps1`. No Microsoft Office installation is needed |
-| Skill | `skill.gsd` | Project-local install via `npx @opengsd/gsd-core --local` — **five runtimes in one run** (claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`, copilot→`.github/skills`, kilo→`.kilo/skills`). Upstream accepts several flags at once, so it is a single call, and runtimes already present are left out. Note the weight: roughly 700 files per runtime, about 3,500 in total. The remaining four differ in reason — gemini was dropped upstream, kimi still refuses `--local`, and kiro/grok/vscode are not upstream runtimes. Removal passes every installed runtime's flag, but upstream leaves `gsd-install-state.json` and a few hook files behind (no skills remain, so detection stays accurate) |
-| Skill | `skill.gstack` | Clone + setup into the in-repository `.claude/skills/gstack` (bash required, `.gitignore` handled automatically). In a bootstrapped repository that path is a junction, so the files land in the shared `.agents/skills/gstack` — from there each CLI's skill-scan depth decides the reach, and gstack nests its individual skills one level below a router SKILL.md. Codex and OpenCode scan recursively and see the individual skills; Copilot CLI scans one level and sees only the router (measured). The upstream `--host` route is user-scoped, so it is not used |
-| Config | `config.gitmessage.en`, `config.gitmessage.ko` | Writes the commit message template `.gitmessage.txt` to the repository root and points `git config --local commit.template` at it. **Only one of the English and Korean editions** can be chosen — there is a single target file, so turning both on would let the later one overwrite the earlier (the TUI turns the sibling off automatically, and passing both to `--set` is rejected with an error). Only a switch between the two editions this tool wrote counts as an overwrite; if a hand-written template is already there, it refuses |
+| Plugin | `plugin.ponytail` | Lean-code ruleset (`DietrichGebert/ponytail`). Installed into all four CLIs with upstream's official commands — Claude Code (repo and global), Codex (global), OpenCode (`@dietrichgebert/ponytail`, repo and global), and Antigravity (global). On Codex it turns on only after you trust its two hooks in `/hooks`, and the always-on hook needs Node.js on PATH. Upstream recommends `scripts/uninstall.js` to clean `~/.config/ponytail` before removal (this item removes the plugin only) |
+| Plugin | `plugin.ai-memory` | `akitaonrails/ai-memory` (MIT), which lets several agents share long-term memory and working context. Claude Code (repo and global) and Codex (global) get the upstream marketplace plugin (hooks and skills); OpenCode and Antigravity get the stdio bridge `ai-memory mcp-bridge --no-session-id` as an MCP server — the bridge reads its token from the data directory, so it never lands in a config file. The server that stores the memory must be running too: install the binary first with upstream `install.sh`/`install.ps1` and run `ai-memory setup` once. To pick a session back up, launch through it, as in `ai-memory run codex` |
+| Plugin | `plugin.superpowers` | Claude Code uses the official marketplace (`superpowers@claude-plugins-official`), Codex (global) `obra/superpowers-marketplace`, OpenCode a git module, and Antigravity (global) `agy plugin install https://github.com/obra/superpowers`. **Only one** of this and `skill.superpowers` can be chosen |
+| Plugin | `plugin.ecc`, `plugin.mattpocock-skills` | Marketplace plugins for Claude Code (repo and global) and Codex (global). ECC supports OpenCode and Antigravity only through `install.sh --target`, and its 284 skills would swamp the shared directory, so those are not wired (Codex native hooks need to be trusted). Matt Pocock's remaining CLIs are covered by the shared-skill edition (`skill.mattpocock-skills`), and **only one** of the two can be chosen |
+| Plugin | `plugin.impeccable`, `plugin.understand-anything`, `plugin.hyperframes`, `plugin.cli-anything` | Claude Code marketplace plugins (repo and global). The other CLIs are skipped for different reasons — impeccable's shared-skill edition (`skill.impeccable`, **pick one**) covers them, while Understand Anything offers only a script that clones into the home directory, HyperFrames a separate install per CLI, and CLI-Anything scripts and manual copies, none of which can be wired as CLI commands. HyperFrames rendering needs Node.js 22+ and FFmpeg |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | Remote URLs. Registered in Claude Code and OpenCode (repo and global) and in Codex and Antigravity (global). Authentication (OAuth) happens the first time you use each CLI, and no secrets are committed |
+| MCP | `mcp.codebase-memory`, `mcp.graphify`, `mcp.headroom` | stdio transport — requires `codebase-memory-mcp`, `graphify-mcp` (`uv tool install "graphifyy[mcp]"`), and `headroom` (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`) on PATH, respectively. graphify reads `graphify-out/graph.json` from the working directory |
+| MCP | `mcp.graft` | stdio transport — `npx -y @nanonets/graft mcp`, so nothing to install. Build the graph first with `graft build` (a gitignored `graft/`). The upstream `graft init` deep integration is not used because it edits files this repository manages. On Windows the `tree-sitter-kotlin` dependency needs a C++ toolchain, and Node 24 cannot compile it (upstream #400) |
+| Skill | `skill.superpowers`, `skill.mattpocock-skills`, `skill.strix`, `skill.im-not-ai` | Copies one upstream's skills at once into the shared `.agents/skills` via `--skill '*'`. Removal picks its targets from the source records in `skills-lock.json`; global scope has no such record, so these are **repo scope only**. superpowers and mattpocock-skills allow **only one** of this and the plugin edition of the same upstream (the superpowers skill edition has no session-start injection). strix needs the `strix` binary on PATH, and im-not-ai brings in the skills only, without the upstream subagents |
+| Skill | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify`, `skill.impeccable`, `skill.remotion`, `skill.officecli` | In repo scope, copies one skill into the shared `.agents/skills`, which all four CLIs see (it can be committed and shared with the team); in global scope, puts it into the `claude-code`, `codex`, and `antigravity-cli` global paths. agent-browser and officecli need their own binaries on PATH, impeccable downloads its engine into `~/.impeccable` on first run (**pick one** of it and `plugin.impeccable`), and Remotion needs a company license for larger for-profit organizations |
+| Skill | `skill.gsd` | Repo-scope install via `npx @opengsd/gsd-core --<runtime> --local` — claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`. Each runtime produces roughly 700 files. Antigravity has an upstream flag, but its install path has not been measured, so it is not wired |
+| Skill | `skill.gstack` | Clone + setup into the in-repository `.claude/skills/gstack` (bash required, `.gitignore` handled automatically). In a bootstrapped repository that path is a junction, so the files land in the shared `.agents/skills/gstack`, and Codex and OpenCode scan recursively, so they see the individual skills. Repo scope only |
+| Config | `config.gitmessage.en`, `config.gitmessage.ko` | Writes the commit message template `.gitmessage.txt` to the repository root and points `git config --local commit.template` at it. **Only one of the English and Korean editions** can be chosen. It writes files itself, so it is repo scope only, and `--print` shows a one-line notice instead of commands |
 
 ### Operating principles
 
-- **The ground truth for actual state is the scan** — every run scans the real
-  config files to decide, so manual installs and removals are always reflected
-  accurately.
+- **The ground truth for actual state is the scan** — every run decides by
+  **only reading** each CLI's list commands (`claude plugin list --json`,
+  `codex plugin list --json`, `codex mcp list --json`, `agy plugin list --json`,
+  `agy mcp list`, `npx skills list -g --json`) and config files (`.mcp.json` and
+  `~/.claude.json`, `opencode.jsonc`), so manual installs and removals are
+  reflected accurately. `claude mcp list` is not used because it health-checks
+  every server and is slow. A CLI whose list command fails (an expired login,
+  for example) is shown as "could not read install state", and nothing is done
+  to that CLI.
 - **The install record (`.agent-kit/agent-setup.json`) is intent** — which
   version wired things up, which items you meant to pick, and whether managed
   files are still exactly as this tool wrote them. It does not replace the scan;
@@ -591,19 +557,13 @@ behavior, like `--dry-run` and `--design-dir`, can be combined).
   the same result.
 - `status` shows the difference between the two as `record only` / `repository
   only`.
-- MCP servers registered in only some CLIs are shown as `(partially installed)`,
-  and submitting with the item still checked installs into the missing CLIs only.
-- The files an MCP item writes differ per CLI — `.mcp.json` (Claude Code),
-  `.codex/config.toml`, `.gemini/settings.json`, `opencode.jsonc`,
-  `.kilocode/mcp.json` (Kilo Code), `.kiro/settings/mcp.json`,
-  `.kimi-code/mcp.json`, `.grok/config.toml`, `.github/mcp.json` (Copilot CLI),
-  `.vscode/mcp.json`. Of these, `.mcp.json` and `.kilocode/mcp.json` are not
-  created by the bootstrap, so they appear the first time you pick an MCP item
-  (both are meant to be committed).
-- Other keys and comments in existing config files are preserved, and the changes
-  can be reviewed with `git diff`.
-- Adding a new item = 1 file in `agent-installer/lib/items/` (using the
-  `defineMcp`/`definePlugin`/`defineSkill` factories; 5 lines is enough for MCP).
+- Items installed in only some CLIs are shown as `(partially installed)`, and
+  submitting with the item still checked runs only the missing CLIs' commands.
+- Run mode and `--print` come from the same command list — the commands shown
+  on screen are the commands the installer runs.
+- Adding a new item = 1 file in `agent-installer/lib/items/` (spreading the
+  `marketplacePlugin`/`mcpServer`/`skillsAdd` helpers into `defineRecipe`;
+  7 lines is enough for MCP).
 - The `agent-installer/` folder is self-contained, so it works when copied into
   another repository.
 
@@ -709,33 +669,24 @@ What gets committed is only the wiring output.
 ```text
 AGENTS.md
 CLAUDE.md
-GEMINI.md
 .agents/skills/
 .claude/settings.json
 .codex/config.toml
-.gemini/settings.json
-.github/mcp.json
-.github/copilot/settings.json
-.grok/config.toml
-.kiro/settings/mcp.json
-.kimi-code/mcp.json
-.vscode/mcp.json
-.vscode/settings.json
 opencode.jsonc
-kilo.jsonc
 ```
 
 In offline environments, or when you need a committed entry point, the existing
 approach of committing `setup-agents.ps1`, `setup-agents.sh`, and
 `agent-installer/` (excluding node_modules) still works.
 
-Registering MCP items with the installer adds `.mcp.json` and
-`.kilocode/mcp.json` here — two files the bootstrap does not create, and, like
-the other MCP files, meant to be committed and shared with the team.
+Installing MCP items in repo scope makes Claude Code write `.mcp.json` and
+OpenCode write the `mcp` key of `opencode.jsonc` — both meant to be committed
+and shared with the team. If you installed `config.gitmessage.*`,
+`.gitmessage.txt` and `.vscode/settings.json` are added too.
 
-If `.claude/skills`, `.kiro/skills`, or `.grok/skills` are local junctions or
-symlinks, Git and the operating system may handle them differently (on Windows,
-git treats a junction as an ordinary directory, so skills get committed twice).
-To prevent this, the script adds the three adapter paths to `.gitignore`
-automatically. In other words, only `.agents/skills` is committed, and each
-developer runs the bootstrap script to create the adapters.
+If `.claude/skills` is a local junction or symlink, Git and the operating system
+may handle it differently (on Windows, git treats a junction as an ordinary
+directory, so skills get committed twice). To prevent this, the script adds that
+adapter path to `.gitignore` automatically. In other words, only
+`.agents/skills` is committed, and each developer runs the bootstrap script to
+create the adapter.
