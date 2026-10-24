@@ -1,11 +1,12 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { width } from '../lib/width.mjs'
 
 const INSTALL_MJS = join(dirname(fileURLToPath(import.meta.url)), '..', 'install.mjs')
+const FAKE_CLI = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-cli.mjs')
 
 export function makeTempRepo() {
   const dir = mkdtempSync(join(tmpdir(), 'agent-installer-test-'))
@@ -13,19 +14,53 @@ export function makeTempRepo() {
   return dir
 }
 
-// 전역(scope: 'user') 항목의 detect는 저장소가 아니라 홈을 읽는다 — 실제
-// 항목으로 TUI를 모는 테스트는 개발 머신의 설치 상태에 따라 선선택이 갈린다
-// (installedIds가 absent 아닌 항목을 미리 체크한다). 홈을 빈 임시 디렉터리로
-// 돌려 전역 항목을 absent로 고정한다. PATH는 그대로 둔다 — makeTempRepo의
-// git이 필요하고, CLI 유무는 absent 판정에 영향이 없다. node:test는 파일마다
-// 프로세스가 분리되므로 이 변형이 다른 테스트 파일로 새지 않는다.
+// git이 있는 디렉터리 — 테스트가 PATH를 줄여도 makeTempRepo의 git은 돌아야 한다.
+let gitDirCache = null
+export function gitDir() {
+  if (gitDirCache) return gitDirCache
+  const finder = process.platform === 'win32' ? 'where' : 'which'
+  const first = execFileSync(finder, ['git'], { encoding: 'utf8' }).split(/\r?\n/)[0].trim()
+  gitDirCache = dirname(first)
+  return gitDirCache
+}
+
+// 감지는 홈의 설정과 PATH의 CLI를 읽는다 — 실제 항목으로 TUI를 모는 테스트는
+// 개발 머신의 설치 상태에 따라 선선택이 갈린다(installedIds가 absent 아닌 항목을
+// 미리 체크한다). 홈을 빈 임시 디렉터리로, PATH를 git 디렉터리 하나로 줄여
+// 실제 claude·codex·agy가 끼지 않게 한다. node:test는 파일마다 프로세스가
+// 분리되므로 이 변형이 다른 테스트 파일로 새지 않는다.
 export function isolateGlobalHome() {
   const home = mkdtempSync(join(tmpdir(), 'isolated-home-'))
   process.env.USERPROFILE = home // win32의 os.homedir()
   process.env.HOME = home // POSIX의 os.homedir()
   delete process.env.CODEX_HOME
   delete process.env.XDG_CONFIG_HOME
+  process.env.PATH = gitDir()
   return home
+}
+
+// 가짜 CLI를 담은 디렉터리를 만든다. responses는 "<이름> <인자…>" → { out, code }.
+// env를 프로세스나 runInstaller에 넘기면 그 CLI들만 PATH에서 찾힌다.
+export function makeFakeClis(names, responses = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'fake-cli-'))
+  const log = join(dir, 'calls.log')
+  const responsesFile = join(dir, 'responses.json')
+  writeFileSync(log, '')
+  writeFileSync(responsesFile, JSON.stringify(responses))
+  for (const name of names) {
+    if (process.platform === 'win32') {
+      writeFileSync(join(dir, `${name}.cmd`), `@"${process.execPath}" "${FAKE_CLI}" ${name} %*\r\n`)
+    } else {
+      const file = join(dir, name)
+      writeFileSync(file, `#!/bin/sh\nexec "${process.execPath}" "${FAKE_CLI}" ${name} "$@"\n`)
+      chmodSync(file, 0o755)
+    }
+  }
+  return {
+    dir,
+    env: { PATH: `${dir}${delimiter}${gitDir()}`, FAKE_CLI_LOG: log, FAKE_CLI_RESPONSES: responsesFile },
+    calls: () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []),
+  }
 }
 
 // install.mjs를 실제 프로세스로 돌린다.
@@ -33,9 +68,13 @@ export function isolateGlobalHome() {
 // 그 사실은 CI가 멈춰 죽을 때에야 드러난다. 시간 초과는 status=null로 나타난다.
 // input을 주면 stdin이 파이프가 되어 TTY가 아니게 된다 — CI와 같은 조건이다.
 export function runInstaller(cwd, args, { timeout = 30000, input = '', env = {} } = {}) {
+  const merged = { ...process.env }
+  // Windows의 환경변수 이름은 대소문자를 가리지 않는다 — 펼친 사본에는 원래의
+  // `Path`가 남아, 덮어쓴 `PATH`와 둘이 함께 자식에게 넘어간다.
+  if (env.PATH !== undefined) for (const key of Object.keys(merged)) if (key.toUpperCase() === 'PATH') delete merged[key]
   return spawnSync(process.execPath, [INSTALL_MJS, ...args], {
     cwd, encoding: 'utf8', timeout, input,
-    env: { ...process.env, ...env },
+    env: { ...merged, ...env },
   })
 }
 
