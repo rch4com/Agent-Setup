@@ -248,6 +248,7 @@ export default {
   'item.probeFailed': 'could not read install state: {list}',
   'error.recipeInvalid': 'Invalid recipe in item {id}: {why}',
   'error.stepsFailed': ['Some commands failed:', '{details}'],
+  'error.opencodeVerify': 'OpenCode did not apply the change to {file} — check the file and run the printed command by hand',
   'item.unsupported.superpowersSeparate': 'upstream supports it via a separate per-harness install — this item wires the Claude Code plugin only',
   'item.unsupported.superpowersGlobalClaude': 'covered by the repo-scope item superpowers (repo)',
   'item.unsupported.superpowersGlobalKimi': 'upstream installs only via the interactive /plugins command — no headless path',

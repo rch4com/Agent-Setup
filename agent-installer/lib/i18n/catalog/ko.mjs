@@ -239,6 +239,7 @@ export default {
   'item.probeFailed': '설치 상태를 읽지 못함: {list}',
   'error.recipeInvalid': '항목 {id}의 레시피가 잘못됐다: {why}',
   'error.stepsFailed': ['일부 명령이 실패했다:', '{details}'],
+  'error.opencodeVerify': 'OpenCode가 {file}에 변경을 반영하지 않았다 — 파일을 확인하고 출력된 명령을 직접 실행하라',
   'item.unsupported.unmeasuredUpstream': '상류에 설치 명령이 있지만 감지·제거 경로를 실측하지 못해 아직 배선하지 않습니다 — 상류 README의 명령으로 직접 설치할 수 있습니다',
   'item.unsupported.noProjectMcp': '프로젝트 스코프 MCP 파일이 없습니다 — 홈 글로벌(~/.gemini/config/mcp_config.json)에서만 설정하므로 필요하면 그 파일에 직접 등록하세요',
   'item.unsupported.superpowersSeparate': '상류가 하니스별 별도 설치로 지원합니다 — 이 항목은 Claude Code 플러그인만 배선합니다',
