@@ -12,6 +12,8 @@ export function activationLines(changes, t) {
     // 공유 스킬 단계는 CLI가 아니라 디렉터리에 쓴다 — 그 디렉터리를 읽는,
     // 이 머신에 있는 CLI(reach)가 안내 대상이다.
     const touched = new Set(item.steps(action, state).flatMap((s) => (s.cli === SHARED ? state?.reach ?? [] : [s.cli])))
+    // 실행된 단계가 없으면(대상 CLI가 이 머신에 없음) 이 항목에 대해 말할 것이 없다.
+    if (touched.size === 0) continue
     for (const cli of touched) clis.add(cli)
     if (item.hooks && touched.has('codex') && !hookItems.includes(item.label)) hookItems.push(item.label)
     const extra = item.postInstall ? `${item.label}: ${t(item.postInstall)}` : null

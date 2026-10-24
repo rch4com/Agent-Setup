@@ -48,6 +48,24 @@ function verifyOpencode(scope, check, describe) {
 
 const fileName = (scope) => (scope === 'project' ? './opencode.jsonc' : '~/.config/opencode/opencode.json')
 
+// `codex mcp add --url`은 OAuth를 쓰는 서버면 설정을 쓴 뒤 로그인 콜백을 기다리다
+// 약 5분 뒤 실패로 끝난다(2026-10-24 supabase 실측, codex-cli 0.163.0). 등록은 이미
+// 끝났으므로 짧게 끊고, 목록 명령으로 등록됐는지 확인한다. 로그인은 사용자가
+// `codex mcp login <이름>`으로 따로 한다(postInstall 안내).
+const CODEX_LOGIN_WAIT_MS = 20 * 1000
+
+function verifyCodexMcp(name) {
+  return {
+    describe: `check codex mcp list has ${name}`,
+    fn: async ({ root, exec }) => {
+      const r = await exec('codex', ['mcp', 'list', '--json'], { cwd: root })
+      let names = []
+      try { names = JSON.parse(r.output).map((s) => s.name) } catch { /* 목록을 못 읽으면 아래에서 실패로 보고한다 */ }
+      if (!r.ok || !names.includes(name)) throw new LocalizedError('error.codexMcpVerify', { name })
+    },
+  }
+}
+
 export function marketplacePlugin({ claude, codex, opencode, antigravity }) {
   const recipes = {}
   const detect = {}
@@ -121,7 +139,14 @@ export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode',
   const all = {
     claude: { project: claudeAt('project'), user: claudeAt('user') },
     // Codex·Antigravity의 mcp add에는 범위 플래그가 없다 — 사용자 전역 설정에 쓴다.
-    codex: { user: { install: [http ? ['codex', 'mcp', 'add', name, '--url', server.url] : ['codex', 'mcp', 'add', name, ...tail]], uninstall: [['codex', 'mcp', 'remove', name]] } },
+    codex: {
+      user: {
+        install: http
+          ? [{ argv: ['codex', 'mcp', 'add', name, '--url', server.url], tolerateFail: true, timeout: CODEX_LOGIN_WAIT_MS }, verifyCodexMcp(name)]
+          : [['codex', 'mcp', 'add', name, ...tail]],
+        uninstall: [['codex', 'mcp', 'remove', name]],
+      },
+    },
     opencode: { project: opencodeAt('project'), user: opencodeAt('user') },
     antigravity: { user: { install: [http ? ['agy', 'mcp', 'add', name, server.url] : ['agy', 'mcp', 'add', name, ...tail]], uninstall: [['agy', 'mcp', 'remove', name]] } },
   }

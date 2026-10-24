@@ -71,7 +71,7 @@ test('mcpServer: stdio·http를 CLI별 문법으로', () => {
   assert.deepEqual(p.supports, ['claude', 'opencode'])
   assert.equal(lines(p, 'install')[0], 'claude mcp add -s project -t http notion https://mcp.notion.com/mcp')
   assert.equal(lines(bindScope(http, 'user'), 'install', { targets: ['codex', 'antigravity'] }).join('|'),
-    'codex mcp add notion --url https://mcp.notion.com/mcp|agy mcp add notion https://mcp.notion.com/mcp')
+    'codex mcp add notion --url https://mcp.notion.com/mcp|# check codex mcp list has notion|agy mcp add notion https://mcp.notion.com/mcp')
   assert.deepEqual(lines(p, 'uninstall', { present: ['claude'], targets: ['claude'] }), ['claude mcp remove -s project notion'])
 })
 
@@ -142,4 +142,18 @@ test('skillsAdd: skill * 는 project 전용이고 제거는 잠금 파일을 따
   assert.equal(ran.length, 2)
   assert.equal(existsSync(join(root, '.agents', 'skills', 'brainstorming')), false)
   assert.equal(existsSync(join(root, 'skills-lock.json')), false)
+})
+
+// codex mcp add --url은 OAuth 서버면 등록을 마친 뒤 로그인 콜백을 5분 기다리다
+// 실패로 끝난다(2026-10-24 supabase 실측) — 짧게 끊고 목록으로 등록을 확인한다.
+test('mcpServer: Codex 원격 MCP는 로그인 대기를 끊고 목록으로 등록을 확인한다', async () => {
+  const def = defineRecipe({ id: 'mcp.s', category: 'mcp', label: 's', ...mcpServer({ name: 'supabase', server: { kind: 'http', url: 'https://mcp.supabase.com/mcp' } }) })
+  const [add, verify] = bindScope(def, 'user').steps('install', { targets: ['codex'] })
+  assert.deepEqual(add.argv, ['codex', 'mcp', 'add', 'supabase', '--url', 'https://mcp.supabase.com/mcp'])
+  assert.equal(add.tolerateFail, true)
+  assert.ok(add.timeout > 0 && add.timeout <= 60000, `대기 상한: ${add.timeout}`)
+  assert.ok(verify.fn, '등록 확인 단계가 없다')
+  const listing = (names) => async () => ({ ok: true, output: JSON.stringify(names.map((name) => ({ name }))) })
+  await verify.fn({ root: '/r', exec: listing(['supabase']) })
+  await assert.rejects(async () => verify.fn({ root: '/r', exec: listing(['vercel']) }), (err) => err.key === 'error.codexMcpVerify')
 })

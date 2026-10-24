@@ -35,3 +35,8 @@ test('공유 스킬은 PATH에 있는 CLI(reach)에 안내를 낸다; 제거만 
   assert.ok(!lines.some((l) => l.startsWith('  Claude Code:')))
   assert.deepEqual(activationLines([{ item: pony, action: 'uninstall', state: { present: ['claude'], targets: ['claude'] } }], t), [])
 })
+
+// PATH에 CLI가 하나도 없어 실행된 단계가 없으면 그 항목의 안내도 낼 이유가 없다.
+test('실행할 단계가 없던 항목은 고유 안내도 내지 않는다', () => {
+  assert.deepEqual(activationLines([{ item: pony, action: 'install', state: { present: [], targets: [] } }], t), [])
+})

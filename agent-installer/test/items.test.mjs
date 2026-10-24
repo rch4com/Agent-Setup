@@ -212,3 +212,12 @@ test('레지스트리 스킬 제거는 인자·경로로 쓸 수 없는 잠금 �
   // 건너뛴 이름은 잠금 파일에도 남지 않는다 — 남기면 다음 제거가 같은 자리에서 또 멈춘다.
   assert.equal(existsSync(join(root, 'skills-lock.json')), false)
 })
+
+// Codex는 원격 MCP의 OAuth 로그인을 설치 때 끝내지 못한다 — 설치 후 할 일에 그 단계를 싣는다.
+test('원격 MCP 항목은 OAuth 로그인 안내를 단다', async () => {
+  const user = await loadItems({ scope: 'user' })
+  for (const id of ['mcp.notion', 'mcp.supabase', 'mcp.vercel']) {
+    assert.equal(user.find((i) => i.id === id).postInstall, 'item.mcp.oauth.post', id)
+  }
+  assert.match(createT('en')('item.mcp.oauth.post'), /codex mcp login/)
+})

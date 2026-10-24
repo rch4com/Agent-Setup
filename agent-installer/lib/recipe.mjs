@@ -12,9 +12,9 @@ export const SHARED = 'shared'
 const TAIL_LINES = 5
 
 export function normalizeStep(step, cli) {
-  if (Array.isArray(step)) return { cli, argv: step, cwd: null, tolerateFail: false, undo: null }
+  if (Array.isArray(step)) return { cli, argv: step, cwd: null, tolerateFail: false, undo: null, timeout: null }
   if (step && Array.isArray(step.argv)) {
-    return { cli, argv: step.argv, cwd: step.cwd ?? null, tolerateFail: Boolean(step.tolerateFail), undo: step.undo ?? null }
+    return { cli, argv: step.argv, cwd: step.cwd ?? null, tolerateFail: Boolean(step.tolerateFail), undo: step.undo ?? null, timeout: step.timeout ?? null }
   }
   if (step && typeof step.fn === 'function' && step.describe) return { cli, fn: step.fn, describe: String(step.describe) }
   return null
@@ -149,7 +149,9 @@ export async function runSteps(steps, ctx) {
       continue
     }
     const [cmd, ...args] = step.argv
-    const r = await exec(cmd, args, { cwd: step.cwd ? join(root, step.cwd) : root })
+    const opts = { cwd: step.cwd ? join(root, step.cwd) : root }
+    if (step.timeout) opts.timeout = step.timeout
+    const r = await exec(cmd, args, opts)
     if (r.ok) continue
     const failure = { cli: step.cli, what: step.argv.join(' '), output: tail(r.output) }
     if (step.tolerateFail) { soft.set(step.cli, failure); continue }

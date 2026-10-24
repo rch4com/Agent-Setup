@@ -141,3 +141,11 @@ test('runSteps: dryRun에서 fn 단계는 실행하지 않고 describe를 로그
   assert.equal(ran, false)
   assert.match(logs.join('\n'), /clean up/)
 })
+
+test('runSteps: 단계의 timeout을 exec에 넘긴다', async () => {
+  const seen = []
+  await runSteps([normalizeStep({ argv: ['codex', 'mcp', 'add'], timeout: 20000 }, 'codex'), normalizeStep(['x'], 'codex')], {
+    root: '/r', exec: async (cmd, args, opts) => { seen.push(opts.timeout); return { ok: true, output: '' } },
+  })
+  assert.deepEqual(seen, [20000, undefined])
+})
