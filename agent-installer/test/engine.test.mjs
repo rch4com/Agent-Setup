@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { planChanges, apply } from '../lib/engine.mjs'
+import { planChanges, apply, scan } from '../lib/engine.mjs'
 import { defineMcp } from '../lib/catalog.mjs'
 import { createT, toText, LocalizedError } from '../lib/i18n/index.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
@@ -213,4 +213,26 @@ test('shouldStop이 던져도 계속 진행한다', async () => {
   assert.equal(results.length, 2)
   assert.equal(results.filter((r) => r.skipped).length, 0)
   assert.equal(results.every((r) => r.ok), true)
+})
+
+test('scan은 probe를 detect에 넘기고 결과를 result로 보존한다; planChanges가 state로 싣는다', async () => {
+  const seen = []
+  const item = {
+    id: 'x', category: 'plugin', label: 'x',
+    detect: async ({ probe }) => { seen.push(probe); return { status: 'absent', present: [], targets: ['claude'] } },
+    install: async () => {}, uninstall: async () => {},
+  }
+  const probe = { has: () => true }
+  const states = await scan('/r', [item], { probe })
+  assert.equal(seen[0], probe)
+  assert.deepEqual(states[0].result.targets, ['claude'])
+  const [change] = planChanges(states, new Set(['x']))
+  assert.deepEqual(change.state.targets, ['claude'])
+})
+
+test('apply는 change.state를 ctx.state로 넘긴다', async () => {
+  let got = null
+  const item = { id: 'x', category: 'plugin', label: 'x', detect: async () => ({ status: 'absent' }), install: async (ctx) => { got = ctx.state }, uninstall: async () => {} }
+  await apply('/r', [{ item, action: 'install', state: { present: ['codex'] } }], { log: () => {} })
+  assert.deepEqual(got, { present: ['codex'] })
 })

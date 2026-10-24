@@ -1,14 +1,19 @@
 import { makeExec } from './catalog.mjs'
 import { createT, LocalizedError, msg } from './i18n/index.mjs'
+import { createProbe } from './probe.mjs'
 
-export async function scan(root, items) {
+// probe는 스캔 하나가 공유하는 감지 캐시다. 없으면 여기서 만든다 — design.md
+// 항목처럼 probe를 안 쓰는 detect는 그냥 무시한다.
+export async function scan(root, items, { probe = null, scope = 'project' } = {}) {
+  const shared = probe ?? createProbe({ root, scope, exec: makeExec(false) })
   const states = []
   for (const item of items) {
     try {
-      const r = await item.detect({ root })
-      // excluded는 전역 항목이 "이 머신에 없는 CLI"를 알리는 자리다 — 행 힌트가
-      // supports를 나열할 때 그 CLI를 빼고 따로 표시한다.
-      states.push({ item, status: r.status, detail: r.detail, excluded: r.excluded ?? [] })
+      const r = await item.detect({ root, probe: shared })
+      // excluded는 "이 머신에 없는 CLI"를 알리는 자리다 — 행 힌트가 supports를
+      // 나열할 때 그 CLI를 빼고 따로 표시한다. result는 감지 결과 전체로,
+      // 레시피 항목의 steps()가 어느 CLI에 이미 있는지(present)를 읽는다.
+      states.push({ item, status: r.status, detail: r.detail, excluded: r.excluded ?? [], result: r })
     } catch (err) {
       states.push({ item, status: 'absent', detail: msg('item.scanFailed', { message: err.message }) })
     }
@@ -33,11 +38,11 @@ export function assertExclusive(items, selectedIds) {
 
 export function planChanges(states, selectedIds) {
   const changes = []
-  for (const { item, status } of states) {
+  for (const { item, status, result } of states) {
     const selected = selectedIds.has(item.id)
-    if (selected && status === 'absent') changes.push({ item, action: 'install' })
-    else if (selected && status === 'partial') changes.push({ item, action: 'complete' })
-    else if (!selected && status !== 'absent') changes.push({ item, action: 'uninstall' })
+    if (selected && status === 'absent') changes.push({ item, action: 'install', state: result })
+    else if (selected && status === 'partial') changes.push({ item, action: 'complete', state: result })
+    else if (!selected && status !== 'absent') changes.push({ item, action: 'uninstall', state: result })
   }
   return changes
 }
@@ -74,7 +79,7 @@ export async function apply(root, changes, { dryRun = false, log = console.log, 
   }
 
   for (let index = 0; index < total; index++) {
-    const { item, action } = changes[index]
+    const { item, action, state } = changes[index]
 
     // 중단은 **항목 경계에서만** 본다. 외부 명령을 중간에 죽이면 반쯤 설치된
     // 상태가 남는다 — 그래서 AbortSignal이 아니라 술어(predicate)다.
@@ -98,7 +103,7 @@ export async function apply(root, changes, { dryRun = false, log = console.log, 
     // log까지 넘긴다 — 파일을 직접 쓰는 항목(MCP·design.md)은 exec를 거치지
     // 않아 dry-run에서 아무것도 보고하지 못했다. 결과줄은 ✔ 설치라고 찍히는데
     // 무엇이 바뀔지는 알 수 없는 상태였다.
-    const ctx = { root, dryRun, exec, log, t }
+    const ctx = { root, dryRun, exec, log, t, state }
     let result
     try {
       const fn = action === 'uninstall' ? item.uninstall : item.install
