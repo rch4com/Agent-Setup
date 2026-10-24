@@ -17,8 +17,14 @@ const DIR = '.claude/skills/gstack'
 // 부트스트랩 저장소에서는 .claude/skills가 .agents/skills Junction이므로 두 경로 모두 무시 처리
 const IGNORE_ENTRIES = ['.claude/skills/gstack', '.agents/skills/gstack']
 // clone·삭제가 일어나는 경로다. 어휘적 검사만으로는 .claude/skills가 저장소
-// 밖을 가리키는 링크일 때를 막지 못한다.
+// 밖을 가리키는 링크일 때를 막지 못한다 — 부트스트랩은 사용자가 관리하는
+// .claude/skills를 보존하므로, 그것이 홈을 가리키면 clone·setup이 저장소 밖에
+// 쓴다. 명령을 돌리기 전에 실제 경로가 저장소 안인지 확인한다.
+const guard = { describe: `check ${DIR} stays inside the repository`, fn: ({ root }) => { repoPathStrict(root, DIR) } }
 const removeDir = ({ root }) => rmSync(repoPathStrict(root, DIR), { recursive: true, force: true })
+// 디렉터리 이동을 bash 안에서 한다 — --print로 복사한 줄을 저장소 루트에서 붙여도
+// 엉뚱한 ./setup이 돌지 않는다.
+const inDir = (command) => ['bash', '-c', `cd ${DIR} && ${command}`]
 
 export default defineRecipe({
   id: 'skill.gstack', category: 'skill', label: 'gstack', group: '__flow',
@@ -28,14 +34,16 @@ export default defineRecipe({
     claude: {
       project: {
         install: [
+          guard,
           ['git', 'clone', '--single-branch', '--depth', '1', 'https://github.com/garrytan/gstack.git', DIR],
           // setup이 실패하면 반쯤 깔린 클론을 지운다 — 남기면 다음 감지가 설치됨으로 읽는다.
-          { argv: ['bash', './setup'], cwd: DIR, undo: removeDir },
+          { argv: inDir('bash ./setup'), undo: removeDir },
           { describe: `add ${IGNORE_ENTRIES.join(', ')} to .gitignore`, fn: ({ root }) => ensureGitignoreEntries(root, IGNORE_ENTRIES) },
         ],
         uninstall: [
+          guard,
           // 상류 제거 스크립트가 실패해도 디렉터리 삭제로 마무리한다.
-          { argv: ['bash', './bin/gstack-uninstall', '--force'], cwd: DIR, tolerateFail: true },
+          { argv: inDir('bash ./bin/gstack-uninstall --force'), tolerateFail: true },
           {
             // 설치가 넣은 두 줄을 도로 가져간다 — 남겨 두면 제거한 뒤에도 우리가
             // 만든 흔적이 .gitignore에 계속 남는다.

@@ -35,7 +35,11 @@ export function formatCommands(groups, { t, scope, platform = process.platform }
     for (const e of g.entries) {
       if (e.manual) lines.push(`# ${t('print.fileItem', { label: e.item.label })}`)
       else if (e.step.fn) lines.push(`#   ${e.step.describe}`)
-      else lines.push(e.step.argv.map((a) => quoteArg(a, platform)).join(' '))
+      else {
+        // 작업 디렉터리가 필요한 단계 — 복사해 붙이는 사람이 위치를 알아야 한다.
+        if (e.step.cwd) lines.push(`#   (run in ${e.step.cwd})`)
+        lines.push(e.step.argv.map((a) => quoteArg(a, platform)).join(' '))
+      }
     }
     lines.push('')
   }

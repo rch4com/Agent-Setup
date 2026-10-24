@@ -221,3 +221,21 @@ test('원격 MCP 항목은 OAuth 로그인 안내를 단다', async () => {
   }
   assert.match(createT('en')('item.mcp.oauth.post'), /codex mcp login/)
 })
+
+// 부트스트랩은 사용자가 관리하는 .claude/skills를 보존한다 — 그것이 홈을 가리키는
+// 링크면 clone·setup이 저장소 밖에 쓴다. 명령을 돌리기 전에 막는다.
+test('gstack은 .claude/skills가 저장소 밖을 가리키면 clone하지 않는다', async () => {
+  const { symlinkSync, mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const root = makeTempRepo()
+  const outside = mkdtempSync(join(tmpdir(), 'outside-skills-'))
+  mkdirSync(join(root, '.claude'), { recursive: true })
+  symlinkSync(outside, join(root, '.claude', 'skills'), 'junction')
+  const item = (await loadItems()).find((i) => i.id === 'skill.gstack')
+  const calls = []
+  const exec = async (cmd, args) => { calls.push([cmd, ...args].join(' ')); return { ok: true, output: '' } }
+  await assert.rejects(() => item.install({ root, dryRun: false, exec, state: { present: [], targets: ['claude'] } }), /escapes|이탈/)
+  assert.deepEqual(calls, [], '저장소 밖으로 나가는 clone을 실행했다')
+  await assert.rejects(() => item.uninstall({ root, dryRun: false, exec, state: { present: ['claude'], targets: ['claude'] } }), /escapes|이탈/)
+  assert.deepEqual(calls, [], '저장소 밖에서 제거 스크립트를 실행했다')
+})

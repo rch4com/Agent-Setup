@@ -58,3 +58,19 @@ test('불변식: 실행 모드가 부른 명령 == 출력 모드가 낸 명령',
   assert.equal(printed.length, 4)
   assert.deepEqual(ran, printed)
 })
+
+// --print는 복사해 그대로 돌리는 출력이다 — 작업 디렉터리가 필요한 단계가 루트에서
+// 돌면 엉뚱한 ./setup이 실행된다. gstack은 bash -c 안에서 디렉터리를 옮긴다.
+test('gstack 출력은 디렉터리 이동까지 한 줄에 담는다', async () => {
+  const { loadItems } = await import('../lib/catalog.mjs')
+  const gstack = (await loadItems()).find((i) => i.id === 'skill.gstack')
+  const text = formatCommands(planCommands([{ item: gstack, action: 'install', state: { present: [], targets: ['claude'] } }]), { t, scope: 'project', platform: 'linux' }).join('\n')
+  assert.match(text, /bash -c 'cd \.claude\/skills\/gstack && bash \.\/setup'/)
+  assert.doesNotMatch(text, /^bash \.\/setup$/m)
+})
+
+test('작업 디렉터리가 있는 단계는 그 위치를 주석으로 밝힌다', () => {
+  const item = { id: 'x', label: 'x', steps: () => [{ cli: 'claude', argv: ['make'], cwd: 'sub/dir' }] }
+  const text = formatCommands(planCommands([{ item, action: 'install' }]), { t, scope: 'project', platform: 'linux' }).join('\n')
+  assert.match(text, /#   \(run in sub\/dir\)\nmake/)
+})
