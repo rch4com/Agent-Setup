@@ -144,9 +144,12 @@ detect, install, uninstall, steps }`. 그래서 `engine.mjs`·TUI의 항목 인�
     (지금과 같다 — `.agents/skills`에 실물, Claude는 부트스트랩 Junction으로 본다).
     네 CLI 모두 같은 단계 하나를 공유한다. 제거 뒤 남는 디렉터리·잠금 항목 정리는
     지금의 로직을 `{ fn, describe }` 단계로 옮긴다.
-  - user: `npx -y skills@latest add <source> --skill <s> -g -a claude-code codex opencode antigravity --yes`
-    (전역엔 공용 경로가 없어 에이전트를 명시한다. Antigravity 에이전트 ID는 계획
-    1단계에서 `agy`가 실제로 읽는 쪽으로 고정)
+  - user: `npx -y skills@latest add <source> --skill <s> -g -a <agents> --yes --copy`
+    (전역엔 네 CLI가 함께 읽는 공용 경로가 없어 에이전트를 명시한다. 에이전트 목록은
+    구현 때 각 ID의 전역 설치 경로를 실측해, 네 CLI를 모두 덮으면서 한 CLI가 같은
+    스킬을 두 번 읽지 않는 최소 집합으로 고정한다)
+  - `skill: '*'`(한 상류의 스킬 전부)인 항목은 전역 제거 대상을 추적할 근거가 없어
+    `project` 전용이다.
 
 ### 4. 감지 (`lib/probe.mjs`)
 
@@ -203,7 +206,9 @@ opencode run "<지시문>"
 ### 7. 범위 선택
 
 - CLI: `--global` 플래그. 없으면 `project`.
-- TUI: 상단에 현재 범위 표시, `g` 키로 전환. 전환하면 선택을 비우고 재스캔한다.
+- TUI: 작업 탭 맨 위 언어 행 아래에 **범위 행**을 두고(힌트에 현재 범위), Enter로
+  전환한다. 목록 포커스에서 글자 키는 검색칸으로 올라가므로 `g` 같은 글자 키는
+  쓸 수 없다 — 언어 행과 같은 방식이다. 전환하면 선택을 실제 설치 상태로 되돌리고 재스캔한다.
   PLUGIN 탭의 범위별 그룹 헤더(2026-08-22 설계)는 실행당 범위로 대체되어 없앤다.
 - `user` 범위의 `--set`은 설치만 한다. 목록 밖 항목을 제거하지 않는다(지금의
   `run.keepUserScope` 보호 규칙 유지). 전역 제거는 TUI에서 명시적으로 해제해 검토
