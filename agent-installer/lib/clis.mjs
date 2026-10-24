@@ -45,6 +45,7 @@ function tomlAdapter(file) {
 export const CLIS = {
   claude: {
     label: 'Claude Code',
+    bin: 'claude',
     ...jsonAdapter('.mcp.json', 'mcpServers', (s) =>
       s.kind === 'http'
         ? { type: 'http', url: s.url }
@@ -52,6 +53,7 @@ export const CLIS = {
   },
   codex: {
     label: 'Codex',
+    bin: 'codex',
     ...tomlAdapter('.codex/config.toml'),
   },
   gemini: {
@@ -61,6 +63,7 @@ export const CLIS = {
   },
   opencode: {
     label: 'OpenCode',
+    bin: 'opencode',
     ...jsonAdapter('opencode.jsonc', 'mcp', (s) =>
       s.kind === 'http'
         ? { type: 'remote', url: s.url, enabled: true }
@@ -114,9 +117,14 @@ export const CLIS = {
   // 스킬은 실제로 닿고, MCP 항목은 "왜 안 닿는지"를 사유로 밝힌다.
   antigravity: {
     label: 'Antigravity',
+    bin: 'agy',
   },
 }
 
 export const CLI_IDS = Object.keys(CLIS)
 // 프로젝트 설정 파일에 MCP를 쓸 수 있는 CLI — 어댑터가 있는 것만.
 export const MCP_CLI_IDS = CLI_IDS.filter((id) => typeof CLIS[id].add === 'function')
+
+// 2.0.0에서 남는 네 CLI. 레시피 모듈이 먼저 이 목록을 쓰고, 항목 이전에서
+// CLIS가 이 넷으로 줄면 CLI_IDS와 같아져 사라진다.
+export const TARGET_CLI_IDS = ['claude', 'codex', 'opencode', 'antigravity']

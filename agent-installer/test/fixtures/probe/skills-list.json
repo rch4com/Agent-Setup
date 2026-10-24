@@ -1,0 +1,1 @@
+[ { "name": "find-skills", "path": "/home/u/.agents/skills/find-skills", "scope": "global", "agents": ["Claude Code", "Codex"] } ]

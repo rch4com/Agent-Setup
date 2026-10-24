@@ -1,0 +1,5 @@
+[
+  { "id": "caveman@caveman", "scope": "user", "enabled": true, "projectEnabled": false },
+  { "id": "cli-anything@cli-anything", "scope": "project", "enabled": false, "projectPath": "C:\\Other\\repo", "projectEnabled": false },
+  { "id": "ponytail@ponytail", "scope": "project", "enabled": true, "projectPath": "__ROOT__", "projectEnabled": true }
+]

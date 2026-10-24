@@ -1,0 +1,4 @@
+{ "installed": [
+  { "pluginId": "ponytail@ponytail", "name": "ponytail", "installed": true, "enabled": true },
+  { "pluginId": "latex@openai-bundled", "name": "latex", "installed": false, "enabled": false }
+] }

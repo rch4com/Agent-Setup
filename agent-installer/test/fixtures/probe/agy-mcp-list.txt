@@ -1,0 +1,3 @@
+NAME                 TYPE   STATUS   COMMAND/URL
+codebase-memory      stdio  enabled  codebase-memory-mcp
+notion               http   enabled  https://mcp.notion.com/mcp
