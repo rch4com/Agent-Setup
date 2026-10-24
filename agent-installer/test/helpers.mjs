@@ -6,7 +6,21 @@ import { fileURLToPath } from 'node:url'
 import { width } from '../lib/width.mjs'
 
 const INSTALL_MJS = join(dirname(fileURLToPath(import.meta.url)), '..', 'install.mjs')
-const FAKE_CLI = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-cli.mjs')
+
+// 가짜 CLI 본체. 셸 심(.cmd / sh)이 `node fake-cli.mjs <이름> <인자...>`로 부른다.
+// 부른 명령을 FAKE_CLI_LOG에 한 줄씩 남기고 FAKE_CLI_RESPONSES의 응답을 낸다.
+// test/ 아래 .mjs 파일은 node --test가 테스트로 집어 가므로 실행 때 임시
+// 디렉터리에 써 둔다.
+const FAKE_CLI_SOURCE = `import { appendFileSync, existsSync, readFileSync } from 'node:fs'
+const [name, ...args] = process.argv.slice(2)
+const key = [name, ...args].join(' ')
+appendFileSync(process.env.FAKE_CLI_LOG, JSON.stringify(key) + '\\n')
+const file = process.env.FAKE_CLI_RESPONSES
+const responses = file && existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
+const r = responses[key] ?? { out: '', code: 0 }
+process.stdout.write(r.out ?? '')
+process.exit(r.code ?? 0)
+`
 
 export function makeTempRepo() {
   const dir = mkdtempSync(join(tmpdir(), 'agent-installer-test-'))
@@ -47,6 +61,8 @@ export function makeFakeClis(names, responses = {}) {
   const responsesFile = join(dir, 'responses.json')
   writeFileSync(log, '')
   writeFileSync(responsesFile, JSON.stringify(responses))
+  const FAKE_CLI = join(dir, 'fake-cli.mjs')
+  writeFileSync(FAKE_CLI, FAKE_CLI_SOURCE)
   for (const name of names) {
     if (process.platform === 'win32') {
       writeFileSync(join(dir, `${name}.cmd`), `@"${process.execPath}" "${FAKE_CLI}" ${name} %*\r\n`)
