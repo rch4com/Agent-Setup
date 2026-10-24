@@ -3,7 +3,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { scan } from '../engine.mjs'
-import { loadItems } from '../catalog.mjs'
+import { loadItems, makeExec } from '../catalog.mjs'
+import { createProbe } from '../probe.mjs'
 import { CLI_IDS } from '../clis.mjs'
 import { runBootstrap } from '../bootstrap/flow.mjs'
 import { MANIFEST } from '../bootstrap/manifest.mjs'
@@ -30,7 +31,7 @@ export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config'
 // __commit은 CONFIG 탭에만 나오지만 규칙은 같다 — 헤더가 "무엇을 고르는
 // 자리인가"를 말한다. 커밋 템플릿은 대상 파일이 하나뿐이라 헤더에 그 파일
 // 이름과 "하나만"이라는 규칙까지 실어, 라디오 표시와 함께 읽히게 한다.
-export const GROUP_ORDER = ['__scope-project', '__scope-user', '__token', '__context', '__style', '__flow', '__commit', '__service']
+export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__commit', '__service']
 
 function groupRank(group) {
   const i = GROUP_ORDER.indexOf(group)
@@ -152,7 +153,7 @@ export function designShortHint(state, multiProvider = false, t = createT('en'))
 
 // group = 탭 **안쪽**의 소분류 헤더. design.md만 76개라 카테고리로 갈라야 읽힌다.
 // 나머지 탭은 항목이 적어 그룹 없이 평평하게 둔다.
-function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = null, status, previewTarget = null, item, extra = '', group = null, t = createT('en') }) {
+function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = null, status, previewTarget = null, item, result = null, extra = '', group = null, t = createT('en') }) {
   return {
     kind: 'item',
     id,
@@ -171,6 +172,7 @@ function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = nul
     status,
     previewTarget,
     item,
+    result,
     searchText: `${label} ${fullHint} ${sectionTerms(t, section)} ${extra}`.toLowerCase(),
   }
 }
@@ -202,7 +204,7 @@ function bootstrapHint(root, t) {
   return t('action.bootstrap.hint', { present, total: MANIFEST.files.length })
 }
 
-export function buildActions(root, { designItems = [], t = createT('en') } = {}) {
+export function buildActions(root, { designItems = [], scope = 'project', t = createT('en') } = {}) {
   return [
     // 맨 위 상주 행. 실행은 run.mjs가 특수 처리한다 — 화면을 벗어나지 않고
     // 그 자리에서 t를 갈아끼워야 하므로 다른 액션과 흐름이 다르다(run은 null).
@@ -210,6 +212,14 @@ export function buildActions(root, { designItems = [], t = createT('en') } = {})
       id: 'action.language',
       label: t('action.language.label'),
       hint: t('action.language.hint', { current: t(`locale.${t.locale}`) }),
+      t,
+    }),
+    // 언어 행과 같은 방식 — run.mjs가 그 자리에서 범위를 바꾸고 다시 스캔한다.
+    // 목록 포커스의 글자 키는 검색칸으로 올라가므로 단축키 대신 행으로 둔다.
+    actionRow({
+      id: 'action.scope',
+      label: t('action.scope.label'),
+      hint: t('action.scope.hint', { current: t(`scope.${scope}`) }),
       t,
     }),
     actionRow({
@@ -270,18 +280,16 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
       itemRow({
         id: s.item.id,
         section: s.item.category,
-        // plugin 탭은 성격이 아니라 설치 범위로 가른다 — 같은 상류의 두 판
-        // (저장소/전역)이 무엇을 건드리는지가 이 탭에서 고르는 기준이다.
-        // 표시 계층의 오버라이드다: 항목의 group 필드는 성격의 진실로 남는다.
-        group: s.item.category === 'plugin'
-          ? (s.item.scope === 'user' ? '__scope-user' : '__scope-project')
-          : s.item.group ?? null,
+        // 범위는 실행당 하나(작업 탭의 범위 행)라 plugin 탭도 성격으로 가른다.
+        group: s.item.group ?? null,
         label: scopedLabel(s.item, t),
         hint: agentShortHint(s.item, s, t),
         fullHint: agentHint(s.item, s, t),
         statusDetail: toText(t, s.detail) ?? null,
         status: s.status,
         item: s.item,
+        // 감지 결과 — 변경 계획이 어느 CLI에 이미 있는지(present)를 여기서 읽는다.
+        result: s.result ?? null,
         extra: s.item.id,
         t,
       }),
@@ -324,7 +332,10 @@ export function buildRows({ actions = [], agentStates = [], designStates = [], m
 export async function collectRows(root, opts = {}) {
   const { fetchImpl = netFetch, designDirs = [], env = process.env, catalogFile = CATALOG_PATH, log = () => {}, t = createT('en') } = opts
 
-  const agentItems = await loadItems()
+  const scope = opts.scope ?? 'project'
+  const agentItems = await loadItems({ scope })
+  // 스캔마다 새 감지 캐시 — 적용 뒤 재스캔이 적용 전 목록을 읽으면 안 된다.
+  const probe = createProbe({ root, scope, exec: makeExec(false) })
   const catalog = loadCatalog(catalogFile)
   const sources = opts.sources ?? discoverSources({
     ...(opts.bundleDir ? { bundleDir: opts.bundleDir } : {}),
@@ -334,12 +345,12 @@ export async function collectRows(root, opts = {}) {
   })
   const designItems = buildItems(catalog, { fetchImpl, sources })
 
-  const [agentStates, designStates] = await Promise.all([scan(root, agentItems), scan(root, designItems)])
+  const [agentStates, designStates] = await Promise.all([scan(root, agentItems, { probe }), scan(root, designItems)])
   const multiProvider = new Set(designItems.map((i) => i.providerId)).size > 1
 
   return {
     rows: buildRows({
-      actions: buildActions(root, { designItems, t }),
+      actions: buildActions(root, { designItems, scope, t }),
       agentStates,
       designStates,
       multiProvider,

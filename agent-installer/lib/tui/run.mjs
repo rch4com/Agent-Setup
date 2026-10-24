@@ -15,6 +15,8 @@ import {
 import { render, renderReview, renderHelp, bodyHeight, footerHeight } from './render.mjs'
 import { createProgress, applyEvent, progressLines } from './progress.mjs'
 import { scopedLabel } from '../labels.mjs'
+import { planCommands, formatCommands } from '../commands.mjs'
+import { activationLines } from '../activation.mjs'
 
 const ESC = String.fromCharCode(27)
 const HIDE_CURSOR = `${ESC}[?25l`
@@ -53,7 +55,7 @@ function keyReader(stdin) {
 }
 
 function itemStates(rows) {
-  return rows.filter((r) => r.kind === 'item').map((r) => ({ item: r.item, status: r.status }))
+  return rows.filter((r) => r.kind === 'item').map((r) => ({ item: r.item, status: r.status, result: r.result }))
 }
 
 // row.section은 이제 소문자 id다(rows.mjs Task 9) — t 없이 그대로 찍으면
@@ -92,8 +94,10 @@ export async function runTui(root, opts = {}) {
   const opener = opts.opener ?? makeOpener(dryRun, log)
   // let으로 둔다 — 언어 전환 행(cycleLanguage)이 실행 중에 갈아끼운다.
   let { t = createT('en'), localeForced = false } = opts
+  // 범위 행(action.scope)이 실행 중에 갈아끼운다.
+  let scope = opts.scope ?? 'project'
 
-  let collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, log: () => {}, t })
+  let collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, scope, log: () => {}, t })
 
   // raw 모드를 켤 수 없으면(CI·파이프) 목록만 내고 끝낸다.
   if (!stdin.isTTY || typeof stdin.setRawMode !== 'function') {
@@ -165,7 +169,7 @@ export async function runTui(root, opts = {}) {
   // 실제 설치 상태로 되돌려야 한다 — 둘을 한 함수로 묶으면 언어를 바꿀 때
   // 사용자가 고르던 항목이 조용히 날아간다.
   const rebuild = async (keepSelection) => {
-    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, t, log: () => {} })
+    collected = await collectRows(root, { fetchImpl, designDirs, env, catalogFile, scope, t, log: () => {} })
     const ids = keepSelection ? [...state.selected] : installedIds(collected.rows)
     state = replaceRows(state, collected.rows, ids)
   }
@@ -227,6 +231,7 @@ export async function runTui(root, opts = {}) {
         if (key.ctrl && (key.name === 'c' || key.name === 'q')) return 'quit'
         if (key.name === 'escape') return 'cancel'
         if (key.name === 'return' || key.name === 'enter') return 'apply'
+        if (key.str === 'p') return 'print'
       }
     } finally {
       redraw = paint
@@ -256,7 +261,6 @@ export async function runTui(root, opts = {}) {
 
     try {
       const results = await apply(root, changes, {
-        dryRun,
         log: () => {}, // 로그는 진행 화면이 대신한다
         t,
         shouldStop: checkAbort,
@@ -385,6 +389,14 @@ export async function runTui(root, opts = {}) {
         const row = currentRow(state)
         // 언어 행은 화면을 벗어나지 않는다 — 그 자리에서 t를 갈아끼우고 다시 그린다.
         if (row?.id === 'action.language') { status = await cycleLanguage(); continue }
+        if (row?.id === 'action.scope') {
+          scope = scope === 'project' ? 'user' : 'project'
+          // 다른 범위의 설치 상태로 선택을 다시 맞춘다 — 저장소에서 고르던 체크가
+          // 전역 목록에 남으면 엉뚱한 항목이 설치된다.
+          await rebuild(false)
+          status = t('tui.scope.switched', { current: t(`scope.${scope}`) })
+          continue
+        }
         if (row?.kind === 'action') {
           await suspend(async () => {
             // 작업 하나의 예외가 화면 전체를 끌고 내려가면 안 된다 — 깨진
@@ -409,6 +421,18 @@ export async function runTui(root, opts = {}) {
         if (verdict === 'quit') break
         if (verdict === 'cancel') { status = t('tui.submitCancelled'); continue }
 
+        // --print로 띄웠거나 검토 화면에서 p를 눌렀다 — 실행 대신 같은 steps()의
+        // 명령을 화면 밖에 편다. 복사해 직접 돌릴 수 있어야 한다.
+        if (verdict === 'print' || dryRun) {
+          await suspend(async () => {
+            log('')
+            for (const line of formatCommands(planCommands(changes), { t, scope })) log(line)
+            for (const line of activationLines(changes, t)) log(line)
+            await pause()
+          })
+          continue
+        }
+
         const results = await runApply(changes)
 
         // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
@@ -426,6 +450,10 @@ export async function runTui(root, opts = {}) {
               log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${message ? ` — ${message}` : ''}`)
             }
           }
+          // 성공한 설치만 안내한다 — 실패한 항목에 "새 세션을 시작하라"고 하면 거짓이다.
+          const done = new Set(results.filter((r) => r.ok).map((r) => r.item.id))
+          const notes = activationLines(changes.filter((c) => done.has(c.item.id)), t)
+          if (notes.length > 0) log(`\n${notes.join('\n')}`)
           log(`\n${t('apply.seeGitDiff')}`)
           await pause()
         })

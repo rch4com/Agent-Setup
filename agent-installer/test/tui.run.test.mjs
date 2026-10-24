@@ -100,7 +100,9 @@ test('검색 → ↓로 목록 진입 → Space 선택 → 제출 → 일괄 적
     ENTER,               // 적용
     ANY,                 // "계속하려면 아무 키나"
     ...QUIT,
-  ])
+    // dry-run은 이제 명령 출력 모드다. 실제 적용 경로를 태운다 — PATH에 CLI가
+    // 없어(isolateGlobalHome) 실행할 단계가 없으니 부작용도 없다.
+  ], { dryRun: false })
   assert.equal(screen.includes('제출 검토'), true, '검토 화면이 뜨지 않았다')
   // Task 11부터 성공한 항목은 로그에 나열되지 않는다 — 진행 화면이 대신
   // 보여 준다(runApply의 onProgress). log는 실패 사연 전용으로 좁혀졌다.
@@ -144,8 +146,8 @@ test('변경이 없으면 Enter가 검토 화면으로 들어가지 않는다', 
 })
 
 test('액션 행에서 Enter는 그 작업을 실행한다', async () => {
-  // 커서는 처음에 작업 탭의 언어 행에 있다(목록 포커스) — 한 칸 내려가야 부트스트랩 행이다.
-  const { log } = await drive([DOWN, ENTER, ANY, ...QUIT])
+  // 커서는 처음에 작업 탭의 언어 행에 있다(목록 포커스) — 언어·범위 행 다음이 부트스트랩 행이다.
+  const { log } = await drive([DOWN, DOWN, ENTER, ANY, ...QUIT])
   assert.equal(log.includes('공통 지침'), true, `부트스트랩이 실행되지 않았다: ${log}`)
 })
 
@@ -251,7 +253,7 @@ test('Ctrl+F가 CLI 필터를 돌린다', async () => {
 // TAB으로 항목 탭에 들어가 하나 고르고, Enter(제출) → Enter(적용) →
 // 아무 키(계속) → ESC(종료).
 test('적용 중 화면이 진행 바를 그린다', async () => {
-  const { screen } = await drive([TAB, SPACE, ENTER, ENTER, ANY, ESC])
+  const { screen } = await drive([TAB, SPACE, ENTER, ENTER, ANY, ESC], { dryRun: false })
   assert.ok(screen.includes('적용 중'), '진행 화면이 그려져야 한다')
 })
 
@@ -267,7 +269,7 @@ test('적용 중 Ctrl+C는 건너뜀으로 남기고 실패로 취급하지 않�
   try {
     // 두 항목을 고른다 — footer의 건너뜀 집계가 실제 건수를 세는지까지
     // 검증하려면 건너뛴 항목이 하나뿐이면 안 된다(0건과 헷갈릴 여지가 없어야 한다).
-    const { screen, log, result } = await drive([TAB, SPACE, DOWN, SPACE, ENTER, ENTER, CC, ANY, ...QUIT])
+    const { screen, log, result } = await drive([TAB, SPACE, DOWN, SPACE, ENTER, ENTER, CC, ANY, ...QUIT], { dryRun: false })
 
     assert.ok(screen.includes('중단했습니다'), '중단 화면이 그려지지 않았다')
     // run.mjs가 apply() 결과로 entries의 state를 미리 skipped로 덮어쓰면
@@ -408,7 +410,49 @@ test('작업 행이 던져도 화면은 살아남고 실패를 알린다', async
   mkdirSync(join(root, '.agent-kit'), { recursive: true })
   writeFileSync(join(root, '.agent-kit', 'agent-setup.json'), '{ not json')
   // dry-run은 기록을 읽지 않는다 — 실제 실행이어야 readRecord가 던진다.
-  const { result, log } = await drive([DOWN, ENTER, ANY, ...QUIT], { root, dryRun: false })
+  const { result, log } = await drive([DOWN, DOWN, ENTER, ANY, ...QUIT], { root, dryRun: false })
   assert.equal(result.interactive, true)
   assert.match(log, /작업이 실패했습니다: .*JSON이 아닙니다/)
+})
+
+// ── 설치 범위 행과 명령 보기 ──────────────────────────────────────────
+
+// 범위 행은 언어 행 바로 아래다. Enter 한 번이면 전역으로 바뀌고, 그 범위의
+// 항목으로 다시 스캔한다.
+test('범위 행에서 Enter를 누르면 사용자 전역으로 바뀐다', async () => {
+  const { screen } = await drive([DOWN, ENTER, CC])
+  assert.ok(screen.includes('범위: 사용자 전역'), '범위 전환 안내가 없다')
+})
+
+// 전역 범위의 항목은 이 체크 하나가 저장소 밖(~/.codex 등)을 건드린다 — 켜는 순간
+// 상태줄이 그 사실을 말해야 한다.
+test('전역 범위에서 항목을 켜면 상태줄이 머신 전역임을 알린다', async () => {
+  const { screen } = await drive([DOWN, ENTER, TAB, ...type('ponytail'), DOWN, SPACE, CC])
+  assert.ok(screen.includes('머신 전역 항목 — 이 컴퓨터 전체에 적용됩니다'), '전역 안내 없음')
+})
+
+// 검토 화면의 p는 적용 대신 같은 명령을 화면 밖에 편다 — 아무것도 실행하지 않는다.
+test('검토 화면에서 p를 누르면 명령만 보여 주고 실행하지 않는다', async () => {
+  const fake = makeFakeClis(['claude'], { 'claude plugin list --json': { out: '[]' } })
+  const saved = Object.fromEntries(Object.keys(fake.env).map((k) => [k, process.env[k]]))
+  Object.assign(process.env, fake.env)
+  try {
+    const { log, screen } = await drive([...TO_MCP, ...type('notion'), DOWN, SPACE, ENTER, { str: 'p', name: 'p' }, ANY, ...QUIT], { dryRun: false })
+    assert.ok(log.includes('이번 변경에 필요한 명령입니다'), `명령 목록이 없다: ${log}`)
+    assert.ok(log.includes('claude mcp add -s project -t http notion https://mcp.notion.com/mcp'), log)
+    assert.ok(!screen.includes('적용 중'), '명령 보기인데 적용이 돌았다')
+    assert.ok(!fake.calls().some((c) => c.includes('mcp add')), `명령이 실제로 실행됐다: ${fake.calls()}`)
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  }
+})
+
+// --print(옛 --dry-run)로 띄운 화면은 검토 화면의 Enter도 실행 대신 명령을 보인다.
+test('--print로 띄우면 Enter도 명령만 보여 준다', async () => {
+  const { log, screen } = await drive([...TO_MCP, ...type('notion'), DOWN, SPACE, ENTER, ENTER, ANY, ...QUIT])
+  assert.ok(log.includes('명령 없음') || log.includes('이번 변경에 필요한 명령입니다'), `명령 출력이 없다: ${log}`)
+  assert.ok(!screen.includes('적용 중'), '출력 모드인데 적용이 돌았다')
 })

@@ -438,16 +438,22 @@ test('비TTY에서는 raw 모드를 켜지 않고 목록만 출력한다', async
 
 // ── 플러그인 범위 그룹 ────────────────────────────────────────────
 
-// plugin 탭은 성격이 아니라 설치 범위로 가른다 — 같은 상류의 두 판이
-// 무엇을 건드리는지가 이 탭에서 고르는 기준이다. 항목의 group 필드(성격)는
-// 표시에서만 덮이고 데이터로는 남는다.
-test('plugin 행은 성격 그룹 대신 범위 그룹을 단다 — 저장소가 전역보다 앞', () => {
-  const states = [
-    { item: { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', group: '__flow', supports: ['codex'], unsupported: {} }, status: 'absent' },
-    { item: { id: 'plugin.sp', category: 'plugin', label: 'superpowers', scope: 'project', group: '__flow', supports: ['claude'], unsupported: {} }, status: 'absent' },
-  ]
-  const rows = buildRows({ agentStates: states })
-  assert.deepEqual(rows.map((r) => r.group), ['__scope-project', '__scope-user'])
+// 범위는 이제 실행당 하나(작업 탭의 범위 행)다 — plugin 탭도 다른 탭처럼 성격으로
+// 가른다. 감지 결과(result)는 행에 실려 변경 계획까지 간다.
+test('plugin 행은 성격 그룹으로 묶고 감지 결과를 싣는다', () => {
+  const item = { id: 'plugin.x', category: 'plugin', label: 'x', scope: 'user', group: '__flow', supports: ['claude'], unsupported: {} }
+  const rows = buildRows({ agentStates: [{ item, status: 'absent', result: { targets: ['claude'] } }], t: createT('en') })
+  const row = rows.find((r) => r.id === 'plugin.x')
+  assert.equal(row.group, '__flow')
+  assert.deepEqual(row.result.targets, ['claude'])
+})
+
+test('작업 탭에 범위 행이 있고 현재 범위를 보인다', () => {
+  const t = createT('en')
+  const row = buildActions('/r', { designItems: [], scope: 'user', t }).find((a) => a.id === 'action.scope')
+  assert.ok(row, '범위 행이 없다')
+  assert.match(row.hint, /user-global/)
+  assert.match(buildActions('/r', { designItems: [], t }).find((a) => a.id === 'action.scope').hint, /now: repo/)
 })
 
 test('plugin 행 라벨은 로케일 범위 접미사를 달고 그 접미사로 검색된다', () => {
@@ -465,18 +471,6 @@ test('plugin 행 짧은 힌트는 커버리지 수 대신 CLI 이름을 나열�
   const hint = agentShortHint(item, { item, status: 'installed' }, createT('ko'))
   assert.match(hint, /설치됨 · codex·gemini·opencode·copilot/)
   assert.doesNotMatch(hint, /CLI 4\/10/)
-})
-
-test('범위 그룹 헤더는 로케일 라벨로 그려진다 — raw id가 새지 않는다', () => {
-  const states = [
-    { item: { id: 'plugin.sp', category: 'plugin', label: 'superpowers', scope: 'project', supports: ['claude'], unsupported: {} }, status: 'absent' },
-    { item: { id: 'global.sp', category: 'plugin', label: 'superpowers', scope: 'user', supports: ['codex'], unsupported: {} }, status: 'absent' },
-  ]
-  const rows = buildRows({ agentStates: states, t: createT('ko') })
-  const ko = render(createState(rows), { width: 100, height: 24, t: createT('ko') }).join('\n')
-  assert.match(ko, /저장소 범위 — 이 저장소에만 적용/)
-  assert.match(ko, /머신 전역 — 이 컴퓨터 전체에 적용/)
-  assert.doesNotMatch(ko, /__scope/)
 })
 
 // ── 사유 그룹 분리와 짧은 힌트 ────────────────────────────────────
@@ -561,7 +555,7 @@ test('design.md 동기화 작업은 DESIGN.MD 탭 맨 위에 놓인다', () => {
   const root = makeTempRepo()
   const rows = buildRows({ actions: buildActions(root, { t: createT('ko') }), designStates: DESIGN_STATES, t: createT('ko') })
   const actionTab = rows.filter((r) => r.section === 'action').map((r) => r.id)
-  assert.deepEqual(actionTab, ['action.language', 'action.bootstrap'])
+  assert.deepEqual(actionTab, ['action.language', 'action.scope', 'action.bootstrap'])
   const design = rows.filter((r) => r.section === 'design')
   assert.deepEqual(design.slice(0, 3).map((r) => r.id), ['action.sync.installed', 'action.sync.catalog', 'action.sync.stale'])
   assert.ok(design.slice(3).every((r) => r.kind === 'item'), '동기화 작업 뒤에 design.md 항목이 온다')
