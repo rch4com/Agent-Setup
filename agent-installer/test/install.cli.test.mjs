@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { makeTempRepo, runInstaller, KO } from './helpers.mjs'
@@ -85,23 +85,21 @@ test('--list는 상태와 함께 목록을 내고 아무것도 바꾸지 않는�
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /미설치\s+mcp\.notion/)
   // CI가 읽는 경로라 화면의 힌트와 같은 정보를 싣는다 — 커버리지·대상 파일·설치 위치.
-  assert.match(r.stdout, /mcp\.notion — Notion MCP · CLI 10\/11/)
+  // PATH에 CLI가 없으면 지원 CLI를 이름으로 대고 "없음"을 붙인다.
+  assert.match(r.stdout, /mcp\.notion — Notion MCP · claude·opencode 없음/)
   assert.match(r.stdout, /config\.gitmessage\.ko — Korean commit template · 대상 파일: \.gitmessage\.txt/)
-  assert.match(r.stdout, /global\.superpowers — superpowers \(전역\) · [^\n]*설치 위치: 사용자 글로벌/)
   assert.deepEqual(untouched(root), [])
 })
 
 // scopedLabel이 plugin 카테고리 항목에만 범위 접미사를 붙인다(labels.test.mjs가
 // 단위로 덮는다) — 이 테스트는 그 접미사가 실제 --list 프로세스 출력까지
-// 살아남는지를 본다. plugin.*(저장소 스코프)와 global.*(전역 스코프) 둘 다
-// 걸어 두 접미사가 각각 나오는지 확인한다.
+// 살아남는지를 본다.
 test('--list 출력의 플러그인 행은 scopedLabel 범위 접미사를 단다', () => {
   const root = makeTempRepo()
   const r = runInstaller(root, ['--list'], { env: KO })
 
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /plugin\.ponytail — Ponytail \(저장소\)/)
-  assert.match(r.stdout, /global\.superpowers — superpowers \(전역\)/)
 })
 
 test('design --list는 제공자별로 묶어 낸다', () => {
@@ -111,31 +109,6 @@ test('design --list는 제공자별로 묶어 낸다', () => {
   assert.equal(r.status, 0, r.stderr)
   assert.match(r.stdout, /\[awesome-design-md\]/)
   assert.match(r.stdout, /stripe — Stripe/)
-  assert.deepEqual(untouched(root), [])
-})
-
-// ── 전역 항목 보호 ────────────────────────────────────────────────
-
-// --set은 목록 밖 항목을 제거하는 선언인데, 전역(scope: 'user') 항목까지
-// 그 규칙에 태우면 무관한 --set 실행 하나가 머신 전체 설치를 걷어 간다 —
-// 스크래치 저장소에서 스킬 둘을 --set 하다가 copilot의 전역 superpowers가
-// 함께 제거되는 것을 실측했다(2026-08-15).
-test('--set 생략은 전역 항목을 제거하지 않는다', () => {
-  const root = makeTempRepo()
-  // 가짜 홈에 "copilot에 superpowers가 전역 설치된" 상태를 놓는다.
-  const home = mkdtempSync(join(tmpdir(), 'cli-home-'))
-  const copilotConfig = join(home, '.copilot', 'config.json')
-  mkdirSync(join(home, '.copilot'), { recursive: true })
-  writeFileSync(copilotConfig, JSON.stringify({ installedPlugins: [{ name: 'superpowers' }] }))
-  const env = { ...KO, USERPROFILE: home, HOME: home, CODEX_HOME: '', XDG_CONFIG_HOME: '' }
-
-  const r = runInstaller(root, ['--set', ''], { env })
-  assert.equal(r.status, 0, r.stderr)
-  assert.match(r.stdout, /global\.superpowers.*--set 생략으로는 제거하지 않습니다/)
-  assert.doesNotMatch(r.stdout, /제거 superpowers \(global\)/)
-  // 전역 기록이 그대로여야 한다 — 지웠다면 이 파일에서 항목이 사라진다.
-  const config = JSON.parse(readFileSync(copilotConfig, 'utf8'))
-  assert.equal(config.installedPlugins[0].name, 'superpowers')
   assert.deepEqual(untouched(root), [])
 })
 

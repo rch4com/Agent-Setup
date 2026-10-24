@@ -18,7 +18,8 @@ appendFileSync(process.env.FAKE_CLI_LOG, JSON.stringify(key) + '\\n')
 const file = process.env.FAKE_CLI_RESPONSES
 const responses = file && existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
 const r = responses[key] ?? { out: '', code: 0 }
-process.stdout.write(r.out ?? '')
+// 실패면 stderr로 낸다 — 실제 CLI처럼, 그리고 makeExec가 실패 사연을 stderr에서 읽는다.
+;(r.code ? process.stderr : process.stdout).write(r.out ?? '')
 process.exit(r.code ?? 0)
 `
 
@@ -87,10 +88,12 @@ export function runInstaller(cwd, args, { timeout = 30000, input = '', env = {} 
   const merged = { ...process.env }
   // Windows의 환경변수 이름은 대소문자를 가리지 않는다 — 펼친 사본에는 원래의
   // `Path`가 남아, 덮어쓴 `PATH`와 둘이 함께 자식에게 넘어간다.
-  if (env.PATH !== undefined) for (const key of Object.keys(merged)) if (key.toUpperCase() === 'PATH') delete merged[key]
+  for (const key of Object.keys(merged)) if (key.toUpperCase() === 'PATH') delete merged[key]
+  // 설치는 이제 CLI 명령을 실행한다 — PATH를 그대로 두면 테스트가 개발 머신의
+  // 실제 claude·codex·agy에 설치를 건다. 테스트가 PATH를 주지 않으면 git만 둔다.
   return spawnSync(process.execPath, [INSTALL_MJS, ...args], {
     cwd, encoding: 'utf8', timeout, input,
-    env: { ...merged, ...env },
+    env: { ...merged, PATH: gitDir(), ...env },
   })
 }
 

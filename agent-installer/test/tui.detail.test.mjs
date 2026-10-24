@@ -14,9 +14,9 @@ const PONYTAIL = itemRow({
   id: 'plugin.ponytail', category: 'plugin', label: 'Ponytail', scope: 'project',
   supports: ['claude', 'opencode'],
   unsupported: {
-    codex: msg('item.unsupported.ponytailUser'),
-    gemini: msg('item.unsupported.ponytailUser'),
-    kilo: msg('item.unsupported.ponytailRules'),
+    codex: msg('item.unsupported.userOnly'),
+    gemini: msg('item.unsupported.userOnly'),
+    kilo: msg('item.unsupported.upstreamNone'),
   },
   note: 'item.plugin.ponytail.note',
 })
@@ -61,18 +61,16 @@ test('미배선 CLI와 사유를 같은 사유끼리 묶어 보여 준다', () =
   const text = detailLines(PONYTAIL, { width: 60, height: 20, t: T }).join('\n')
   assert.match(text, /codex·gemini/)
   assert.match(text, /kilo/)
-  assert.match(text, /사용자 스코프/)
-  assert.match(text, /AGENTS\.md/)
+  assert.match(text, /사용자 전역으로만/)
+  assert.match(text, /공식 설치 경로가 없습니다/)
 })
 
-// MCP만 어댑터가 경로의 유일한 진실이다. plugin·skill은 설치 경로가 항목마다
-// 달라 어댑터가 알지 못하므로 경로를 지어내지 않는다.
-test('MCP 항목만 설정 파일 경로를 붙인다', () => {
-  const mcp = detailLines(SUPABASE, { width: 60, height: 20, t: T }).join('\n')
-  assert.match(mcp, /\.mcp\.json/)
-  assert.match(mcp, /\.codex\/config\.toml/)
-  const plugin = detailLines(PONYTAIL, { width: 60, height: 20, t: T }).join('\n')
-  assert.doesNotMatch(plugin, /\.mcp\.json/)
+// 설정 파일은 각 CLI가 자기 명령으로 쓴다 — 상세 패널이 경로를 지어내지 않는다.
+test('상세 패널은 설정 파일 경로를 붙이지 않는다', () => {
+  for (const row of [SUPABASE, PONYTAIL]) {
+    const text = detailLines(row, { width: 60, height: 20, t: T }).join('\n')
+    assert.doesNotMatch(text, /\.mcp\.json|config\.toml/)
+  }
 })
 
 test('design 항목은 공급자·미리보기·설명을 보여 준다', () => {
@@ -131,7 +129,7 @@ test('상세 패널의 라벨 열은 어느 로케일에서도 잘리지 않는�
   const cases = [
     ['대상 파일', ['detail.target'], { ...base, item: { id: 'config.x', category: 'config', label: 'X', scope: 'project', target: '.gitmessage.txt', unsupported: {} } }],
     ['design', ['detail.provider', 'detail.preview'], { ...base, previewTarget: 'https://example.com', item: { id: 'd.x', category: 'design', label: 'X', providerId: 'p', designCategory: 'Web' } }],
-    ['배선', ['detail.wired', 'detail.unwired'], { ...base, item: { id: 'mcp.x', category: 'mcp', label: 'X', scope: 'project', supports: ['claude'], unsupported: { codex: msg('item.unsupported.claudePlugin') } } }],
+    ['배선', ['detail.wired', 'detail.unwired'], { ...base, item: { id: 'mcp.x', category: 'mcp', label: 'X', scope: 'project', supports: ['claude'], unsupported: { codex: msg('item.unsupported.upstreamNone') } } }],
   ]
   for (const locale of ['en', 'ko']) {
     const t = createT(locale)
@@ -150,16 +148,12 @@ test('대상 파일이 있는 항목은 상세 패널이 그 경로를 먼저 �
   assert.ok(lines[1].includes('.gitmessage.txt'), `대상 파일 줄이 note보다 앞이 아니다: ${lines[1]}`)
 })
 
-// ── MCP 배선표는 가로로 채운다 ─────────────────────────────────────────
-import { CLIS, MCP_CLI_IDS } from '../lib/clis.mjs'
-
-// 한 줄에 하나씩이면 열 개가 열 줄이라 80×24 패널에서 절반이 접혔다.
-test('MCP 배선표는 넓은 화면에서 한 줄에 여러 CLI를 놓고 경로를 함께 적는다', () => {
-  const row = itemRow({ id: 'mcp.all', category: 'mcp', label: 'All', scope: 'project', supports: [...MCP_CLI_IDS], unsupported: {} }, 'absent')
+// ── 배선 CLI는 이름만 ·로 이어 접는다 ───────────────────────────────────
+// 설치는 각 CLI의 명령이 맡아 이 설치기가 쓰는 설정 파일이 없다 — 경로를 붙이지 않는다.
+test('MCP 배선 줄은 CLI 이름만 한 줄에 잇는다', () => {
+  const row = itemRow({ id: 'mcp.all', category: 'mcp', label: 'All', scope: 'project', supports: ['claude', 'codex', 'opencode', 'antigravity'], unsupported: {} }, 'absent')
   const lines = detailLines(row, { width: 120, height: 40, t: T })
-  const wired = lines.filter((l) => l.includes('✔') || /^\s{6,}\S/.test(l))
-  assert.ok(wired.length < MCP_CLI_IDS.length, `줄 수가 줄지 않았다: ${wired.length}`)
-  const text = lines.join('\n')
-  for (const cli of MCP_CLI_IDS) assert.ok(text.includes(`${cli} ${CLIS[cli].file}`), `${cli} 경로가 없다`)
+  const wired = lines.find((l) => l.includes('✔'))
+  assert.match(wired, /claude·codex·opencode·antigravity/)
   for (const line of lines) assert.ok(width(line) <= 120, `넘침: ${line}`)
 })

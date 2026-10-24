@@ -28,10 +28,10 @@ const LONG = {
     id: 'mcp.long', category: 'mcp', label: 'Long', scope: 'project',
     supports: ['claude'],
     unsupported: {
-      codex: msg('item.unsupported.claudePlugin'),
-      gemini: msg('item.unsupported.claudeSkill'),
-      kilo: msg('item.unsupported.ponytailUser'),
-      kiro: msg('item.unsupported.ponytailRules'),
+      codex: msg('item.unsupported.upstreamNone'),
+      gemini: msg('item.unsupported.userOnly'),
+      kilo: msg('item.unsupported.userOnly'),
+      kiro: msg('item.unsupported.upstreamNone'),
     },
   },
 }

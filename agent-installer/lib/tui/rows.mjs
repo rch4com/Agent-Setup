@@ -106,7 +106,7 @@ export function designHint(state, multiProvider = false, t) {
   return parts.filter(Boolean).join(' · ')
 }
 
-// 이름을 나열할 수 있는 최대 CLI 수. 넷까지는 이름(codex·gemini·opencode·copilot)이
+// 이름을 나열할 수 있는 최대 CLI 수. 넷까지는 이름(claude·codex·opencode·antigravity)이
 // 80칸 힌트 자리에 들고, 그보다 많으면 "몇 개나 되나"가 더 유용하다.
 const NAME_LIMIT = 4
 

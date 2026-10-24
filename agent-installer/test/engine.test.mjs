@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { planChanges, apply, scan } from '../lib/engine.mjs'
-import { defineMcp } from '../lib/catalog.mjs'
+import { defineRecipe, bindScope } from '../lib/recipe.mjs'
+import { mcpServer } from '../lib/recipe-helpers.mjs'
 import { createT, toText, LocalizedError } from '../lib/i18n/index.mjs'
 import { makeTempRepo, makeCapture } from './helpers.mjs'
 
@@ -34,23 +35,22 @@ test('planChanges: 변경 없으면 빈 배열', () => {
   assert.deepEqual(planChanges(states, new Set(['a'])), [])
 })
 
-// 파일을 직접 쓰는 항목은 exec를 거치지 않는다. log를 넘기지 않으면 dry-run이
-// "✔ 설치"라고만 찍고 무엇이 바뀔지는 하나도 알려 주지 않는다.
-test('apply dry-run: 파일을 쓰는 항목도 예정 동작을 보고하고 아무것도 만들지 않는다', async () => {
+// 레시피 항목의 dry-run은 실행할 명령을 그대로 보고하고 아무것도 만들지 않는다 —
+// log를 넘기지 않으면 "✔ 설치"라고만 찍고 무엇이 돌지는 알려 주지 않는다.
+test('apply dry-run: 레시피 항목은 예정 명령을 보고하고 아무것도 만들지 않는다', async () => {
   const root = makeTempRepo()
   const cap = makeCapture()
-  const item = defineMcp({
-    id: 'mcp.demo', label: 'Demo MCP',
-    server: { kind: 'http', url: 'https://example.com/mcp' },
-  })
+  const item = bindScope(defineRecipe({
+    id: 'mcp.demo', category: 'mcp', label: 'Demo MCP',
+    ...mcpServer({ name: 'demo', server: { kind: 'http', url: 'https://example.com/mcp' } }),
+  }), 'project')
 
-  // apply()의 t 기본값은 영어다 — 이 단언은 기존 한국어 문구를 그대로
-  // 검사하므로 한국어를 명시로 고정한다.
-  const results = await apply(root, [{ item, action: 'install' }], { dryRun: true, log: cap.log, t: createT('ko') })
+  const state = { present: [], failed: [], targets: ['claude', 'opencode'] }
+  const results = await apply(root, [{ item, action: 'install', state }], { dryRun: true, log: cap.log, t: createT('ko') })
 
   assert.equal(results[0].ok, true)
-  assert.match(cap.text(), /\[dry-run\] Claude Code 설정에 demo 등록/)
-  assert.match(cap.text(), /\[dry-run\] VS Code Copilot 설정에 demo 등록/)
+  assert.match(cap.text(), /\[dry-run\] claude mcp add -s project -t http demo https:\/\/example\.com\/mcp/)
+  assert.match(cap.text(), /\[dry-run\] opencode run /)
   assert.equal(existsSync(join(root, '.mcp.json')), false, 'dry-run은 파일을 만들지 않는다')
 })
 

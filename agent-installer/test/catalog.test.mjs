@@ -3,94 +3,10 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { defineMcp, definePlugin, defineSkill, makeExec, shellQuote } from '../lib/catalog.mjs'
-import { CLIS, CLI_IDS } from '../lib/clis.mjs'
-import { createT, msg, toText } from '../lib/i18n/index.mjs'
-import { makeTempRepo } from './helpers.mjs'
+import { makeExec, shellQuote } from '../lib/catalog.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 
 const CATALOG_URL = pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'catalog.mjs')).href
-
-test('defineMcp: supports에서 빠진 CLI에 사유가 없으면 throw한다', () => {
-  // 오류가 LocalizedError로 바뀌면서 .message는 항상 영어다 — 텍스트가 아니라
-  // 키로 단언해야 로케일이 바뀌어도 이 테스트가 계속 뜻을 유지한다.
-  assert.throws(
-    () => defineMcp({ id: 'mcp.x', label: 'X', server: { kind: 'http', url: 'https://x' }, supports: ['claude'] }),
-    (err) => err.key === 'error.itemReasonMissing',
-  )
-})
-
-test('definePlugin·defineSkill: 항목별 사유가 기본 사유를 덮고 나머지는 기본으로 남는다', () => {
-  const plugin = definePlugin({
-    id: 'plugin.t', label: 'T', installId: 't@t', detectIds: ['t@t'],
-    unsupported: { codex: msg('item.unsupported.upstreamNone') },
-  })
-  assert.equal(plugin.unsupported.codex.key, 'item.unsupported.upstreamNone')
-  assert.equal(plugin.unsupported.gemini.key, 'item.unsupported.claudePlugin')
-  assert.ok(!('claude' in plugin.unsupported))
-
-  const skill = defineSkill({
-    id: 'skill.t', label: 'T', scope: 'project',
-    detect: async () => ({ status: 'absent' }), install: async () => {}, uninstall: async () => {},
-    unsupported: { kiro: msg('item.unsupported.upstreamNone') },
-  })
-  assert.equal(skill.unsupported.kiro.key, 'item.unsupported.upstreamNone')
-  assert.equal(skill.unsupported.grok.key, 'item.unsupported.claudeSkill')
-})
-
-test('defineMcp detect: 지원 CLI 전부 등록 시 installed, 일부면 partial', async () => {
-  const item = defineMcp({
-    id: 'mcp.t', label: 'T',
-    server: { kind: 'http', url: 'https://t/mcp' },
-    supports: ['claude', 'gemini'],
-    unsupported: Object.fromEntries(CLI_IDS.filter((c) => !['claude', 'gemini'].includes(c)).map((c) => [c, '테스트용 제외'])),
-  })
-  const root = makeTempRepo()
-  const ctx = { root, dryRun: false }
-  assert.equal((await item.detect(ctx)).status, 'absent')
-  CLIS.claude.add(root, 't', { kind: 'http', url: 'https://t/mcp' })
-  assert.equal((await item.detect(ctx)).status, 'partial')
-  CLIS.gemini.add(root, 't', { kind: 'http', url: 'https://t/mcp' })
-  assert.equal((await item.detect(ctx)).status, 'installed')
-})
-
-// 회귀: partial의 detail이 평문 템플릿 문자열로 되돌아가면(msg() 없이)
-// .key 단언이 깨지고, present/missing 값이 실제 CLI를 담지 않으면
-// toText로 풀어도 내용이 비어 있는 채 통과할 수 있다 — 값까지 확인한다.
-test('defineMcp detect: partial의 detail은 구조화 메시지이고 실제 등록·누락 CLI를 담는다', async () => {
-  const item = defineMcp({
-    id: 'mcp.t3', label: 'T3',
-    server: { kind: 'http', url: 'https://t3/mcp' },
-    supports: ['claude', 'gemini'],
-    unsupported: Object.fromEntries(CLI_IDS.filter((c) => !['claude', 'gemini'].includes(c)).map((c) => [c, '테스트용 제외'])),
-  })
-  const root = makeTempRepo()
-  CLIS.claude.add(root, 't3', { kind: 'http', url: 'https://t3/mcp' })
-
-  const r = await item.detect({ root })
-  assert.equal(r.status, 'partial')
-  assert.equal(typeof r.detail, 'object')
-  assert.equal(r.detail.key, 'item.mcp.partial')
-  assert.equal(r.detail.params.present, 'claude')
-  assert.equal(r.detail.params.missing, 'gemini')
-
-  const ko = toText(createT('ko'), r.detail)
-  assert.match(ko, /claude/)
-  assert.match(ko, /gemini/)
-  const en = toText(createT('en'), r.detail)
-  assert.match(en, /claude/)
-  assert.match(en, /gemini/)
-})
-
-test('defineMcp install은 누락 CLI만 채우고 uninstall은 전부 제거한다', async () => {
-  const item = defineMcp({ id: 'mcp.t2', label: 'T2', server: { kind: 'stdio', command: 'x', args: [] } })
-  const root = makeTempRepo()
-  const ctx = { root, dryRun: false }
-  CLIS.kimi.add(root, 't2', { kind: 'stdio', command: 'x', args: [] })
-  await item.install(ctx)
-  assert.equal((await item.detect(ctx)).status, 'installed')
-  await item.uninstall(ctx)
-  assert.equal((await item.detect(ctx)).status, 'absent')
-})
 
 test('makeExec는 공백 포함 명령과 인자를 온전히 전달한다', async () => {
   const exec = makeExec(false, () => {})
@@ -192,18 +108,6 @@ test('exec 호출은 전부 await한다', async () => {
   }
 })
 
-// Copilot CLI 1.0.82의 app.js 실측(2026-09-05): 로컬 서버 판정이
-// `type === undefined || "local" || "stdio"`라 루트 .mcp.json의 Claude 형식
-// type:"stdio"도 받는다. 한때 README가 stdio는 안 붙는다고 적어 copilot을 뺐던
-// 회귀를 막는다 — 두 전송 방식 모두 copilot에 배선한다.
-test('defineMcp: stdio 서버도 copilot에 배선한다', () => {
-  for (const server of [{ kind: 'stdio', command: 'x', args: [] }, { kind: 'http', url: 'https://x' }]) {
-    const item = defineMcp({ id: 'mcp.s', label: 'S', server })
-    assert.ok(item.supports.includes('copilot'), `${server.kind}: copilot이 빠졌다`)
-    assert.equal(item.unsupported.copilot, undefined)
-  }
-})
-
 // 멈춘 네트워크 명령이 설치를 영원히 붙들지 않는다 — 시간이 지나면 실패로
 // 돌아오고, 왜 실패했는지가 출력에 남는다.
 test('makeExec: 시간 제한을 넘긴 명령은 사유와 함께 실패한다', async () => {
@@ -211,15 +115,6 @@ test('makeExec: 시간 제한을 넘긴 명령은 사유와 함께 실패한다'
   const r = await exec('node', ['-e', 'setTimeout(function(){},4000)'], { timeout: 300 })
   assert.equal(r.ok, false)
   assert.match(r.output, /초 안에 끝나지 않아 중단했습니다: node/)
-})
-
-// Antigravity는 CLI 목록에 있지만 프로젝트 MCP 파일이 없다 — MCP 항목은
-// 기본으로 그 사유를 달고 빠지고, 레지스트리 스킬은 공유 디렉터리라 들어간다.
-test('defineMcp: antigravity는 프로젝트 MCP 파일이 없어 기본 사유로 빠진다', () => {
-  const item = defineMcp({ id: 'mcp.a', label: 'A', server: { kind: 'http', url: 'https://x' } })
-  assert.ok(!item.supports.includes('antigravity'))
-  assert.equal(item.unsupported.antigravity.key, 'item.unsupported.noProjectMcp')
-  assert.equal(item.supports.length, CLI_IDS.length - 1)
 })
 
 // 회귀: execFile 기본 maxBuffer(1MB)를 넘기면 Node가 자식을 죽이고

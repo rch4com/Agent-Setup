@@ -1,15 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { existsSync, writeFileSync } from 'node:fs'
-import { delimiter, join } from 'node:path'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { runTui } from '../lib/tui/run.mjs'
-import { createT, msg, toText } from '../lib/i18n/index.mjs'
+import { createT } from '../lib/i18n/index.mjs'
 import { readRecord } from '../lib/bootstrap/record.mjs'
 import { GITMESSAGE_KO } from '../lib/gitmessage.mjs'
-import { makeTempRepo, makeCapture, recordingOpener, isolateGlobalHome } from './helpers.mjs'
+import { makeTempRepo, makeCapture, makeFakeClis, recordingOpener, isolateGlobalHome } from './helpers.mjs'
 
-// 전역 항목(global.superpowers)이 진짜 홈을 읽으면 이 파일의 "변경 없음"류
+// 감지가 진짜 홈·PATH를 읽으면 이 파일의 "변경 없음"류
 // 단언이 머신 상태에 따라 뒤집힌다.
 isolateGlobalHome()
 
@@ -284,31 +284,20 @@ test('적용 중 Ctrl+C는 건너뜀으로 남기고 실패로 취급하지 않�
   }
 })
 
-// claude CLI가 실제로 PATH에 있으면 아래 테스트가 진짜 claude 프로세스를
-// 띄워 marketplace add·plugin install을 시도한다 — 로컬 Claude Code 설정을
-// 실제로 건드리는 부작용이라 테스트에서는 절대 안 된다. claude 실행 파일이
-// 든 PATH 항목만 걸러 내, items.ponytail.test.mjs의 failingExec와 같은
-// 조건(claude가 없는 환경)을 진짜 subprocess를 태우면서도 안전하게 재현한다.
-function pathWithoutExecutable(name) {
-  const names = process.platform === 'win32' ? [name, `${name}.exe`, `${name}.cmd`, `${name}.bat`] : [name]
-  return (process.env.PATH ?? '').split(delimiter)
-    .filter((dir) => dir && !names.some((n) => existsSync(join(dir, n))))
-    .join(delimiter)
-}
-
-// F2: definePlugin·ponytail은 claude CLI가 없으면 .claude/settings.json
-// 직접 기록으로 대체하고, 그래도 성공(ok:true)으로 돌아오되 message를
-// 남긴다(item.plugin.deferred) — 왜 대체 경로를 탔는지 사용자가 알아야
-// 한다. dry-run의 exec는 항상 성공만 돌려주므로(lib/catalog.mjs makeExec)
-// 이 대체 경로를 태우려면 dryRun:false로 실제 exec를 태워야 한다 — 아래
-// '적용 실패는...' 테스트가 exec와 무관한 throw로 실패를 재현하는 것과
-// 같은 이유다.
-test('성공해도 메시지가 있으면 적용 뒤 로그에 남는다', async () => {
-  const savedPath = process.env.PATH
-  process.env.PATH = pathWithoutExecutable('claude')
+// 레시피 단계가 실패하면 그 CLI의 실패 명령과 출력이 화면 밖에 남고 종료 코드가
+// 선다. 가짜 claude가 plugin install에서 실패한다 — 진짜 claude는 파일 상단의
+// isolateGlobalHome()이 PATH에서 빼 두었다.
+test('적용 실패는 화면 밖에서 사연을 보여 주고 종료 코드를 세운다', async () => {
+  const before = process.exitCode
+  const fake = makeFakeClis(['claude'], {
+    'claude plugin list --json': { out: '[]' },
+    'claude plugin install ponytail@ponytail --scope project': { out: 'install exploded', code: 1 },
+  })
+  const saved = Object.fromEntries(Object.keys(fake.env).map((k) => [k, process.env[k]]))
+  Object.assign(process.env, fake.env)
   try {
     const root = makeTempRepo()
-    const { log, result } = await drive([
+    const { screen, log, result } = await drive([
       TAB, // 작업 탭 → PLUGIN 탭
       ...type('ponytail'),
       DOWN, SPACE,
@@ -317,44 +306,18 @@ test('성공해도 메시지가 있으면 적용 뒤 로그에 남는다', async
       ANY, ...QUIT,
     ], { root, dryRun: false })
 
-    assert.ok(log.includes('✔'), '성공 표시가 로그에 없다')
-    assert.ok(
-      log.includes(toText(createT('ko'), msg('item.plugin.deferred'))),
-      `대체 경로 사연이 로그에 없다: ${log}`,
-    )
-    assert.equal(result.interactive, true)
-  } finally {
-    process.env.PATH = savedPath
-  }
-})
-
-// Ponytail은 opencode.jsonc의 plugin 키가 배열이 아니면 install()이
-// LocalizedError를 던진다(lib/items/plugin.ponytail.mjs) — dry-run에서도
-// 피할 수 없는 실제 실패 경로다. dry-run의 exec는 항상 성공만 돌려주므로
-// (lib/catalog.mjs makeExec) 이 항목 말고는 dry-run에서 apply()를 실패시킬
-// 방법이 없다.
-test('적용 실패는 화면 밖에서 사연을 보여 주고 종료 코드를 세운다', async () => {
-  const before = process.exitCode
-  try {
-    const root = makeTempRepo()
-    writeFileSync(join(root, 'opencode.jsonc'), JSON.stringify({ plugin: 'not-an-array' }))
-
-    const { screen, log, result } = await drive([
-      TAB, // 작업 탭 → PLUGIN 탭
-      ...type('ponytail'),
-      DOWN, SPACE,
-      ENTER, // 제출 → 검토
-      ENTER, // 적용
-      ANY, ...QUIT,
-    ], { root })
-
     assert.ok(screen.includes('적용 중'), '진행 화면이 그려지지 않았다')
+    assert.ok(fake.calls().includes('claude plugin install ponytail@ponytail --scope project'), fake.calls().join('\n'))
     assert.ok(log.includes('✖'), '실패 사연이 화면 밖으로 나오지 않았다')
-    assert.ok(log.includes('plugin 키가 배열이 아닙니다'), `실패 메시지가 로그에 없다: ${log}`)
+    assert.ok(log.includes('install exploded'), `실패 출력이 로그에 없다: ${log}`)
     assert.equal(process.exitCode, 1, '실패는 종료 코드를 세워야 한다')
     assert.equal(result.interactive, true)
   } finally {
     process.exitCode = before
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
   }
 })
 
@@ -396,15 +359,6 @@ test('배타 항목을 바꾸면 무엇이 해제됐는지 알린다', async () 
   const { screen } = await drive([TAB, TAB, TAB, TAB, ...type('english'), DOWN, SPACE, CQ], { root, columns: 160 })
   assert.match(screen, /한 자리를 두고 다투므로/, `배타 전환 안내가 없다`)
   assert.match(screen, /Korean commit template/)
-})
-
-// 전역 항목은 이 체크 하나가 저장소 밖(~/.codex 등)을 건드린다 — 켜는 순간
-// 상태줄이 그 사실을 말해야 한다. isolateGlobalHome()이 파일 상단에서 가짜
-// 홈을 깔아 두므로 global.superpowers는 항상 미설치로 시작한다.
-// 검색은 활성 탭 안으로만 걸리므로 TAB으로 PLUGIN 탭(작업 다음)에 먼저 간다.
-test('전역 플러그인을 켜면 상태줄이 머신 전역임을 알린다', async () => {
-  const { screen } = await drive([TAB, ...type('global.superpowers'), DOWN, SPACE, CC])
-  assert.ok(screen.includes('머신 전역 항목 — 이 컴퓨터 전체에 적용됩니다'), '전역 안내 없음')
 })
 
 // ── F1 도움말·Home/End·리사이즈 ────────────────────────────────────────

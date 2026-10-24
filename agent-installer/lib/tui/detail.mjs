@@ -6,7 +6,6 @@
 // 렌더 층의 의존성이 된다. 그래서 사유 그룹핑이 rows가 아니라 여기 있고,
 // rows.mjs가 반대로 여기서 가져다 쓴다.
 import { toText, createT } from '../i18n/index.mjs'
-import { CLIS } from '../clis.mjs'
 import { categoryLabel } from '../design-md/flow.mjs'
 import { cut, labelWidth, pad, width, wrap } from '../width.mjs'
 
@@ -68,36 +67,17 @@ function wrapNames(names, limit) {
 function wiredLines(item, w, lead, t) {
   const supports = item.supports ?? []
   if (supports.length === 0) return []
-  // 경로는 MCP에서만 붙인다. 그때만 clis.mjs 어댑터가 경로의 유일한 진실이다 —
-  // plugin·skill은 설치 자리가 항목마다 달라 어댑터가 알지 못한다.
-  const showFile = item.category === 'mcp'
-  // 경로가 없으면 세로로 늘어놓을 이유가 없다 — CLI 열한 개를 한 줄에 하나씩
-  // 놓으면 80×24에서 `배선 ✔ claude` 뒤가 `…외 9줄`로 잘려 정작 "어디에
-  // 되나"를 펼쳐야만 읽을 수 있었다. 이름을 ·로 이어 접는다(미배선과 같은 꼴).
-  if (!showFile) {
-    return wrapNames(supports, Math.max(1, w - lead - 2)).map((line, i) =>
-      cut(`${i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)}${i === 0 ? '✔ ' : '  '}${line}`, w))
-  }
-  // MCP는 "CLI 경로" 쌍을 한 줄에 들어가는 만큼 채운다. 한 줄에 하나씩 놓으면
-  // 열 개가 열 줄이라 80×24 패널에서 절반이 `…외 N줄`로 접혔다. 폭이 좁으면
-  // 한 줄에 하나로 자연히 돌아간다.
-  const pairs = supports.map((cli) => (CLIS[cli]?.file ? `${cli} ${CLIS[cli].file}` : cli))
-  const colW = Math.max(...pairs.map((p) => width(p))) + 3
-  const room = Math.max(1, w - lead - 2)
-  const perLine = Math.max(1, Math.floor(room / colW))
-  const rows = []
-  for (let i = 0; i < pairs.length; i += perLine) {
-    const chunk = pairs.slice(i, i + perLine)
-    rows.push(chunk.map((p, j) => (j < chunk.length - 1 ? pad(p, colW) : p)).join(''))
-  }
-  return rows.map((line, i) => cut(`${i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)}${i === 0 ? '✔ ' : '  '}${line}`, w))
+  // 설치는 각 CLI의 명령이 맡아 이 설치기가 쓰는 설정 파일이 없다 — 이름만
+  // ·로 이어 접는다(미배선과 같은 꼴).
+  return wrapNames(supports, Math.max(1, w - lead - 2)).map((line, i) =>
+    cut(`${i === 0 ? pad(t('detail.wired'), lead) : ' '.repeat(lead)}${i === 0 ? '✔ ' : '  '}${line}`, w))
 }
 
 function unwiredLines(item, w, lead, t) {
   const out = []
   unsupportedGroups(item, t).forEach((group, i) => {
     const head = i === 0 ? pad(t('detail.unwired'), lead) : ' '.repeat(lead)
-    // 미배선 CLI 이름도 같은 규칙으로 접는다 — 11개를 한 줄에 두면 뒤가 잘린다.
+    // 미배선 CLI 이름도 같은 규칙으로 접는다 — 여럿을 한 줄에 두면 좁은 화면에서 뒤가 잘린다.
     wrapNames(group.clis, Math.max(1, w - lead - 2)).forEach((line, j) => {
       out.push(cut(`${j === 0 ? head : ' '.repeat(lead)}${j === 0 ? '✖ ' : '  '}${line}`, w))
     })

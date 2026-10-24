@@ -1,27 +1,23 @@
-import { definePlugin } from '../catalog.mjs'
-import { CLI_IDS } from '../clis.mjs'
-import { msg } from '../i18n/index.mjs'
+import { defineRecipe } from '../recipe.mjs'
+import { marketplacePlugin } from '../recipe-helpers.mjs'
+
 // 레지스트리 경로(`npx skills add`)도 열려 있지만 쓰지 않는다 — ECC의 skills/에는
 // 284개가 들어 있어 `--skill` 없이 넣으면 공유 스킬 디렉터리를 통째로 덮는다
 // (2026-08-15 저장소 트리로 실측). 플러그인은 프로필을 상류가 관리하므로
 // 저장소에 남는 파일이 없다.
 //
-// 미배선 사유는 CLI마다 갈린다. Codex만 상류가 네이티브 플러그인을 주는데,
-// README가 못을 박는다 — "Codex stores one enabled plugin state in the active
-// CODEX_HOME; it does not offer Claude's user, project, and local scopes."
-// 나머지는 ./install.sh --target으로 열려 있고 Gemini(.gemini/)·Kimi(.kimi-code/)는
-// 프로젝트 로컬이기까지 하다. 그쪽을 막는 것은 스코프가 아니라 284개라는 규모다.
-export default definePlugin({
-  id: 'plugin.ecc', label: 'ECC', group: '__flow',
-  installId: 'ecc@ecc',
-  detectIds: ['ecc@ecc'],
-  marketplace: { name: 'ecc', repo: 'affaan-m/ECC' },
+// Codex는 상류가 네이티브 플러그인을 준다(README: `codex plugin marketplace add
+// affaan-m/ECC` + `codex plugin add ecc@ecc`, 두 명령 모두 멱등). 활성 CODEX_HOME
+// 하나에 깔리므로 전역 전용이고, 네이티브 훅은 명시적 신뢰가 필요하다(hooks).
+// OpenCode·Antigravity는 ./install.sh --target 경로뿐이라 284개 규모 문제가 같다.
+export default defineRecipe({
+  id: 'plugin.ecc', category: 'plugin', label: 'ECC', group: '__flow',
   note: 'item.plugin.ecc.note',
-  verified: '2026-08-15',
-  unsupported: Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [
-      c,
-      c === 'codex' ? msg('item.unsupported.eccCodexHome') : msg('item.unsupported.eccScale'),
-    ]),
-  ),
+  verified: '2026-10-24',
+  hooks: true,
+  ...marketplacePlugin({
+    claude: { marketplace: 'affaan-m/ECC', id: 'ecc@ecc' },
+    codex: { marketplace: 'affaan-m/ECC', id: 'ecc@ecc' },
+  }),
+  reasons: { opencode: 'item.unsupported.eccScale', antigravity: 'item.unsupported.eccScale' },
 })

@@ -137,7 +137,7 @@ test('에이전트 항목은 이름으로도 검색된다 — 라벨과 id가 �
 test('agentHint: 상태와 커버리지와 미지원 사유를 함께 담는다', () => {
   const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1], createT('ko'))
   assert.equal(hint.includes('설치됨'), true)
-  assert.match(hint, /CLI 1\/11/)
+  assert.match(hint, /CLI 1\/4/)
   assert.equal(hint.includes('전용'), true)
 })
 
@@ -147,18 +147,18 @@ test('agentHint: CLI 커버리지가 상태 바로 뒤에 온다', () => {
   const state = {
     item: { id: 'mcp.x', category: 'mcp', label: 'X', note: 'item.mcp.notion.note', supports: ['claude', 'codex'], unsupported: {} },
     status: 'partial',
-    detail: msg('item.mcp.partial', { present: 'claude', missing: 'codex' }),
+    detail: msg('item.plugin.partial', { present: 'claude', missing: 'codex' }),
   }
-  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/11 · registered: claude/)
-  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/11 · 등록됨: claude/)
+  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/4 · wired: claude/)
+  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/4 · 배선됨: claude/)
 })
 
-// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "11/11"은 뜻이 다르다.
+// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "4/4"은 뜻이 다르다.
 // 없으면 "빠뜨린 것"과 "전부 되는 것"을 화면에서 가를 수 없다.
-test('agentHint: 11개 전부 지원하면 그 사실도 명시한다', () => {
+test('agentHint: 전부 지원하면 그 사실도 명시한다', () => {
   const item = { id: 'skill.all', category: 'skill', label: 'All', scope: 'project', supports: [...CLI_IDS], unsupported: {} }
   const hint = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(hint, /CLI 11\/11/)
+  assert.match(hint, /CLI 4\/4/)
   assert.ok(!hint.includes('미배선'), '미지원이 없는데 미배선 문구가 나왔다')
 })
 
@@ -168,10 +168,10 @@ test('agentHint: 11개 전부 지원하면 그 사실도 명시한다', () => {
 test('agentHint: 플러그인·스킬도 미지원 CLI를 밝힌다', () => {
   const item = {
     id: 'plugin.partial', category: 'plugin', label: 'P', scope: 'project', supports: ['claude', 'opencode'],
-    unsupported: { codex: msg('item.unsupported.ponytailUser'), kilo: msg('item.unsupported.ponytailRules') },
+    unsupported: { codex: msg('item.unsupported.userOnly'), kilo: msg('item.unsupported.upstreamNone') },
   }
   const ko = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(ko, /CLI 2\/11/)
+  assert.match(ko, /CLI 2\/4/)
   assert.match(ko, /미배선 2곳/)
   assert.match(ko, /codex/)
   assert.match(ko, /kilo/)
@@ -182,21 +182,21 @@ test('agentHint: 플러그인·스킬도 미지원 CLI를 밝힌다', () => {
 test('agentHint: 같은 사유의 CLI는 하나로 묶고, 다른 사유는 갈라 놓는다', () => {
   const same = {
     id: 'mcp.multi', category: 'mcp', label: 'Multi', scope: 'project', supports: ['claude'],
-    unsupported: { codex: msg('item.unsupported.claudePlugin'), gemini: msg('item.unsupported.claudePlugin') },
+    unsupported: { codex: msg('item.unsupported.upstreamNone'), gemini: msg('item.unsupported.upstreamNone') },
   }
   const en = agentHint(same, { item: same, status: 'absent' }, createT('en'))
   const ko = agentHint(same, { item: same, status: 'absent' }, createT('ko'))
-  assert.match(en, /not wired for 2: codex·gemini — Claude Code plugin only/)
-  assert.match(ko, /미배선 2곳: codex·gemini — Claude Code 전용 플러그인/)
+  assert.match(en, /not wired for 2: codex·gemini — no official install path upstream/)
+  assert.match(ko, /미배선 2곳: codex·gemini — 상류에 공식 설치 경로가 없습니다/)
   // 사유가 반복되지 않는다 — 같은 문장이 두 번 나오면 묶기가 깨진 것이다.
-  assert.equal(en.split('Claude Code plugin only').length - 1, 1)
+  assert.equal(en.split('no official install path upstream').length - 1, 1)
 
   const mixed = {
     id: 'mcp.mixed', category: 'mcp', label: 'Mixed', scope: 'project', supports: ['claude'],
-    unsupported: { codex: msg('item.unsupported.claudePlugin'), gemini: msg('item.unsupported.claudeSkill') },
+    unsupported: { codex: msg('item.unsupported.upstreamNone'), gemini: msg('item.unsupported.userOnly') },
   }
   const two = agentHint(mixed, { item: mixed, status: 'absent' }, createT('en'))
-  assert.match(two, /codex — Claude Code plugin only \/ gemini — Claude Code skill install/)
+  assert.match(two, /codex — no official install path upstream \/ gemini — this CLI installs it only user-globally/)
 })
 
 test('검색어는 섹션 id와 두 로케일 라벨에 모두 걸린다', () => {
@@ -357,12 +357,10 @@ test('renderReview: 변경 건수와 각 항목의 동작을 싣는다', () => {
 test('renderReview: 일부 CLI에만 들어가는 항목은 커버리지를 함께 보인다', () => {
   const changes = [
     { action: 'install', item: { label: '일부', supports: ['claude', 'opencode'] } },
-    { action: 'install', item: { label: '다섯', supports: ['claude', 'codex', 'opencode', 'copilot', 'kilo'] } },
     { action: 'install', item: { label: '전부', supports: [...CLI_IDS] } },
   ]
   const text = renderReview(changes, { width: 80, height: 24, t: createT('ko') }).join('\n')
   assert.match(text, /일부 · claude·opencode/)
-  assert.match(text, /다섯 · CLI 5\/11/)
   assert.doesNotMatch(text, /전부 · /)
 })
 
@@ -487,9 +485,9 @@ const PONYTAIL = {
   id: 'plugin.ponytail', category: 'plugin', label: 'Ponytail', scope: 'project',
   supports: ['claude', 'opencode'],
   unsupported: {
-    codex: msg('item.unsupported.ponytailUser'),
-    gemini: msg('item.unsupported.ponytailUser'),
-    kilo: msg('item.unsupported.ponytailRules'),
+    codex: msg('item.unsupported.userOnly'),
+    gemini: msg('item.unsupported.userOnly'),
+    kilo: msg('item.unsupported.upstreamNone'),
   },
 }
 
@@ -530,7 +528,8 @@ test('항목 행은 짧은 힌트와 긴 힌트를 함께 들고 긴 쪽으로 �
   const rows = buildRows({ agentStates: [{ item: PONYTAIL, status: 'installed' }] })
   const row = rows.find((r) => r.id === 'plugin.ponytail')
   assert.notEqual(row.hint, row.fullHint)
-  assert.ok(row.searchText.includes('agents.md'))
+  // 짧은 힌트에 없는 사유 문장으로도 찾힌다.
+  assert.ok(row.searchText.includes('user-globally'))
 })
 
 // ── 짧은 힌트의 커버리지 규칙은 탭과 무관하게 하나다 ──────────────────

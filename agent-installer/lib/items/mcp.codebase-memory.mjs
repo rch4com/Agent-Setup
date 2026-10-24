@@ -1,6 +1,8 @@
-import { defineMcp } from '../catalog.mjs'
-export default defineMcp({
-  id: 'mcp.codebase-memory', label: 'Codebase Memory MCP', group: '__context',
-  server: { kind: 'stdio', command: 'codebase-memory-mcp', args: [] },
+import { defineRecipe } from '../recipe.mjs'
+import { mcpServer } from '../recipe-helpers.mjs'
+
+export default defineRecipe({
+  id: 'mcp.codebase-memory', category: 'mcp', label: 'Codebase Memory MCP', group: '__context',
   note: 'item.mcp.codebase-memory.note',
+  ...mcpServer({ name: 'codebase-memory', server: { kind: 'stdio', command: 'codebase-memory-mcp', args: [] } }),
 })

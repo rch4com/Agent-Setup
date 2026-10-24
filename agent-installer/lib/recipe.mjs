@@ -2,7 +2,7 @@
 // 그것을 엔진·TUI가 아는 항목 모양으로 바꾼다. 실행(install)과 출력(--print)이
 // 같은 steps()에서 명령을 얻으므로 둘이 어긋날 수 없다.
 import { join } from 'node:path'
-import { CLIS, TARGET_CLI_IDS as RECIPE_CLIS } from './clis.mjs'
+import { CLIS, CLI_IDS as RECIPE_CLIS } from './clis.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
 
 export const SCOPES = ['project', 'user']

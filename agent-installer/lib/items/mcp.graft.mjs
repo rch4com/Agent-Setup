@@ -1,4 +1,5 @@
-import { defineMcp } from '../catalog.mjs'
+import { defineRecipe } from '../recipe.mjs'
+import { mcpServer } from '../recipe-helpers.mjs'
 // 상류 README가 "직접 등록할 때"의 계약으로 적은 명령 그대로다: npx -y
 // @nanonets/graft mcp (stdio). `graft mcp [dir]`은 dir 기본값이 실행 디렉터리라
 // 그래프(graft/, 상류가 .gitignore에 넣는 로컬 캐시)도 저장소 안에 있고,
@@ -14,8 +15,9 @@ import { defineMcp } from '../catalog.mjs'
 // win32-x64 prebuild가 있다), Node 24는 헤더가 C++20을 요구해 컴파일 자체가
 // 안 된다(상류 #400). C++ 워크로드가 없는 이 머신에서는 서버를 띄우지
 // 못했으므로 배선(설정 파일 쓰기)만 왕복 검증했다 — note가 알린다.
-export default defineMcp({
-  id: 'mcp.graft', label: 'Graft MCP', group: '__context',
-  server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] },
+
+export default defineRecipe({
+  id: 'mcp.graft', category: 'mcp', label: 'Graft MCP', group: '__context',
   note: 'item.mcp.graft.note',
+  ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] } }),
 })

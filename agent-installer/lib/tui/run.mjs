@@ -106,7 +106,7 @@ export async function runTui(root, opts = {}) {
   // 타이핑하면 검색칸으로 올라간다.
   let state = createState(collected.rows, { selectedIds: installedIds(collected.rows), focus: 'list' })
   let status = ''
-  // 순환 대상: 전체(null) + CLI 10개. state.mjs는 아무것도 import 하지 않으므로
+  // 순환 대상: 전체(null) + CLI 넷. state.mjs는 아무것도 import 하지 않으므로
   // 목록을 여기서 만들어 넘긴다.
   const CLI_OPTIONS = [null, ...CLI_IDS]
   let detailExpanded = false
@@ -413,9 +413,8 @@ export async function runTui(root, opts = {}) {
 
         // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
         // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 성공해도 message가
-        // 붙은 결과(definePlugin·ponytail이 claude CLI 부재로 config 직접
-        // 기록으로 대체할 때 등)는 똑같이 사연이 있다 — ok만 보고 걸러내면
-        // 그 사연이 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
+        // 붙은 결과는 똑같이 사연이 있다 — ok만 보고 걸러내면 그 사연이
+        // 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
         // 이미 나타났고, 다시 여기 나열하면 사용자가 스스로 취소한 일을
         // 실패처럼 읽게 된다.
         const notable = results.filter((r) => !r.skipped && (!r.ok || r.message))

@@ -133,16 +133,21 @@ export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode',
 // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리와
 // 잠금 항목을 남긴다(실측) — 남은 것을 우리가 치운다. 남겨 두면 detect가
 // 계속 설치됨으로 읽고, 동료가 잠금 파일로 복원하면 지운 스킬이 되살아난다.
-function cleanup(root, names) {
+// 잠금 항목은 lockNames 전부를 지운다 — 인자·경로로 못 써 건너뛴 이름까지.
+// 남기면 다음 제거가 같은 자리에서 또 멈춘다.
+function cleanup(root, names, lockNames = names) {
   for (const name of names) {
     const dir = findSkillDir(root, name)
     if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
   }
-  pruneLock(root, names)
+  pruneLock(root, lockNames)
 }
 
 export function skillsAdd({ source, skill, anchor = null }) {
   const wildcard = skill === '*'
+  // 스킬 전부(*)를 넣으면 detect가 볼 이름을 정해 둬야 한다 — 없으면 설치해도
+  // 계속 absent로 읽히는 항목이 조용히 카탈로그에 들어간다.
+  if (wildcard && !anchor) throw new LocalizedError('error.registrySkillAnchor', { id: sourceKey(source) })
   const probeName = anchor ?? skill
   const project = {
     install: [[...SKILLS, 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy']],
@@ -152,9 +157,10 @@ export function skillsAdd({ source, skill, anchor = null }) {
           fn: async ({ root, exec }) => {
             // 잠금 파일의 이름은 상류 frontmatter에서 온다 — 인자·경로로 못 쓰는 이름은 건너뛴다.
             const locked = lockedSkills(root, source)
-            const names = (locked.length > 0 ? locked : [probeName]).filter(isSafeSkillName)
+            const all = locked.length > 0 ? locked : [probeName]
+            const names = all.filter(isSafeSkillName)
             for (const name of names) await exec('npx', ['-y', 'skills@latest', 'remove', name, '--agent', 'universal', '--yes'], { cwd: root })
-            cleanup(root, names)
+            cleanup(root, names, all)
           },
         }]
       : [

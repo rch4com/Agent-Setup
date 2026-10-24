@@ -2,18 +2,18 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import item from '../lib/items/skill.gsd.mjs'
+import def from '../lib/items/skill.gsd.mjs'
+import { bindScope } from '../lib/recipe.mjs'
+import { createProbe } from '../lib/probe.mjs'
 import { makeTempRepo } from './helpers.mjs'
 
-// GSD는 런타임 플래그를 여러 개 함께 받는다(2026-08-15 실측: `--claude --codex
-// --local`이 두 디렉터리를 만든다). 그래서 설치·제거가 호출 한 번이고, 그
-// 한 번에 어느 플래그가 실리는지가 이 항목의 전부다.
+// GSD는 런타임 플래그(--claude 등)로 저장소 안 디렉터리에 설치한다. 런타임마다
+// 명령 한 줄이라, 부분 설치를 완성할 때 빠진 런타임만 돈다.
+const item = bindScope(def, 'project')
 const DIRS = {
   claude: '.claude/commands',
   codex: '.codex/skills',
   opencode: '.opencode/skills',
-  copilot: '.github/skills',
-  kilo: '.kilo/skills',
 }
 
 // 상류가 만드는 모양을 흉내 낸다 — 스킬 하나가 gsd- 접두사 디렉터리다.
@@ -37,28 +37,30 @@ function recordingExec() {
   return { calls, exec }
 }
 
-test('다섯 런타임을 배선하고 미배선 넷은 사유가 다르다', () => {
-  assert.deepEqual(item.supports, ['claude', 'codex', 'opencode', 'copilot', 'kilo'])
-  assert.equal(item.unsupported.gemini.key, 'item.unsupported.gsdGemini')
-  assert.equal(item.unsupported.kimi.key, 'item.unsupported.gsdKimiLocal')
-  for (const cli of ['kiro', 'grok', 'vscode']) {
-    assert.equal(item.unsupported[cli].key, 'item.unsupported.upstreamNone', cli)
-  }
-  assert.ok(!('codex' in item.unsupported), '배선하는 CLI가 미배선 사유를 갖는다')
+// 세 CLI가 모두 PATH에 있는 머신을 흉내 낸다 — 런타임 디렉터리는 실제 파일을 본다.
+function detect(root) {
+  const probe = { ...createProbe({ root, scope: 'project', exec: async () => ({ ok: false, output: '' }) }), has: () => true }
+  return item.detect({ probe })
+}
+
+test('세 런타임을 배선하고 Antigravity는 미실측 사유를 단다', () => {
+  assert.deepEqual(item.supports, ['claude', 'codex', 'opencode'])
+  assert.equal(item.unsupported.antigravity.key, 'item.unsupported.unmeasuredUpstream')
+  assert.equal(bindScope(def, 'user'), null, '전역 설치는 배선하지 않는다')
 })
 
-test('detect: 없으면 absent, 다섯 다 있으면 installed, 일부면 partial', async () => {
+test('detect: 없으면 absent, 셋 다 있으면 installed, 일부면 partial', async () => {
   const root = makeTempRepo()
-  assert.equal((await item.detect({ root })).status, 'absent')
+  assert.equal((await detect(root)).status, 'absent')
 
   putGsd(root, 'codex')
-  const partial = await item.detect({ root })
+  const partial = await detect(root)
   assert.equal(partial.status, 'partial')
   assert.equal(partial.detail.params.present, 'codex')
-  assert.equal(partial.detail.params.missing, 'claude, opencode, copilot, kilo')
+  assert.equal(partial.detail.params.missing, 'claude, opencode')
 
-  for (const cli of ['claude', 'opencode', 'copilot', 'kilo']) putGsd(root, cli)
-  assert.equal((await item.detect({ root })).status, 'installed')
+  for (const cli of ['claude', 'opencode']) putGsd(root, cli)
+  assert.equal((await detect(root)).status, 'installed')
 })
 
 // 상류 제거는 디렉터리와 gsd-install-state.json을 남긴다(실측). 파일 존재만
@@ -66,42 +68,32 @@ test('detect: 없으면 absent, 다섯 다 있으면 installed, 일부면 partia
 test('detect: 제거 잔재는 설치로 세지 않는다', async () => {
   const root = makeTempRepo()
   putLeftover(root, 'codex')
-  assert.equal((await item.detect({ root })).status, 'absent')
+  assert.equal((await detect(root)).status, 'absent')
 })
 
-test('install: 누락된 런타임 플래그만 한 번에 넘긴다', async () => {
-  const root = makeTempRepo()
-  const { calls, exec } = recordingExec()
-  await item.install({ root, exec })
-  assert.equal(calls.length, 1, '호출은 한 번이다')
-  assert.equal(
-    calls[0],
-    'npx -y @opengsd/gsd-core@latest --claude --codex --opencode --copilot --kilo --local',
-  )
-})
-
-test('install: 이미 있는 런타임은 다시 쓰지 않는다', async () => {
+test('install: 런타임마다 한 줄, 이미 있는 런타임은 다시 쓰지 않는다', async () => {
   const root = makeTempRepo()
   putGsd(root, 'claude')
-  putGsd(root, 'kilo')
   const { calls, exec } = recordingExec()
-  await item.install({ root, exec })
-  assert.equal(calls[0], 'npx -y @opengsd/gsd-core@latest --codex --opencode --copilot --local')
+  await item.install({ root, exec, state: await detect(root) })
+  assert.deepEqual(calls, [
+    'npx -y @opengsd/gsd-core@latest --codex --local',
+    'npx -y @opengsd/gsd-core@latest --opencode --local',
+  ])
 })
 
-// 런타임 플래그 없는 --uninstall은 기본값 claude만 지운다 — 설치된 것을 전부
-// 넘겨야 나머지가 남지 않는다.
-test('uninstall: 설치된 런타임 플래그를 전부 넘긴다', async () => {
+// 런타임 플래그 없는 --uninstall은 기본값 claude만 지운다 — 늘 플래그를 준다.
+test('uninstall: 설치된 런타임마다 플래그를 붙여 지운다', async () => {
   const root = makeTempRepo()
   putGsd(root, 'codex')
-  putGsd(root, 'copilot')
   const { calls, exec } = recordingExec()
-  await item.uninstall({ root, exec })
-  assert.equal(calls[0], 'npx -y @opengsd/gsd-core@latest --codex --copilot --local --uninstall')
+  await item.uninstall({ root, exec, state: await detect(root) })
+  assert.deepEqual(calls, ['npx -y @opengsd/gsd-core@latest --codex --local --uninstall'])
 })
 
 test('uninstall: 설치된 것이 없으면 아무것도 부르지 않는다', async () => {
+  const root = makeTempRepo()
   const { calls, exec } = recordingExec()
-  await item.uninstall({ root: makeTempRepo(), exec })
+  await item.uninstall({ root, exec, state: await detect(root) })
   assert.deepEqual(calls, [])
 })

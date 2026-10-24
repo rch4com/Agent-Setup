@@ -1,10 +1,10 @@
 // 출력 모드(--print). 실행 모드와 같은 item.steps()에서 명령을 얻는다 —
 // 사용자가 복사해 직접 돌리는 명령과 설치기가 도는 명령이 같아야 한다.
-import { CLIS, TARGET_CLI_IDS } from './clis.mjs'
+import { CLIS, CLI_IDS } from './clis.mjs'
 import { shellQuote } from './catalog.mjs'
 import { SHARED } from './recipe.mjs'
 
-const ORDER = [SHARED, ...TARGET_CLI_IDS, 'files']
+const ORDER = [SHARED, ...CLI_IDS, 'files']
 // 따옴표 없이도 셸이 한 인자로 읽는 문자만. 복사해 붙일 줄이 읽기 쉬워야 한다.
 const PLAIN = /^[A-Za-z0-9_@+=:,./-]+$/
 

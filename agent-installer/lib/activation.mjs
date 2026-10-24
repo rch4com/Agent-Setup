@@ -1,6 +1,6 @@
 // 설치 뒤 사용자가 CLI 안에서 해야 하는 일. CLI마다 한 번만 말한다 — 항목이
 // 다섯 개라고 "새 세션을 시작하라"를 다섯 번 읽힐 이유가 없다.
-import { CLIS, TARGET_CLI_IDS } from './clis.mjs'
+import { CLIS, CLI_IDS } from './clis.mjs'
 import { SHARED } from './recipe.mjs'
 
 export function activationLines(changes, t) {
@@ -19,7 +19,7 @@ export function activationLines(changes, t) {
   }
   if (clis.size === 0 && extras.length === 0) return []
   const lines = [t('activation.title')]
-  for (const cli of TARGET_CLI_IDS) {
+  for (const cli of CLI_IDS) {
     if (!clis.has(cli)) continue
     lines.push(`  ${CLIS[cli].label}: ${t(`activation.cli.${cli}`)}`)
     if (cli === 'codex' && hookItems.length > 0) lines.push(`    ${t('activation.hooks.codex', { items: hookItems.join(', ') })}`)

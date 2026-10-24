@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { itemRows, makeTempRepo, nameColumn, runInstaller, KO } from './helpers.mjs'
+import { itemRows, makeFakeClis, makeTempRepo, nameColumn, runInstaller, KO } from './helpers.mjs'
 
 // i18n.en.test.mjs는 한 방향만 본다: "영어 출력에 한글이 남았는가."
 // 그 반대 방향 — 한국어 출력에 영어 리터럴이 새어 나가는 것 — 은 아무도
@@ -72,15 +72,14 @@ test('한국어 update 출력에 영어 문장이 없다', () => {
 test('한국어 --list는 상태가 섞여도 항목 열이 맞는다', () => {
   const root = makeTempRepo()
   assert.equal(runInstaller(root, ['bootstrap'], { env: KO }).status, 0)
-  assert.equal(runInstaller(root, ['--set', 'mcp.notion,mcp.vercel'], { env: KO }).status, 0)
-  // 한 CLI에서 notion만 빼면 notion은 '일부 설치됨', vercel은 '설치됨',
-  // 나머지는 '미설치'가 되어 세 라벨이 한 화면에 모인다.
-  const settings = join(root, '.gemini', 'settings.json')
-  const parsed = JSON.parse(readFileSync(settings, 'utf8'))
-  delete parsed.mcpServers.notion
-  writeFileSync(settings, `${JSON.stringify(parsed, null, 2)}\n`)
+  // claude·opencode가 PATH에 있는 머신. 둘 다에 vercel을, claude에만 notion을
+  // 두면 notion은 '일부 설치됨', vercel은 '설치됨', 나머지는 '미설치'가 되어
+  // 세 라벨이 한 화면에 모인다. 감지는 두 CLI의 설정 파일을 읽기만 한다.
+  const fake = makeFakeClis(['claude', 'opencode'], { 'claude plugin list --json': { out: '[]' } })
+  writeFileSync(join(root, '.mcp.json'), JSON.stringify({ mcpServers: { notion: { type: 'http', url: 'x' }, vercel: { type: 'http', url: 'y' } } }))
+  writeFileSync(join(root, 'opencode.jsonc'), JSON.stringify({ mcp: { vercel: { type: 'remote', url: 'y', enabled: true } } }))
 
-  const r = runInstaller(root, ['--list'], { env: KO })
+  const r = runInstaller(root, ['--list'], { env: { ...KO, ...fake.env } })
   assert.equal(r.status, 0, r.stderr)
 
   const rows = ['설치됨', '일부 설치됨', '미설치'].map((label) => itemRows(r.stdout, label))

@@ -1,4 +1,5 @@
-import { defineRegistrySkill } from '../catalog.mjs'
+import { defineRecipe } from '../recipe.mjs'
+import { skillsAdd } from '../recipe-helpers.mjs'
 // 상류 스킬은 archify/SKILL.md(MIT)이고, 저장소에는 기여자용
 // .agents/skills/archify-review도 있다. 레지스트리 경로가 늘 --skill archify를
 // 넘기므로 루트를 source로 줘도 archify 하나만 들어온다 — 상류 README가
@@ -10,10 +11,9 @@ import { defineRegistrySkill } from '../catalog.mjs'
 // 복사본에서 validate가 그대로 통과한다(2026-09-27 스크래치 저장소 실측).
 // 본문이 첫 산출물 뒤 scripts/check-update.mjs로 상류 매니페스트를 한 번
 // GET한다 — ARCHIFY_UPDATE_CHECK_DISABLED=1로 끈다. note가 알린다.
-export default defineRegistrySkill({
-  id: 'skill.archify', label: 'Archify', group: '__style',
-  source: 'https://github.com/tt-a1i/archify',
-  skill: 'archify',
+export default defineRecipe({
+  id: 'skill.archify', category: 'skill', label: 'Archify', group: '__style',
   note: 'item.skill.archify.note',
   verified: '2026-09-27',
+  ...skillsAdd({ source: 'https://github.com/tt-a1i/archify', skill: 'archify' }),
 })

@@ -1,24 +1,28 @@
-import { readdirSync, rmSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { CLIS, CLI_IDS, MCP_CLI_IDS } from './clis.mjs'
-import { isPluginEnabled, enablePlugin, disablePlugin } from './claude-plugins.mjs'
-import { repoPathStrict } from './context.mjs'
-import { LocalizedError, msg } from './i18n/index.mjs'
-// design-md가 아니라 잎 모듈에서 가져온다 — deps.test.mjs의 "의존성 없는
-// 트리"는 design-md를 통째로 빼고 --list를 돌린다(bootstrap.isolation.test.mjs).
-import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock } from './skills-registry.mjs'
+import { LocalizedError } from './i18n/index.mjs'
+import { bindScope } from './recipe.mjs'
 
 const ITEMS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'items')
 
-export async function loadItems() {
+// 레시피 항목은 범위마다 다른 모양으로 묶인다. 그 범위에 레시피가 없는
+// 항목(예: gstack의 전역)은 목록에서 빠진다. 파일을 직접 쓰는 함수형 항목은
+// 자기 scope와 같은 범위에서만 나온다.
+export async function loadItems({ scope = 'project' } = {}) {
   const files = readdirSync(ITEMS_DIR).filter((f) => f.endsWith('.mjs')).sort()
   const items = []
   for (const f of files) {
     const mod = await import(pathToFileURL(join(ITEMS_DIR, f)).href)
-    items.push(validate(mod.default, f))
+    if (mod.default?.kind === 'recipe') {
+      const item = bindScope(mod.default, scope)
+      if (item) items.push(item)
+      continue
+    }
+    const item = validate(mod.default, f)
+    if ((item.scope ?? 'project') === scope) items.push(item)
   }
   return items
 }
@@ -28,14 +32,6 @@ function validate(item, file) {
     if (!item?.[field]) throw new LocalizedError('error.itemFieldMissing', { file, field })
   }
   return item
-}
-
-function assertReasons(id, supports, unsupported) {
-  for (const cli of CLI_IDS) {
-    if (!supports.includes(cli) && !unsupported[cli]) {
-      throw new LocalizedError('error.itemReasonMissing', { id, cli })
-    }
-  }
 }
 
 // shell 모드에서 Node는 명령과 인자를 공백으로 이어붙일 뿐 quote하지 않으므로
@@ -122,140 +118,5 @@ export function makeExec(dryRun, log = console.log, t = null) {
       // 빈 문자열도 폴백하게 한다.
       return { ok: false, output: String(err.stderr || err.message) }
     }
-  }
-}
-
-// supports 기본값은 프로젝트 MCP 파일이 있는 CLI(MCP_CLI_IDS)다. Antigravity는
-// 그 파일이 없어 빠지고, 사유가 기본으로 붙는다.
-//
-// stdio 서버도 copilot에 그대로 배선한다. Copilot CLI는 루트 .mcp.json(Claude
-// 파일)을 우선 읽고 거기엔 `type: "stdio"`가 쓰이는데, 한때 README는 그 형식이
-// 붙지 않는다고 적었다. 2026-09-05에 Copilot CLI 1.0.82의 app.js를 읽어 확인한
-// 바로는 로컬 서버 판정이 `type === undefined || type === "local" || type ===
-// "stdio"`이고 스키마도 `enum(["local", "stdio"])`라 stdio를 받는다 — 두 파일에
-// 각자 형식으로 써도 어느 쪽이 이기든 붙는다.
-export function defineMcp({ id, label, server, supports = [...MCP_CLI_IDS], unsupported: reasons = {}, note, group = null, verified = null }) {
-  const unsupported = { ...reasons }
-  for (const cli of CLI_IDS) {
-    if (!supports.includes(cli) && !unsupported[cli] && !MCP_CLI_IDS.includes(cli)) unsupported[cli] = msg('item.unsupported.noProjectMcp')
-  }
-  assertReasons(id, supports, unsupported)
-  const name = id.replace(/^mcp\./, '')
-  return {
-    id, category: 'mcp', label, scope: 'project', supports, unsupported, note, group, verified,
-    async detect({ root }) {
-      const present = supports.filter((cli) => CLIS[cli].has(root, name))
-      if (present.length === 0) return { status: 'absent' }
-      if (present.length === supports.length) return { status: 'installed' }
-      return {
-        status: 'partial',
-        detail: msg('item.mcp.partial', {
-          present: present.join(', '),
-          missing: supports.filter((c) => !present.includes(c)).join(', '),
-        }),
-      }
-    },
-    async install({ root, dryRun, log = () => {}, t }) {
-      for (const cli of supports) {
-        if (!CLIS[cli].has(root, name)) {
-          if (dryRun) log(t('log.mcp.add', { cli: CLIS[cli].label, name }))
-          else CLIS[cli].add(root, name, server)
-        }
-      }
-    },
-    async uninstall({ root, dryRun, log = () => {}, t }) {
-      for (const cli of supports) {
-        if (CLIS[cli].has(root, name)) {
-          if (dryRun) log(t('log.mcp.remove', { cli: CLIS[cli].label, name }))
-          else CLIS[cli].remove(root, name)
-        }
-      }
-    },
-  }
-}
-
-// 배선은 Claude 한 곳이라도 미배선 "사유"는 CLI마다 다를 수 있다 — 상류가
-// 자체 경로로 지원하는 CLI에 일괄 "Claude 전용" 사유를 붙이면 거짓 정보가 된다.
-// 항목이 사유를 넘기면 그 CLI만 덮고, 나머지는 기본 사유로 채운다.
-export function definePlugin({ id, label, installId, detectIds, marketplace, note, group = null, exclusive = null, unsupported: reasons = {}, verified = null }) {
-  const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => c !== 'claude').map((c) => [c, reasons[c] ?? msg('item.unsupported.claudePlugin')]),
-  )
-  return {
-    id, category: 'plugin', label, scope: 'project', supports: ['claude'], unsupported, note, group, exclusive, verified,
-    async detect({ root }) {
-      return { status: isPluginEnabled(root, detectIds) ? 'installed' : 'absent' }
-    },
-    async install(ctx) {
-      const { root, dryRun, exec } = ctx
-      if (marketplace) await exec('claude', ['plugin', 'marketplace', 'add', marketplace.repo], { cwd: root })
-      const r = await exec('claude', ['plugin', 'install', installId, '--scope', 'project'], { cwd: root })
-      if (!r.ok) {
-        if (!dryRun) enablePlugin(root, installId, marketplace)
-        return { fallback: true, message: msg('item.plugin.deferred') }
-      }
-    },
-    async uninstall(ctx) {
-      const { root, dryRun, exec } = ctx
-      const r = await exec('claude', ['plugin', 'uninstall', installId], { cwd: root })
-      if (!r.ok && !dryRun) disablePlugin(root, detectIds)
-    },
-  }
-}
-
-// supports는 이 항목이 실제로 배선하는 CLI다. 기본값이 claude 하나인 것은
-// 대부분의 스킬 상류가 Claude 경로만 주기 때문이고, 상류가 런타임별 설치를
-// 주는 항목(skill.gsd)은 목록을 직접 넘긴다 — 넘긴 CLI는 미배선 사유 대상에서
-// 빠진다.
-export function defineSkill({ id, label, scope, detect, install, uninstall, note, group = null, supports = ['claude'], unsupported: reasons = {}, verified = null }) {
-  const unsupported = Object.fromEntries(
-    CLI_IDS.filter((c) => !supports.includes(c)).map((c) => [c, reasons[c] ?? msg('item.unsupported.claudeSkill')]),
-  )
-  return { id, category: 'skill', label, scope, supports: [...supports], unsupported, note, group, verified, detect, install, uninstall }
-}
-
-// vercel-labs/skills 레지스트리로 설치하는 스킬. `--agent universal`의 프로젝트
-// 경로가 .agents/skills라, 한 번 설치하면 10개 CLI가 함께 본다 — Claude·Kiro·
-// Grok은 부트스트랩이 만든 Junction으로, 나머지는 그 경로를 네이티브로 읽는다
-// (도구별 실측 근거는 bootstrap/manifest.mjs의 adapters 주석에 있다).
-// `--copy`로 실물을 남긴다: 커밋해서 팀과 나누는 자리라 링크는 클론 뒤 깨진다.
-//
-// skill에 `*`를 주면 그 상류의 스킬을 전부 넣는다. 그때 detect가 볼 대표
-// 스킬을 anchor로 지정해야 한다 — 디렉터리가 여럿이라 "무엇이 있으면 설치된
-// 것인가"를 이름 하나로 정해 두지 않으면 판정이 흔들린다.
-//
-// exclusive는 같은 상류를 플러그인으로도 넣을 수 있을 때 쓴다. 두 경로가 겹치면
-// 같은 스킬이 두 번 등록되므로 하나만 고르게 막는다.
-export function defineRegistrySkill({ id, label, source, skill, anchor = null, note, group = null, exclusive = null, verified = null }) {
-  const probe = anchor ?? skill
-  if (skill === '*' && !anchor) throw new LocalizedError('error.registrySkillAnchor', { id })
-  return {
-    id, category: 'skill', label, scope: 'project', supports: [...CLI_IDS], unsupported: {}, note, group, exclusive, verified,
-    async detect({ root }) {
-      return { status: findSkillDir(root, probe) ? 'installed' : 'absent' }
-    },
-    async install({ root, exec }) {
-      const r = await exec('npx', ['-y', 'skills@latest', 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy'], { cwd: root })
-      if (!r.ok) throw new LocalizedError('error.registrySkillInstall', { skill, output: r.output })
-    },
-    async uninstall({ root, dryRun, exec }) {
-      // 지울 이름을 먼저 정한다. 여러 스킬을 깐 항목은 잠금 파일이 알려 주고,
-      // 잠금 파일이 없거나 깨졌으면 대표 스킬 하나라도 치운다.
-      const names = skill === '*' ? lockedSkills(root, source) : [skill]
-      const targets = names.length > 0 ? names : [probe]
-      for (const name of targets) {
-        // 인자·경로로 쓸 수 없는 이름은 건너뛴다. 잠금 항목은 아래 pruneLock이
-        // 함께 지운다 — 남기면 다음 제거가 같은 자리에서 또 멈춘다.
-        if (!isSafeSkillName(name)) continue
-        // 레지스트리의 remove는 --agent universal에서 "Done!"을 찍고도 디렉터리를
-        // 남긴다(실측). 그래서 성공/실패와 무관하게 남은 디렉터리를 우리가 지운다 —
-        // 남겨 두면 detect가 계속 installed로 읽어 제거가 안 된 채 성공으로 보인다.
-        await exec('npx', ['-y', 'skills@latest', 'remove', name, '--agent', 'universal', '--yes'], { cwd: root })
-        if (dryRun) continue
-        const dir = findSkillDir(root, name)
-        if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
-      }
-      if (!dryRun) pruneLock(root, targets)
-    },
   }
 }
