@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "codebase-memory": { "tools": ["*"], "type": "local", "command": "npx", "args": ["-y", "codebase-memory-mcp"] },
+    "vercel": { "tools": ["*"], "type": "http", "url": "https://mcp.vercel.com" }
+  }
+}

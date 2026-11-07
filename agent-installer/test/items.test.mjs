@@ -121,6 +121,45 @@ test('검증된 항목은 CLI별로 정확한 미배선 사유를 갖는다', as
   assert.equal(why(user, 'plugin.understand-anything', 'codex'), 'item.unsupported.uaUser')
   assert.equal(why(user, 'plugin.mattpocock-skills', 'opencode'), 'item.unsupported.mattpocockRegistry')
   assert.equal(why(user, 'plugin.mattpocock-skills', 'codex'), undefined)
+  // Copilot CLI: 상류가 명령을 안내하는 항목만 배선하고 나머지는 사유를 단다.
+  for (const id of ['plugin.ponytail', 'plugin.superpowers', 'plugin.mattpocock-skills', 'plugin.understand-anything']) {
+    assert.equal(why(user, id, 'copilot'), undefined, `${id}: Copilot CLI 배선`)
+  }
+  assert.equal(why(user, 'plugin.ecc', 'copilot'), 'item.unsupported.eccScale')
+  assert.equal(why(user, 'plugin.impeccable', 'copilot'), 'item.unsupported.impeccableSkill')
+  assert.equal(why(user, 'plugin.cli-anything', 'copilot'), 'item.unsupported.cliAnythingCopilot')
+  // Copilot CLI의 플러그인·MCP는 전역뿐이다 — 저장소 범위에서는 범위를 바꾸라는 사유가 붙는다.
+  assert.equal(why(project, 'plugin.ponytail', 'copilot'), 'item.unsupported.userOnly')
+  assert.equal(why(project, 'mcp.notion', 'copilot'), 'item.unsupported.userOnly')
+  // VS Code에는 플러그인 설치 명령이 없다.
+  for (const id of ['plugin.ponytail', 'plugin.superpowers', 'plugin.mattpocock-skills', 'plugin.ecc', 'plugin.cli-anything']) {
+    assert.equal(why(user, id, 'vscode'), 'item.unsupported.vscodePlugin', `${id}: VS Code 사유`)
+  }
+  assert.equal(why(project, 'skill.gsd', 'vscode'), 'item.unsupported.upstreamNone')
+})
+
+test('Copilot CLI·VS Code 배선: MCP와 ai-memory 브리지, 직접 설치 플러그인', async () => {
+  const project = await loadItems()
+  const user = await loadItems({ scope: 'user' })
+  const pick = (items, id) => items.find((i) => i.id === id)
+  const cmds = (item) => item.steps('install', { targets: item.supports }).filter((s) => s.argv).map((s) => s.argv.join(' '))
+  // 모든 MCP 항목은 저장소 범위에서 VS Code, 전역에서 Copilot CLI·VS Code를 지원한다.
+  for (const id of ['mcp.codebase-memory', 'mcp.graft', 'mcp.graphify', 'mcp.headroom', 'mcp.notion', 'mcp.supabase', 'mcp.vercel']) {
+    assert.ok(pick(project, id).supports.includes('vscode'), `${id}: 저장소 VS Code`)
+    assert.ok(!pick(project, id).supports.includes('copilot'), `${id}: Copilot CLI는 저장소 범위가 없다`)
+    for (const cli of ['copilot', 'vscode']) assert.ok(pick(user, id).supports.includes(cli), `${id}: 전역 ${cli}`)
+  }
+  assert.ok(cmds(pick(user, 'mcp.vercel')).includes('copilot mcp add --transport http vercel https://mcp.vercel.com'))
+  // ai-memory: Copilot CLI·VS Code는 플러그인이 아니라 stdio 브리지를 MCP로 건다.
+  assert.ok(cmds(pick(user, 'plugin.ai-memory')).includes('copilot mcp add ai-memory -- ai-memory mcp-bridge --no-session-id'))
+  assert.ok(pick(project, 'plugin.ai-memory').supports.includes('vscode'))
+  // Copilot CLI 플러그인: 마켓 등록 뒤 설치, UA는 마켓 없이 하위 경로를 직접 설치한다.
+  assert.deepEqual(cmds(pick(user, 'plugin.superpowers')).filter((c) => c.startsWith('copilot')), [
+    'copilot plugin marketplace add obra/superpowers-marketplace', 'copilot plugin install superpowers@superpowers-marketplace',
+  ])
+  assert.deepEqual(cmds(pick(user, 'plugin.understand-anything')).filter((c) => c.startsWith('copilot')), [
+    'copilot plugin install Egonex-AI/Understand-Anything:understand-anything-plugin',
+  ])
 })
 
 test('Ponytail·ai-memory 전역 명령은 상류 안내와 같다', async () => {

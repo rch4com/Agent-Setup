@@ -14,6 +14,7 @@ const DIRS = {
   claude: '.claude/commands',
   codex: '.codex/skills',
   opencode: '.opencode/skills',
+  copilot: '.github/skills',
 }
 
 // 상류가 만드는 모양을 흉내 낸다 — 스킬 하나가 gsd- 접두사 디렉터리다.
@@ -37,19 +38,20 @@ function recordingExec() {
   return { calls, exec }
 }
 
-// 세 CLI가 모두 PATH에 있는 머신을 흉내 낸다 — 런타임 디렉터리는 실제 파일을 본다.
+// 네 CLI가 모두 PATH에 있는 머신을 흉내 낸다 — 런타임 디렉터리는 실제 파일을 본다.
 function detect(root) {
   const probe = { ...createProbe({ root, scope: 'project', exec: async () => ({ ok: false, output: '' }) }), has: () => true }
   return item.detect({ probe })
 }
 
-test('세 런타임을 배선하고 Antigravity는 미실측 사유를 단다', () => {
-  assert.deepEqual(item.supports, ['claude', 'codex', 'opencode'])
+test('네 런타임을 배선하고 Antigravity는 미실측, VS Code는 상류 없음 사유를 단다', () => {
+  assert.deepEqual(item.supports, ['claude', 'codex', 'opencode', 'copilot'])
   assert.equal(item.unsupported.antigravity.key, 'item.unsupported.unmeasuredUpstream')
+  assert.equal(item.unsupported.vscode.key, 'item.unsupported.upstreamNone')
   assert.equal(bindScope(def, 'user'), null, '전역 설치는 배선하지 않는다')
 })
 
-test('detect: 없으면 absent, 셋 다 있으면 installed, 일부면 partial', async () => {
+test('detect: 없으면 absent, 넷 다 있으면 installed, 일부면 partial', async () => {
   const root = makeTempRepo()
   assert.equal((await detect(root)).status, 'absent')
 
@@ -57,9 +59,9 @@ test('detect: 없으면 absent, 셋 다 있으면 installed, 일부면 partial',
   const partial = await detect(root)
   assert.equal(partial.status, 'partial')
   assert.equal(partial.detail.params.present, 'codex')
-  assert.equal(partial.detail.params.missing, 'claude, opencode')
+  assert.equal(partial.detail.params.missing, 'claude, opencode, copilot')
 
-  for (const cli of ['claude', 'opencode']) putGsd(root, cli)
+  for (const cli of ['claude', 'opencode', 'copilot']) putGsd(root, cli)
   assert.equal((await detect(root)).status, 'installed')
 })
 
@@ -79,6 +81,7 @@ test('install: 런타임마다 한 줄, 이미 있는 런타임은 다시 쓰지
   assert.deepEqual(calls, [
     'npx -y @opengsd/gsd-core@latest --codex --local',
     'npx -y @opengsd/gsd-core@latest --opencode --local',
+    'npx -y @opengsd/gsd-core@latest --copilot --local',
   ])
 })
 

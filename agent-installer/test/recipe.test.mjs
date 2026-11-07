@@ -12,13 +12,16 @@ function sample(extra = {}) {
       codex: { user: { install: [{ argv: ['codex', 'plugin', 'marketplace', 'add', 'o/r'], tolerateFail: true }, ['codex', 'plugin', 'add', 's@s']], uninstall: [['codex', 'plugin', 'remove', 's@s']] } },
     },
     detect: { claude: async () => false, codex: async () => false },
-    reasons: { opencode: 'item.unsupported.upstreamNone', antigravity: 'item.unsupported.upstreamNone' },
+    reasons: {
+      opencode: 'item.unsupported.upstreamNone', antigravity: 'item.unsupported.upstreamNone',
+      copilot: 'item.unsupported.upstreamNone', vscode: 'item.unsupported.upstreamNone',
+    },
     ...extra,
   })
 }
 
 // has: PATH에 있는 CLI 목록
-function probe({ has = ['claude', 'codex', 'opencode', 'antigravity'] } = {}) {
+function probe({ has = ['claude', 'codex', 'opencode', 'antigravity', 'copilot', 'vscode'] } = {}) {
   return { has: (c) => has.includes(c) }
 }
 
@@ -42,6 +45,9 @@ test('bindScope: 범위별 supports와 자동 사유', () => {
 test('bindScope: 사유도 레시피도 없는 CLI는 로드 오류다', () => {
   const def = sample({ reasons: { opencode: 'item.unsupported.upstreamNone' } })
   assert.throws(() => bindScope(def, 'project'), (err) => err.key === 'error.itemReasonMissing' && err.params.cli === 'antigravity')
+  // 새 CLI도 같은 규칙이다 — Copilot·VS Code의 사유를 빠뜨리면 로드 오류다.
+  const noCopilot = sample({ reasons: { opencode: 'item.unsupported.upstreamNone', antigravity: 'item.unsupported.upstreamNone', vscode: 'item.unsupported.upstreamNone' } })
+  assert.throws(() => bindScope(noCopilot, 'project'), (err) => err.key === 'error.itemReasonMissing' && err.params.cli === 'copilot')
 })
 
 test('bindScope: 그 범위 레시피가 없으면 항목이 빠진다(null)', () => {
@@ -51,7 +57,7 @@ test('bindScope: 그 범위 레시피가 없으면 항목이 빠진다(null)', (
     detect: { shared: async () => false },
   })
   assert.equal(bindScope(def, 'user'), null)
-  assert.deepEqual(bindScope(def, 'project').supports, ['claude', 'codex', 'opencode', 'antigravity'])
+  assert.deepEqual(bindScope(def, 'project').supports, ['claude', 'codex', 'opencode', 'antigravity', 'copilot', 'vscode'])
 })
 
 test('detect: PATH에 없는 CLI는 excluded, 조회 실패는 failed, 나머지로 상태를 정한다', async () => {

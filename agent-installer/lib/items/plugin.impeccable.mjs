@@ -19,5 +19,7 @@ export default defineRecipe({
     codex: 'item.unsupported.impeccableSkill',
     opencode: 'item.unsupported.impeccableSkill',
     antigravity: 'item.unsupported.impeccableSkill',
+    copilot: 'item.unsupported.impeccableSkill',
+    vscode: 'item.unsupported.impeccableSkill',
   },
 })

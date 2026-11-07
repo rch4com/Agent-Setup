@@ -7,13 +7,17 @@ import {
 // 도구 추가 = dirs 한 줄 + files 한 줄. 실행 로직은 apply.mjs·adapter.mjs에 있다.
 export const MANIFEST = {
   // 완료 리포트에 그대로 나열되는 도구 이름. 순서가 출력 순서다.
-  tools: ['Claude Code', 'Codex', 'OpenCode', 'Antigravity'],
+  tools: ['Claude Code', 'Codex', 'OpenCode', 'Antigravity', 'GitHub Copilot CLI', 'VS Code Copilot'],
 
   dirs: ['.agents/skills', '.agent-kit', '.claude', '.codex'],
 
   // 없을 때만 생성한다. 이미 있으면 내용을 보지 않고 보존한다.
   // Antigravity는 루트 AGENTS.md와 .agents/skills를 네이티브로 읽고 프로젝트
   // 설정 파일이 없다(2026-07-18 검증) — 만들 파일이 없다.
+  // GitHub Copilot CLI와 VS Code Copilot도 같다(2026-11-06): 둘 다 AGENTS.md와
+  // .agents/skills를 네이티브로 읽는다. VS Code의 chat.useAgentsMdFile은 기본값이
+  // true라(1.145.1 번들에서 확인) .vscode/settings.json에 보장할 키가 없다 —
+  // 이 키를 보장하던 1.x와 달라진 점이다.
   files: [
     { path: 'AGENTS.md', template: AGENTS_TEMPLATE },
     { path: '.agents/skills/README.md', template: SKILL_README },

@@ -59,5 +59,9 @@ export default defineRecipe({
     codex: 'item.unsupported.gstackShared',
     opencode: 'item.unsupported.gstackShared',
     antigravity: 'item.unsupported.upstreamNone',
+    // 상류 hosts에 Copilot이 없다(2026-08-02). 공유 .agents/skills의 gstack은 Copilot이
+    // 한 단계만 훑어 라우터만 보인다(2026-08-15 실측).
+    copilot: 'item.unsupported.upstreamNone',
+    vscode: 'item.unsupported.upstreamNone',
   },
 })

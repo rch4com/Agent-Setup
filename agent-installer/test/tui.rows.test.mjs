@@ -137,7 +137,7 @@ test('에이전트 항목은 이름으로도 검색된다 — 라벨과 id가 �
 test('agentHint: 상태와 커버리지와 미지원 사유를 함께 담는다', () => {
   const hint = agentHint(AGENT_STATES[1].item, AGENT_STATES[1], createT('ko'))
   assert.equal(hint.includes('설치됨'), true)
-  assert.match(hint, /CLI 1\/4/)
+  assert.match(hint, /CLI 1\/6/)
   assert.equal(hint.includes('전용'), true)
 })
 
@@ -149,16 +149,16 @@ test('agentHint: CLI 커버리지가 상태 바로 뒤에 온다', () => {
     status: 'partial',
     detail: msg('item.plugin.partial', { present: 'claude', missing: 'codex' }),
   }
-  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/4 · wired: claude/)
-  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/4 · 배선됨: claude/)
+  assert.match(agentHint(state.item, state, createT('en')), /^Partial · CLI 2\/6 · wired: claude/)
+  assert.match(agentHint(state.item, state, createT('ko')), /^일부 설치됨 · CLI 2\/6 · 배선됨: claude/)
 })
 
-// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "4/4"은 뜻이 다르다.
+// 전부 지원할 때도 찍는다 — 표시가 없는 것과 "6/6"은 뜻이 다르다.
 // 없으면 "빠뜨린 것"과 "전부 되는 것"을 화면에서 가를 수 없다.
 test('agentHint: 전부 지원하면 그 사실도 명시한다', () => {
   const item = { id: 'skill.all', category: 'skill', label: 'All', scope: 'project', supports: [...CLI_IDS], unsupported: {} }
   const hint = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(hint, /CLI 4\/4/)
+  assert.match(hint, /CLI 6\/6/)
   assert.ok(!hint.includes('미배선'), '미지원이 없는데 미배선 문구가 나왔다')
 })
 
@@ -171,7 +171,7 @@ test('agentHint: 플러그인·스킬도 미지원 CLI를 밝힌다', () => {
     unsupported: { codex: msg('item.unsupported.userOnly'), kilo: msg('item.unsupported.upstreamNone') },
   }
   const ko = agentHint(item, { item, status: 'absent' }, createT('ko'))
-  assert.match(ko, /CLI 2\/4/)
+  assert.match(ko, /CLI 2\/6/)
   assert.match(ko, /미배선 2곳/)
   assert.match(ko, /codex/)
   assert.match(ko, /kilo/)

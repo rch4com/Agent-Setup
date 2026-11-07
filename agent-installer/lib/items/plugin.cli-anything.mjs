@@ -20,5 +20,7 @@ export default defineRecipe({
     codex: 'item.unsupported.cliAnythingCodex',
     opencode: 'item.unsupported.cliAnythingManual',
     antigravity: 'item.unsupported.upstreamNone',
+    copilot: 'item.unsupported.cliAnythingCopilot',
+    vscode: 'item.unsupported.vscodePlugin',
   },
 })

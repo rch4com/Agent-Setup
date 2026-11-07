@@ -43,6 +43,17 @@ export function readOpencodeConfig(opts) {
   return { file, data: readJson(file) ?? null }
 }
 
+// Copilot CLI의 사용자 MCP 설정. VS Code의 Global > Copilot도 같은 파일에 쓴다
+// (code.visualstudio.com/docs/copilot/customization/mcp-servers) — 그래서 두 CLI의
+// 전역 MCP는 한 저장소를 나눠 쓴다.
+export function copilotMcpFile({ home = homedir(), env = process.env } = {}) {
+  return join(env.COPILOT_HOME || join(home, '.copilot'), 'mcp-config.json')
+}
+
+// VS Code 프로젝트 MCP. `.vscode/mcp.json`은 "호환용"으로 남았다는 표시가 붙었지만
+// 플래그 없이 읽히는 유일한 프로젝트 경로다(`.mcp.json`은 실험 플래그가 필요하다).
+export const VSCODE_MCP_FILE = '.vscode/mcp.json'
+
 function samePath(a, b, platform) {
   if (!a) return false
   const norm = (p) => (platform === 'win32' ? resolve(p).toLowerCase() : resolve(p))
@@ -79,6 +90,13 @@ export function createProbe({ root, scope, exec, env = process.env, home = homed
     async agyPlugin(name) {
       return (await json('antigravity', ['plugin', 'list', '--json'])).some((p) => p.name === name)
     },
+    // id는 `이름@마켓`이거나 마켓 없이 직접 설치한 `이름`이다. 내장 플러그인은
+    // 설치가 아니다 — 같은 이름이 와도 세지 않는다.
+    async copilotPlugin(id) {
+      const [name, market = ''] = id.split('@')
+      return (await json('copilot', ['plugin', 'list', '--json']))
+        .some((p) => p.name === name && (p.marketplace ?? '') === market && p.source === 'installed')
+    },
     async opencodePlugin(module) {
       const list = opencode()?.plugin
       return Array.isArray(list) && list.includes(module)
@@ -92,6 +110,13 @@ export function createProbe({ root, scope, exec, env = process.env, home = homed
       if (cli === 'codex') return (await json('codex', ['mcp', 'list', '--json'])).some((s) => s.name === name)
       if (cli === 'antigravity') return parseAgyMcpList(await run('antigravity', ['mcp', 'list'])).includes(name)
       if (cli === 'opencode') return opencode()?.mcp?.[name] !== undefined
+      // Copilot CLI는 프로젝트 MCP를 쓰는 명령이 없다 — 사용자 설정만 본다.
+      if (cli === 'copilot') return scope === 'user' && readJson(copilotMcpFile({ home, env }))?.mcpServers?.[name] !== undefined
+      if (cli === 'vscode') {
+        return scope === 'project'
+          ? readJson(join(root, VSCODE_MCP_FILE))?.servers?.[name] !== undefined
+          : readJson(copilotMcpFile({ home, env }))?.mcpServers?.[name] !== undefined
+      }
       return false
     },
     async skill(name) {

@@ -26,8 +26,9 @@ test('MANIFEST.tools는 비어 있지 않은 문자열 배열이다', () => {
   }
 })
 
-test('부트스트랩은 네 도구만 다룬다', () => {
-  assert.deepEqual(MANIFEST.tools, ['Claude Code', 'Codex', 'OpenCode', 'Antigravity'])
+test('부트스트랩은 여섯 도구를 다루되 만드는 파일은 네 도구 몫뿐이다', () => {
+  // Copilot CLI·VS Code Copilot은 AGENTS.md와 .agents/skills를 네이티브로 읽어 만들 파일이 없다.
+  assert.deepEqual(MANIFEST.tools, ['Claude Code', 'Codex', 'OpenCode', 'Antigravity', 'GitHub Copilot CLI', 'VS Code Copilot'])
   const paths = MANIFEST.files.map((f) => f.path)
   for (const gone of ['.gemini/settings.json', '.grok/config.toml', 'kilo.jsonc', '.kiro/settings/mcp.json', '.kimi-code/mcp.json', '.github/mcp.json', '.github/copilot/settings.json', '.vscode/mcp.json']) {
     assert.ok(!paths.includes(gone), gone)

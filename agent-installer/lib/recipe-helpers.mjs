@@ -1,11 +1,13 @@
 // 항목 파일이 거의 다 쓰는 레시피 세 갈래. 명령 문법은 2026-10-24 이 머신의
 // --help 실측(claude 2.1.304, codex-cli 0.163.0, agy)과 opencode.ai/docs/cli를
 // 따른다.
-import { rmSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { repoPathStrict } from './context.mjs'
+import { ensureGitignoreEntries } from './gitignore.mjs'
 import { LocalizedError } from './i18n/index.mjs'
-import { readOpencodeConfig } from './probe.mjs'
+import { readJson, removeKey, setKey } from './jsonfile.mjs'
+import { VSCODE_MCP_FILE, copilotMcpFile, readOpencodeConfig } from './probe.mjs'
 import { SHARED } from './recipe.mjs'
 import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock, sourceKey } from './skills-registry.mjs'
 
@@ -16,7 +18,9 @@ const SKILLS = ['npx', '-y', 'skills@latest']
 // antigravity-cli → ~/.gemini/antigravity-cli/skills(agy가 읽는 전역 경로,
 // antigravity.google/docs/skills). OpenCode는 ~/.claude/skills와
 // ~/.agents/skills를 둘 다 읽으므로(opencode.ai/docs/skills) 따로 넣지 않는다 —
-// 넣으면 같은 스킬을 세 번 본다.
+// 넣으면 같은 스킬을 세 번 본다. Copilot CLI(`copilot skill --help`, 1.0.105)와
+// VS Code Copilot(code.visualstudio.com/docs/copilot/customization/agent-skills,
+// 2026-11-06)도 ~/.agents/skills를 읽으므로 codex가 깐 것을 그대로 본다.
 export const SKILLS_AGENTS = ['claude-code', 'codex', 'antigravity-cli']
 
 const OPENCODE_FILE = {
@@ -66,7 +70,55 @@ function verifyCodexMcp(name) {
   }
 }
 
-export function marketplacePlugin({ claude, codex, opencode, antigravity }) {
+// VS Code Copilot에는 MCP 설치 명령이 없다. `code --add-mcp`는 JSON을 인자로 받는데
+// 그 큰따옴표를 Windows 인용(shellQuote)이 거부하고, 제거·목록 명령도 없다.
+// 그래서 파일을 고친다 — jsonfile.mjs는 사용자 주석과 들여쓰기를 지킨다.
+//   프로젝트: .vscode/mcp.json의 servers (플래그 없이 읽히는 유일한 프로젝트 경로)
+//   전역: ~/.copilot/mcp-config.json의 mcpServers — VS Code의 Global > Copilot이
+//         쓰는 파일이고 `copilot mcp add`도 같은 파일에 쓴다.
+function vscodeMcp(name, server) {
+  const http = server.kind === 'http'
+  const project = http ? { type: 'http', url: server.url } : { type: 'stdio', command: server.command, args: server.args }
+  // `copilot mcp add`가 쓰는 모양 그대로(2026-11-06 실측) — 어느 쪽이 먼저 써도 같은 파일이다.
+  const user = http ? { tools: ['*'], type: 'http', url: server.url } : { tools: ['*'], type: 'local', command: server.command, args: server.args }
+  return {
+    project: {
+      install: [{
+        describe: `add servers.${name} to ${VSCODE_MCP_FILE}`,
+        fn: ({ root }) => {
+          setKey(repoPathStrict(root, VSCODE_MCP_FILE), ['servers', name], project)
+          // `.vscode/*`를 무시하는 저장소(VisualStudio.gitignore)에서는 이 부정 항목이 없으면
+          // mcp.json이 조용히 커밋에서 빠진다. 무시 파일이 없으면 지킬 것이 없다.
+          if (existsSync(repoPathStrict(root, '.gitignore'))) ensureGitignoreEntries(root, [`!${VSCODE_MCP_FILE}`])
+        },
+      }],
+      uninstall: [{
+        describe: `remove servers.${name} from ${VSCODE_MCP_FILE}`,
+        fn: ({ root }) => removeKey(repoPathStrict(root, VSCODE_MCP_FILE), ['servers', name]),
+      }],
+    },
+    user: {
+      install: [{
+        describe: `add mcpServers.${name} to ~/.copilot/mcp-config.json (shared with Copilot CLI)`,
+        fn: () => {
+          const file = copilotMcpFile({ home: homedir() })
+          // Copilot CLI 단계가 같은 실행에서 먼저 썼을 수 있다 — 있으면 덮지 않는다.
+          if (readJson(file)?.mcpServers?.[name] !== undefined) return
+          setKey(file, ['mcpServers', name], user)
+        },
+      }],
+      uninstall: [{
+        describe: `remove mcpServers.${name} from ~/.copilot/mcp-config.json`,
+        fn: () => removeKey(copilotMcpFile({ home: homedir() }), ['mcpServers', name]),
+      }],
+    },
+  }
+}
+
+// copilot: `{ marketplace?, id, source? }`. marketplace가 있으면 먼저 등록하고(이미 있으면
+// 참는다), source가 있으면 그것을 설치 인자로 쓴다(마켓 없이 `owner/repo:경로`로 직접
+// 설치). id는 설치 인자이자 제거·감지에 쓰는 `이름@마켓`/`이름`이다.
+export function marketplacePlugin({ claude, codex, opencode, antigravity, copilot }) {
   const recipes = {}
   const detect = {}
   if (claude) {
@@ -112,10 +164,25 @@ export function marketplacePlugin({ claude, codex, opencode, antigravity }) {
     }
     detect.antigravity = (p) => p.agyPlugin(antigravity.name)
   }
+  if (copilot) {
+    // `copilot plugin install`에도 범위 플래그가 없다 — ~/.copilot 아래 전역에 깔린다.
+    // 다른 copilot 세션이 떠 있으면 install·uninstall이 "os error 5"로 실패할 수 있다
+    // (2026-08-15 실측) — 세션을 닫고 다시 하면 된다.
+    recipes.copilot = {
+      user: {
+        install: [
+          ...(copilot.marketplace ? [{ argv: ['copilot', 'plugin', 'marketplace', 'add', copilot.marketplace], tolerateFail: true }] : []),
+          ['copilot', 'plugin', 'install', copilot.source ?? copilot.id],
+        ],
+        uninstall: [['copilot', 'plugin', 'uninstall', copilot.id]],
+      },
+    }
+    detect.copilot = (p) => p.copilotPlugin(copilot.id)
+  }
   return { recipes, detect }
 }
 
-export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode', 'antigravity'] }) {
+export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode', 'antigravity', 'copilot', 'vscode'] }) {
   const http = server.kind === 'http'
   // stdio 명령 앞의 `--`: 인자가 `-y`처럼 대시로 시작해도 CLI가 자기 플래그로 읽지 않는다.
   const tail = http ? [] : ['--', server.command, ...server.args]
@@ -149,6 +216,15 @@ export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode',
     },
     opencode: { project: opencodeAt('project'), user: opencodeAt('user') },
     antigravity: { user: { install: [http ? ['agy', 'mcp', 'add', name, server.url] : ['agy', 'mcp', 'add', name, ...tail]], uninstall: [['agy', 'mcp', 'remove', name]] } },
+    // `copilot mcp add`는 사용자 설정(~/.copilot/mcp-config.json)에만 쓴다(2026-11-06 실측).
+    // 프로젝트 `.mcp.json`·`.github/mcp.json`은 읽기만 하고 쓰는 명령이 없다.
+    copilot: {
+      user: {
+        install: [http ? ['copilot', 'mcp', 'add', '--transport', 'http', name, server.url] : ['copilot', 'mcp', 'add', name, ...tail]],
+        uninstall: [['copilot', 'mcp', 'remove', name]],
+      },
+    },
+    vscode: vscodeMcp(name, server),
   }
   const recipes = Object.fromEntries(clis.map((c) => [c, all[c]]))
   const detect = Object.fromEntries(clis.map((c) => [c, (p) => p.mcp(c, name)]))

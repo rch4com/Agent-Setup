@@ -100,6 +100,47 @@ test('OpenCode는 프로젝트 opencode.jsonc·전역 ~/.config/opencode를 읽�
   assert.equal(opencodeConfigFile({ root, scope: 'user', home, env: { XDG_CONFIG_HOME: join(home, 'x') } }), join(home, 'x', 'opencode', 'opencode.json'))
 })
 
+test('copilotPlugin은 이름@마켓으로 대조하고 내장 플러그인은 세지 않는다', async () => {
+  const { root, home } = tempDirs()
+  const { exec, calls } = fakeExec({ 'copilot plugin list --json': fixture('copilot-plugin-list.json') })
+  const p = createProbe({ root, scope: 'user', exec, home, env: {} })
+  assert.equal(await p.copilotPlugin('ponytail@ponytail'), true)
+  assert.equal(await p.copilotPlugin('superpowers@superpowers-marketplace'), true)
+  // 같은 이름이라도 다른 마켓에서 온 것은 이 항목의 설치가 아니다.
+  assert.equal(await p.copilotPlugin('ponytail@elsewhere'), false)
+  // 마켓 없이 직접 설치한 플러그인은 이름만 본다 — 내장(builtin)은 설치가 아니다.
+  assert.equal(await p.copilotPlugin('computer-use'), false)
+  assert.equal(calls.length, 1, '목록 명령은 스캔당 한 번만 돈다')
+})
+
+test('Copilot·VS Code 전역 MCP는 ~/.copilot/mcp-config.json을 읽기만 한다', async () => {
+  const { root, home } = tempDirs()
+  mkdirSync(join(home, '.copilot'), { recursive: true })
+  writeFileSync(join(home, '.copilot', 'mcp-config.json'), fixture('copilot-mcp-config.json'))
+  const { exec, calls } = fakeExec({})
+  const p = createProbe({ root, scope: 'user', exec, home, env: {} })
+  assert.equal(await p.mcp('copilot', 'vercel'), true)
+  assert.equal(await p.mcp('vscode', 'codebase-memory'), true, 'VS Code의 Global > Copilot이 같은 파일이다')
+  assert.equal(await p.mcp('copilot', 'notion'), false)
+  assert.deepEqual(calls, [], '명령 없이 파일만 읽는다')
+  // COPILOT_HOME이 있으면 그 디렉터리가 우선이다.
+  const other = mkdtempSync(join(tmpdir(), 'copilot-home-'))
+  writeFileSync(join(other, 'mcp-config.json'), '{ "mcpServers": { "notion": {} } }')
+  const moved = createProbe({ root, scope: 'user', exec, home, env: { COPILOT_HOME: other } })
+  assert.equal(await moved.mcp('copilot', 'notion'), true)
+  assert.equal(await moved.mcp('copilot', 'vercel'), false)
+})
+
+test('VS Code 프로젝트 MCP는 .vscode/mcp.json의 servers를 읽고, Copilot CLI는 프로젝트 범위가 없다', async () => {
+  const { root, home } = tempDirs()
+  mkdirSync(join(root, '.vscode'), { recursive: true })
+  writeFileSync(join(root, '.vscode', 'mcp.json'), '{\n // c\n "servers": { "graft": { "type": "stdio", "command": "npx" } } }')
+  const p = createProbe({ root, scope: 'project', exec: fakeExec({}).exec, home, env: {} })
+  assert.equal(await p.mcp('vscode', 'graft'), true)
+  assert.equal(await p.mcp('vscode', 'notion'), false)
+  assert.equal(await p.mcp('copilot', 'graft'), false)
+})
+
 test('스킬: project는 .agents/skills 스캔, user는 npx skills list -g --json', async () => {
   const { root, home } = tempDirs()
   mkdirSync(join(root, '.agents', 'skills', 'caveman'), { recursive: true })

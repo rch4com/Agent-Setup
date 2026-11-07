@@ -9,7 +9,7 @@ const t = createT('en')
 const pony = bindScope(defineRecipe({
   id: 'plugin.ponytail', category: 'plugin', label: 'Ponytail', hooks: true, postInstall: 'activation.cli.opencode',
   ...marketplacePlugin({ claude: { id: 'p@p' }, codex: { marketplace: 'o/r', id: 'p@p' } }),
-  reasons: { opencode: 'x', antigravity: 'x' },
+  reasons: { opencode: 'x', antigravity: 'x', copilot: 'x', vscode: 'x' },
 }), 'user')
 const skill = bindScope(defineRecipe({ id: 'skill.c', category: 'skill', label: 'c', ...skillsAdd({ source: 'o/c', skill: 'c' }) }), 'project')
 
@@ -34,6 +34,14 @@ test('공유 스킬은 PATH에 있는 CLI(reach)에 안내를 낸다; 제거만 
   assert.ok(lines.some((l) => l.startsWith('  Codex:')))
   assert.ok(!lines.some((l) => l.startsWith('  Claude Code:')))
   assert.deepEqual(activationLines([{ item: pony, action: 'uninstall', state: { present: ['claude'], targets: ['claude'] } }], t), [])
+})
+
+test('Copilot CLI와 VS Code에도 공통 안내를 내고 CLI 순서를 지킨다', () => {
+  const lines = activationLines([{ item: skill, action: 'install', state: { present: [], targets: ['shared'], reach: ['vscode', 'copilot', 'claude'] } }], t)
+  const labels = lines.filter((l) => l.startsWith('  ')).map((l) => l.split(':')[0].trim())
+  assert.deepEqual(labels, ['Claude Code', 'GitHub Copilot CLI', 'VS Code Copilot'])
+  assert.ok(lines.some((l) => l.includes('GitHub Copilot CLI: start copilot fresh')))
+  assert.ok(lines.some((l) => l.includes('VS Code Copilot: reload the VS Code window')))
 })
 
 // PATH에 CLI가 하나도 없어 실행된 단계가 없으면 그 항목의 안내도 낼 이유가 없다.

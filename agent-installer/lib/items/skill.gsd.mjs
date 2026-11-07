@@ -8,6 +8,9 @@ import { defineRecipe } from '../recipe.mjs'
 //   codex    `.codex/skills`에 gsd-* 71종. `codex debug prompt-input`이 이
 //            경로를 스킬 루트로 등록하고 전부 나열하는 것을 확인했다.
 //   opencode `.opencode/skills`. `opencode debug skill`이 로드한다.
+//   copilot  `.github/skills`(+agents·hooks). `copilot skill list`가 gsd-* 전부를
+//            보여 준다(2026-08-15 실측). VS Code Copilot도 이 경로를 읽지만 상류에
+//            --vscode 플래그가 없어 따로 배선하지 않는다.
 // 런타임마다 명령 한 줄이다 — 부분 설치를 완성할 때 빠진 런타임만 돈다.
 // `--uninstall`도 런타임 플래그를 받아 그 런타임만 지운다.
 // Antigravity는 --antigravity 플래그가 있지만 설치 경로를 실측하지 못했다.
@@ -19,6 +22,7 @@ const RUNTIMES = {
   claude: ['.claude/commands', '.claude/skills'],
   codex: ['.codex/skills'],
   opencode: ['.opencode/skills'],
+  copilot: ['.github/skills'],
 }
 const NPX = ['npx', '-y', '@opengsd/gsd-core@latest']
 
@@ -34,5 +38,5 @@ export default defineRecipe({
     },
   }])),
   detect: Object.fromEntries(Object.entries(RUNTIMES).map(([cli, dirs]) => [cli, (p) => dirs.some((d) => p.dirHasPrefix(d, 'gsd-'))])),
-  reasons: { antigravity: 'item.unsupported.unmeasuredUpstream' },
+  reasons: { antigravity: 'item.unsupported.unmeasuredUpstream', vscode: 'item.unsupported.upstreamNone' },
 })

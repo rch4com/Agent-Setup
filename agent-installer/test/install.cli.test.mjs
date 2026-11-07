@@ -86,7 +86,7 @@ test('--list는 상태와 함께 목록을 내고 아무것도 바꾸지 않는�
   assert.match(r.stdout, /미설치\s+mcp\.notion/)
   // CI가 읽는 경로라 화면의 힌트와 같은 정보를 싣는다 — 커버리지·대상 파일·설치 위치.
   // PATH에 CLI가 없으면 지원 CLI를 이름으로 대고 "없음"을 붙인다.
-  assert.match(r.stdout, /mcp\.notion — Notion MCP · claude·opencode 없음/)
+  assert.match(r.stdout, /mcp\.notion — Notion MCP · claude·opencode·vscode 없음/)
   assert.match(r.stdout, /config\.gitmessage\.ko — Korean commit template · 대상 파일: \.gitmessage\.txt/)
   assert.deepEqual(untouched(root), [])
 })

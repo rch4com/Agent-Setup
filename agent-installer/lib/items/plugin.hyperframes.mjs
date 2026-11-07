@@ -21,5 +21,7 @@ export default defineRecipe({
     codex: 'item.unsupported.superpowersSeparate',
     opencode: 'item.unsupported.superpowersSeparate',
     antigravity: 'item.unsupported.superpowersSeparate',
+    copilot: 'item.unsupported.superpowersSeparate',
+    vscode: 'item.unsupported.vscodePlugin',
   },
 })

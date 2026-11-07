@@ -13,7 +13,12 @@ const ponytail = (scope) => bindScope(defineRecipe({
     claude: { marketplace: 'DietrichGebert/ponytail', id: 'ponytail@ponytail' },
     codex: { marketplace: 'DietrichGebert/ponytail', id: 'ponytail@ponytail' },
   }),
-  reasons: { opencode: 'item.unsupported.upstreamNone', antigravity: 'item.unsupported.upstreamNone' },
+  reasons: {
+    opencode: 'item.unsupported.upstreamNone',
+    antigravity: 'item.unsupported.upstreamNone',
+    copilot: 'item.unsupported.upstreamNone',
+    vscode: 'item.unsupported.upstreamNone',
+  },
 }), scope)
 const caveman = (scope) => bindScope(defineRecipe({ id: 'skill.caveman', category: 'skill', label: 'caveman', ...skillsAdd({ source: 'o/caveman', skill: 'caveman' }) }), scope)
 const fileItem = { id: 'config.gitmessage.ko', category: 'config', label: '.gitmessage.txt (ko)', scope: 'project', detect: async () => ({ status: 'absent' }), install: async () => {}, uninstall: async () => {} }

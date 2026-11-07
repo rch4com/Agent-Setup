@@ -44,12 +44,12 @@ async function uninstall(it, root, opts = {}) {
   await it.uninstall({ root, exec: recordingExec(true), dryRun: false, ...opts, state })
 }
 
-test('레지스트리 스킬: 공유 디렉터리 하나로 네 CLI 전부를 덮는다', () => {
+test('레지스트리 스킬: 공유 디렉터리 하나로 여섯 CLI 전부를 덮는다', () => {
   const it = item()
   assert.equal(it.category, 'skill')
   assert.equal(it.scope, 'project')
   assert.deepEqual(it.unsupported, {})
-  assert.deepEqual(it.supports, ['claude', 'codex', 'opencode', 'antigravity'])
+  assert.deepEqual(it.supports, ['claude', 'codex', 'opencode', 'antigravity', 'copilot', 'vscode'])
 })
 
 test('레지스트리 스킬 detect: 없으면 absent, 같은 이름 디렉터리면 installed', async () => {

@@ -1,0 +1,5 @@
+[
+  { "name": "superpowers", "marketplace": "superpowers-marketplace", "version": "6.3.0", "enabled": true, "source": "installed" },
+  { "name": "ponytail", "marketplace": "ponytail", "enabled": true, "source": "installed" },
+  { "name": "computer-use", "marketplace": "", "version": "0.1.97", "enabled": false, "source": "builtin" }
+]

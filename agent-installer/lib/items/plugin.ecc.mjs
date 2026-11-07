@@ -19,5 +19,11 @@ export default defineRecipe({
     claude: { marketplace: 'affaan-m/ECC', id: 'ecc@ecc' },
     codex: { marketplace: 'affaan-m/ECC', id: 'ecc@ecc' },
   }),
-  reasons: { opencode: 'item.unsupported.eccScale', antigravity: 'item.unsupported.eccScale' },
+  // Copilot CLI도 ./install.sh --target copilot 경로뿐이라 규모 문제가 같다.
+  reasons: {
+    opencode: 'item.unsupported.eccScale',
+    antigravity: 'item.unsupported.eccScale',
+    copilot: 'item.unsupported.eccScale',
+    vscode: 'item.unsupported.vscodePlugin',
+  },
 })
