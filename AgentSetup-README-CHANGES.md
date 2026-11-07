@@ -5,6 +5,39 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## GitHub Copilot CLI and VS Code Copilot return (2026-11-07, 2.1.0)
+
+- **Six supported CLIs.** GitHub Copilot CLI and VS Code Copilot, dropped in
+  2.0.0, are back — wired the 2.0 way (each tool's own commands where they
+  exist), not by writing their config files as 1.x did.
+- **Copilot CLI.** `copilot plugin marketplace add` + `copilot plugin install`
+  and `copilot mcp add/remove`. Neither has a scope flag, so plugins and MCP
+  go in user-globally only (like Codex). Detection reads `copilot plugin list
+  --json` and `~/.copilot/mcp-config.json`. Plugins wired: Ponytail,
+  superpowers, Matt Pocock, Understand Anything (direct
+  `owner/repo:path` install). ai-memory goes in as the `mcp-bridge` MCP. GSD
+  gains `--copilot --local` (`.github/skills`). Every MCP item is wired.
+- **VS Code Copilot.** MCP items only: VS Code has no install command
+  (`code --add-mcp` has no remove or list command, and its JSON argument
+  cannot be quoted on Windows), so the installer edits files and keeps your
+  comments — `servers` in `.vscode/mcp.json` in repo scope (and a
+  `!.vscode/mcp.json` entry in an existing `.gitignore`), `mcpServers` in
+  `~/.copilot/mcp-config.json` in global scope (the file VS Code's *Global >
+  Copilot* destination and `copilot mcp add` share). It needs `code` on PATH.
+  VS Code has no plugin install command, so plugins are not wired.
+- **Shared skills.** Both read `.agents/skills` and `~/.agents/skills`, so
+  every registry skill covers them with no new step. The bootstrap writes
+  nothing for them: `chat.useAgentsMdFile` defaults to on in the VS Code
+  1.145 measured here.
+- **Not verified.** Installing and removing a Copilot CLI plugin was not
+  re-run on the maintainer's machine for this release (Ponytail and
+  superpowers were already installed there and detected correctly), and how a
+  direct `owner/repo:path` install (Understand Anything) appears in
+  `copilot plugin list` was not measured. A running copilot session can make
+  plugin install fail with `os error 5` — close it and retry. The Copilot CLI
+  and VS Code MCP paths were round-tripped (install, detect, remove) on the
+  maintainer's machine.
+
 ## Install with each CLI's official commands; support narrowed to four CLIs (2026-10-24, 2.0.0)
 
 **This release breaks compatibility.**

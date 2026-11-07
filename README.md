@@ -1,7 +1,7 @@
 # Agent-Setup
 
-멀티 CLI 코딩 에이전트(Claude Code, Codex, OpenCode, Antigravity)를 한
-저장소에서 함께 쓰기 위한 저장소 범위 부트스트랩 스크립트와 선택 항목
+멀티 CLI 코딩 에이전트(Claude Code, Codex, OpenCode, Antigravity, GitHub
+Copilot CLI, VS Code Copilot)를 한 저장소에서 함께 쓰기 위한 저장소 범위 부트스트랩 스크립트와 선택 항목
 설치기입니다. 선택 항목(플러그인·MCP·스킬)은 각 CLI의 공식 설치 명령으로
 설치합니다.
 

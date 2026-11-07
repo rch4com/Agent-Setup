@@ -3,7 +3,7 @@
 Repository-scoped bootstrap for using many coding agents in one repo — plus an
 optional picker for plugins, MCP servers, skills, and DESIGN.md documents.
 
-Supports **Claude Code, Codex, OpenCode, and Antigravity.**
+Supports **Claude Code, Codex, OpenCode, Antigravity, GitHub Copilot CLI, and VS Code Copilot.**
 
 One shared instruction file (`AGENTS.md`) and one shared skills directory
 (`.agents/skills`) serve every tool. Only the per-tool config files are written,
@@ -118,7 +118,7 @@ MIT
 
 # 한국어
 
-Claude Code, Codex, OpenCode, Antigravity를 **한 저장소에서 함께** 쓰기 위한
+Claude Code, Codex, OpenCode, Antigravity, GitHub Copilot CLI, VS Code Copilot을 **한 저장소에서 함께** 쓰기 위한
 저장소 범위 부트스트랩과 선택 항목 설치기입니다.
 
 공통 지침은 루트 `AGENTS.md` 하나, 공통 스킬은 `.agents/skills` 하나로 두고,

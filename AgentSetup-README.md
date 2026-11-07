@@ -3,8 +3,9 @@
 **English** · [한국어](AgentSetup-README.ko.md) · [Changelog](AgentSetup-README-CHANGES.md)
 
 A script that initializes shared instructions and shared Agent Skills
-**within repository scope only**, so that Claude Code, Codex, OpenCode, and
-Antigravity (Google agent IDE/CLI) can all be used together in one repository,
+**within repository scope only**, so that Claude Code, Codex, OpenCode,
+Antigravity (Google agent IDE/CLI), GitHub Copilot CLI, and VS Code Copilot can
+all be used together in one repository,
 plus an optional-item installer that installs plugins, MCP servers, and skills
 **with each CLI's own official install commands**.
 
@@ -55,15 +56,31 @@ repository/
   project-scope MCP or plugin configuration, so the optional-item installer
   installs into it **user-globally** only, with the Antigravity CLI (`agy`)
   commands.
+- **GitHub Copilot CLI:** reads the root `AGENTS.md` and `.agents/skills`
+  natively, so the bootstrap creates no files for it. The optional-item
+  installer uses `copilot plugin …` and `copilot mcp add/remove`, which have no
+  scope flag — plugins and MCP servers go in **user-globally** only (project
+  `.mcp.json`/`.github/mcp.json` are read-only to Copilot).
+- **VS Code Copilot:** reads `AGENTS.md` and `.agents/skills` natively too (the
+  `chat.useAgentsMdFile` setting defaults to on in the VS Code 1.145 measured
+  here, so the bootstrap writes nothing). VS Code has no install command for
+  plugins or MCP (`code --add-mcp` has no remove or list command, and its JSON
+  argument cannot be quoted on Windows), so the installer edits files, keeping
+  your comments: repo scope writes `servers` in `.vscode/mcp.json`; global scope
+  writes `mcpServers` in `~/.copilot/mcp-config.json`, the file VS Code's
+  *Global > Copilot* destination and `copilot mcp add` share. Plugins are not
+  wired. Requires `code` on PATH.
 
 ### Tools not covered
 
-Support for Gemini CLI, Kilo Code, Kiro, Kimi Code, Grok Build, GitHub Copilot
-CLI, and VS Code Copilot ended in 2.0.0. The installer does not delete the files
-1.x created for those tools (`GEMINI.md`, `.gemini/`, `kilo.jsonc`, `.kiro/`,
-`.kimi-code/`, `.grok/`, `.github/mcp.json`, `.github/copilot/`,
-`.vscode/mcp.json`) — remove them by hand if you no longer use them.
-`chat.useAgentsMdFile` in `.vscode/settings.json` is no longer ensured either.
+Support for Gemini CLI, Kilo Code, Kiro, Kimi Code, and Grok Build ended in
+2.0.0. The installer does not delete the files 1.x created for those tools
+(`GEMINI.md`, `.gemini/`, `kilo.jsonc`, `.kiro/`, `.kimi-code/`, `.grok/`) —
+remove them by hand if you no longer use them. GitHub Copilot CLI and VS Code
+Copilot support returned in 2.1.0, with a different wiring from 1.x: see above.
+The `.github/mcp.json` and `.github/copilot/` files 1.x wrote are no longer
+managed, and `chat.useAgentsMdFile` in `.vscode/settings.json` is no longer
+ensured.
 
 Cursor, Windsurf, Cline/Roo Code, Amp, Factory Droid, and Qwen Code are not on
 the list either. This repository wires only what has been measured with the real
@@ -202,10 +219,10 @@ review screen in the interactive UI).
 
 | Item | What runs |
 |---|---|
-| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <scope>` + `claude plugin install <id> --scope <scope>`. Codex (global): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <module>` (`-g` for global). Antigravity (global): `agy plugin install <git URL>`. Each item wires only the CLIs its upstream documents. A marketplace registration failing with "already exists" is ignored |
-| `mcp.*` | Claude Code: `claude mcp add -s <scope> <name> …`. Codex (global): `codex mcp add <name> …`. Antigravity (global): `agy mcp add <name> …`. OpenCode: `opencode mcp add` is interactive only, so `opencode run "<instruction>"` asks the OpenCode agent to edit its config, and the installer re-reads the config file to confirm the change landed |
-| `skill.*` (registry skills: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | Repo scope: `npx -y skills@latest add <github repo> --skill <name> --agent universal --yes --copy` — copies into the shared `.agents/skills`. Global: `… -g -a claude-code codex antigravity-cli --yes --copy` (`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode reads the first two). Removal runs `npx -y skills@latest remove` and then deletes any leftover directory and the `skills-lock.json` entry |
-| `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<runtime> --local` — once per runtime (claude, codex, opencode), downloading and running the latest version with no confirmation prompt (`-y`) |
+| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <scope>` + `claude plugin install <id> --scope <scope>`. Codex (global): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <module>` (`-g` for global). Antigravity (global): `agy plugin install <git URL>`. Copilot CLI (global): `copilot plugin marketplace add <repo>` + `copilot plugin install <id>`. Each item wires only the CLIs its upstream documents. A marketplace registration failing with "already exists" is ignored |
+| `mcp.*` | Claude Code: `claude mcp add -s <scope> <name> …`. Codex (global): `codex mcp add <name> …`. Antigravity (global): `agy mcp add <name> …`. Copilot CLI (global): `copilot mcp add [--transport http] <name> …`. VS Code Copilot: no command — edits `.vscode/mcp.json` (repo) or `~/.copilot/mcp-config.json` (global) directly. OpenCode: `opencode mcp add` is interactive only, so `opencode run "<instruction>"` asks the OpenCode agent to edit its config, and the installer re-reads the config file to confirm the change landed |
+| `skill.*` (registry skills: agent-browser, archify, caveman, diagram-design, eli5, find-skills, hallmark, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste) | Repo scope: `npx -y skills@latest add <github repo> --skill <name> --agent universal --yes --copy` — copies into the shared `.agents/skills`. Global: `… -g -a claude-code codex antigravity-cli --yes --copy` (`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode reads the first two, and Copilot CLI and VS Code Copilot read `~/.agents/skills`). Removal runs `npx -y skills@latest remove` and then deletes any leftover directory and the `skills-lock.json` entry |
+| `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<runtime> --local` — once per runtime (claude, codex, opencode, copilot), downloading and running the latest version with no confirmation prompt (`-y`) |
 | `skill.gstack` | Shallow-clones the default branch of `github.com/garrytan/gstack` and then runs `bash ./setup` inside the repository. It does not pin a commit or verify integrity |
 | `config.gitmessage.*` | `git config --local commit.template .gitmessage.txt` — also adds `git.useEditorAsCommitInput` and `github.copilot.chat.commitMessageGeneration.instructions` to `.vscode/settings.json` when absent (existing keys are never overwritten; removal deletes only a key whose value is exactly the one written). Touches only the repository (no network). Global and system settings are neither read nor written |
 | design.md | Downloads `DESIGN.md` from `raw.githubusercontent.com` (a document file; it is not executed). If it exists in the bundled cache, no network is used |
@@ -392,7 +409,7 @@ the filter would make it impossible to type `codex` as a query.
 - **Every item shows its CLI coverage right after its status** — the supported
   CLI names, as in `claude·opencode`. Which CLIs are supported depends on the
   **chosen install scope**: Codex and Antigravity install plugins and MCP
-  servers only user-globally, so in repo scope they drop out with "switch the
+  servers only user-globally (Copilot CLI too), so in repo scope they drop out with "switch the
   scope to Global" as the reason. CLIs not on this machine's PATH are dropped
   from the list and noted separately, as in `codex missing`. Items on the CONFIG
   tab are repository conventions rather than CLI wiring, so they carry no such
@@ -459,7 +476,7 @@ the filter would make it impossible to type `codex` as a query.
   excluded from both the failure tally and the exit code. Stopping on purpose is
   different from something going wrong.
 - **When applying finishes, the after-install steps are announced once per
-  CLI** — start a new session, restart OpenCode or Antigravity, and, if an item
+  CLI** — start a new session, restart OpenCode or Antigravity, start Copilot CLI fresh, reload the VS Code window, and, if an item
   with hooks (Ponytail, ECC, ai-memory) went into Codex, the step of opening
   `/hooks` in `codex` to trust the new lifecycle hooks. Item-specific
   prerequisites (for example the ai-memory binary and `ai-memory setup`) are
@@ -525,17 +542,17 @@ behavior, like `--global`, `--print`, and `--design-dir`, can be combined).
 
 | Kind | Item | Notes |
 |---|---|---|
-| Plugin | `plugin.ponytail` | Lean-code ruleset (`DietrichGebert/ponytail`). Installed into all four CLIs with upstream's official commands — Claude Code (repo and global), Codex (global), OpenCode (`@dietrichgebert/ponytail`, repo and global), and Antigravity (global). On Codex it turns on only after you trust its two hooks in `/hooks`, and the always-on hook needs Node.js on PATH. Upstream recommends `scripts/uninstall.js` to clean `~/.config/ponytail` before removal (this item removes the plugin only) |
-| Plugin | `plugin.ai-memory` | `akitaonrails/ai-memory` (MIT), which lets several agents share long-term memory and working context. Claude Code (repo and global) and Codex (global) get the upstream marketplace plugin (hooks and skills); OpenCode and Antigravity get the stdio bridge `ai-memory mcp-bridge --no-session-id` as an MCP server — the bridge reads its token from the data directory, so it never lands in a config file. The server that stores the memory must be running too: install the binary first with upstream `install.sh`/`install.ps1` and run `ai-memory setup` once. To pick a session back up, launch through it, as in `ai-memory run codex` |
-| Plugin | `plugin.superpowers` | Claude Code uses the official marketplace (`superpowers@claude-plugins-official`), Codex (global) `obra/superpowers-marketplace`, OpenCode a git module, and Antigravity (global) `agy plugin install https://github.com/obra/superpowers`. **Only one** of this and `skill.superpowers` can be chosen |
-| Plugin | `plugin.ecc`, `plugin.mattpocock-skills` | Marketplace plugins for Claude Code (repo and global) and Codex (global). ECC supports OpenCode and Antigravity only through `install.sh --target`, and its 284 skills would swamp the shared directory, so those are not wired (Codex native hooks need to be trusted). Matt Pocock's remaining CLIs are covered by the shared-skill edition (`skill.mattpocock-skills`), and **only one** of the two can be chosen |
-| Plugin | `plugin.impeccable`, `plugin.understand-anything`, `plugin.hyperframes`, `plugin.cli-anything` | Claude Code marketplace plugins (repo and global). The other CLIs are skipped for different reasons — impeccable's shared-skill edition (`skill.impeccable`, **pick one**) covers them, while Understand Anything offers only a script that clones into the home directory, HyperFrames a separate install per CLI, and CLI-Anything scripts and manual copies, none of which can be wired as CLI commands. HyperFrames rendering needs Node.js 22+ and FFmpeg |
-| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | Remote URLs. Registered in Claude Code and OpenCode (repo and global) and in Codex and Antigravity (global). Authentication (OAuth) happens the first time you use each CLI, and no secrets are committed |
+| Plugin | `plugin.ponytail` | Lean-code ruleset (`DietrichGebert/ponytail`). Installed with upstream's official commands — Claude Code (repo and global), Codex (global), OpenCode (`@dietrichgebert/ponytail`, repo and global), Antigravity (global), and Copilot CLI (global). On Codex it turns on only after you trust its two hooks in `/hooks`, and the always-on hook needs Node.js on PATH. Upstream recommends `scripts/uninstall.js` to clean `~/.config/ponytail` before removal (this item removes the plugin only) |
+| Plugin | `plugin.ai-memory` | `akitaonrails/ai-memory` (MIT), which lets several agents share long-term memory and working context. Claude Code (repo and global) and Codex (global) get the upstream marketplace plugin (hooks and skills); OpenCode, Antigravity, Copilot CLI (global) and VS Code Copilot get the stdio bridge `ai-memory mcp-bridge --no-session-id` as an MCP server (no hooks) — the bridge reads its token from the data directory, so it never lands in a config file. The server that stores the memory must be running too: install the binary first with upstream `install.sh`/`install.ps1` and run `ai-memory setup` once. To pick a session back up, launch through it, as in `ai-memory run codex` |
+| Plugin | `plugin.superpowers` | Claude Code uses the official marketplace (`superpowers@claude-plugins-official`), Codex (global) `obra/superpowers-marketplace`, OpenCode a git module, Antigravity (global) `agy plugin install https://github.com/obra/superpowers`, and Copilot CLI (global) `obra/superpowers-marketplace`. **Only one** of this and `skill.superpowers` can be chosen |
+| Plugin | `plugin.ecc`, `plugin.mattpocock-skills` | Marketplace plugins for Claude Code (repo and global) and Codex (global); Matt Pocock also installs into Copilot CLI (global). ECC supports OpenCode, Antigravity and Copilot CLI only through `install.sh --target`, and its 284 skills would swamp the shared directory, so those are not wired (Codex native hooks need to be trusted). Matt Pocock's remaining CLIs are covered by the shared-skill edition (`skill.mattpocock-skills`), and **only one** of the two can be chosen |
+| Plugin | `plugin.impeccable`, `plugin.understand-anything`, `plugin.hyperframes`, `plugin.cli-anything` | Claude Code marketplace plugins (repo and global). The other CLIs are skipped for different reasons — impeccable's shared-skill edition (`skill.impeccable`, **pick one**) covers them, while Understand Anything offers Copilot CLI (global) a direct `copilot plugin install Egonex-AI/Understand-Anything:understand-anything-plugin` (how it appears in `copilot plugin list` was not measured) but other CLIs only a script that clones into the home directory, HyperFrames a separate install per CLI, and CLI-Anything scripts and manual copies, none of which can be wired as CLI commands. HyperFrames rendering needs Node.js 22+ and FFmpeg |
+| MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | Remote URLs. Registered in Claude Code and OpenCode (repo and global), in VS Code Copilot (repo `.vscode/mcp.json`, global `~/.copilot/mcp-config.json`), and in Codex, Antigravity and Copilot CLI (global). Authentication (OAuth) happens the first time you use each CLI, and no secrets are committed |
 | MCP | `mcp.codebase-memory`, `mcp.graphify`, `mcp.headroom` | stdio transport — requires `codebase-memory-mcp`, `graphify-mcp` (`uv tool install "graphifyy[mcp]"`), and `headroom` (`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`) on PATH, respectively. graphify reads `graphify-out/graph.json` from the working directory |
 | MCP | `mcp.graft` | stdio transport — `npx -y @nanonets/graft mcp`, so nothing to install. Build the graph first with `graft build` (a gitignored `graft/`). The upstream `graft init` deep integration is not used because it edits files this repository manages. On Windows the `tree-sitter-kotlin` dependency needs a C++ toolchain, and Node 24 cannot compile it (upstream #400) |
 | Skill | `skill.superpowers`, `skill.mattpocock-skills`, `skill.strix`, `skill.im-not-ai` | Copies one upstream's skills at once into the shared `.agents/skills` via `--skill '*'`. Removal picks its targets from the source records in `skills-lock.json`; global scope has no such record, so these are **repo scope only**. superpowers and mattpocock-skills allow **only one** of this and the plugin edition of the same upstream (the superpowers skill edition has no session-start injection). strix needs the `strix` binary on PATH, and im-not-ai brings in the skills only, without the upstream subagents |
-| Skill | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify`, `skill.impeccable`, `skill.remotion`, `skill.officecli` | In repo scope, copies one skill into the shared `.agents/skills`, which all four CLIs see (it can be committed and shared with the team); in global scope, puts it into the `claude-code`, `codex`, and `antigravity-cli` global paths. agent-browser and officecli need their own binaries on PATH, impeccable downloads its engine into `~/.impeccable` on first run (**pick one** of it and `plugin.impeccable`), and Remotion needs a company license for larger for-profit organizations |
-| Skill | `skill.gsd` | Repo-scope install via `npx @opengsd/gsd-core --<runtime> --local` — claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`. Each runtime produces roughly 700 files. Antigravity has an upstream flag, but its install path has not been measured, so it is not wired |
+| Skill | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify`, `skill.impeccable`, `skill.remotion`, `skill.officecli` | In repo scope, copies one skill into the shared `.agents/skills`, which every CLI sees (it can be committed and shared with the team); in global scope, puts it into the `claude-code`, `codex`, and `antigravity-cli` global paths. agent-browser and officecli need their own binaries on PATH, impeccable downloads its engine into `~/.impeccable` on first run (**pick one** of it and `plugin.impeccable`), and Remotion needs a company license for larger for-profit organizations |
+| Skill | `skill.gsd` | Repo-scope install via `npx @opengsd/gsd-core --<runtime> --local` — claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`, copilot→`.github/skills`. Each runtime produces roughly 700 files. Antigravity has an upstream flag, but its install path has not been measured, so it is not wired |
 | Skill | `skill.gstack` | Clone + setup into the in-repository `.claude/skills/gstack` (bash required, `.gitignore` handled automatically). In a bootstrapped repository that path is a junction, so the files land in the shared `.agents/skills/gstack`, and Codex and OpenCode scan recursively, so they see the individual skills. Repo scope only |
 | Config | `config.gitmessage.en`, `config.gitmessage.ko` | Writes the commit message template `.gitmessage.txt` to the repository root and points `git config --local commit.template` at it. **Only one of the English and Korean editions** can be chosen. It writes files itself, so it is repo scope only, and `--print` shows a one-line notice instead of commands |
 

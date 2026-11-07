@@ -5,6 +5,36 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## GitHub Copilot CLI와 VS Code Copilot이 돌아온다 (2026-11-07, 2.1.0)
+
+- **지원 CLI는 여섯이다.** 2.0.0에서 뺐던 GitHub Copilot CLI와 VS Code
+  Copilot을 다시 지원한다. 1.x처럼 설정 파일을 직접 쓰지 않고 2.0 방식대로
+  각 도구의 명령이 있으면 그 명령으로 배선한다.
+- **Copilot CLI.** `copilot plugin marketplace add` + `copilot plugin
+  install`, `copilot mcp add/remove`. 둘 다 범위 플래그가 없어 플러그인·MCP를
+  사용자 전역으로만 설치한다(Codex와 같다). 감지는 `copilot plugin list --json`과
+  `~/.copilot/mcp-config.json`을 읽는다. 플러그인은 Ponytail·superpowers·Matt
+  Pocock·Understand Anything(`owner/repo:경로` 직접 설치)을 배선한다. ai-memory는
+  `mcp-bridge` MCP로 건다. GSD는 `--copilot --local`(`.github/skills`)이 늘었다.
+  MCP 항목은 모두 배선한다.
+- **VS Code Copilot.** MCP 항목만 배선한다. VS Code에는 설치 명령이 없어
+  (`code --add-mcp`는 제거·목록 명령이 없고 JSON 인자를 Windows에서 인용할 수
+  없다) 설치기가 파일을 고치되 사용자 주석은 지킨다 — 저장소 범위는
+  `.vscode/mcp.json`의 `servers`(이미 있는 `.gitignore`에는 `!.vscode/mcp.json`
+  항목도 보장), 전역 범위는 `~/.copilot/mcp-config.json`의 `mcpServers`(VS Code의
+  *Global > Copilot* 대상과 `copilot mcp add`가 나눠 쓰는 파일)다. PATH에
+  `code`가 있어야 한다. VS Code에는 플러그인 설치 명령이 없어 플러그인은
+  배선하지 않는다.
+- **공유 스킬.** 둘 다 `.agents/skills`와 `~/.agents/skills`를 읽으므로 레지스트리
+  스킬은 새 단계 없이 둘을 덮는다. 부트스트랩이 쓸 파일은 없다 —
+  `chat.useAgentsMdFile`이 실측한 VS Code 1.145에서 기본값이 켜짐이다.
+- **검증하지 못한 것.** 이번 릴리스에서 Copilot CLI 플러그인의 설치·제거는
+  이 머신에서 다시 돌려 보지 못했다(Ponytail·superpowers는 이미 깔려 있어
+  올바르게 감지됐다). 직접 설치(`owner/repo:경로`, Understand Anything)가
+  `copilot plugin list`에 어떻게 보이는지도 실측하지 못했다. copilot 세션이
+  떠 있으면 플러그인 설치가 `os error 5`로 실패할 수 있다 — 닫고 다시 한다.
+  Copilot CLI와 VS Code의 MCP 경로는 이 머신에서 설치·감지·제거 왕복을 확인했다.
+
 ## CLI 공식 명령으로 설치하고 지원 CLI를 넷으로 줄인다 (2026-10-24, 2.0.0)
 
 **하위 호환이 깨지는 변경이다.**
