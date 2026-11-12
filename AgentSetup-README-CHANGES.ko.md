@@ -5,6 +5,20 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## OpenCode 설정을 CLI 대신 파일로 직접 고친다 (2026-11-13, 2.3.3)
+
+- **OpenCode 플러그인 설치 실패.** OpenCode 2.x(2.2.5 확인)에서
+  `opencode plugin <모듈>`이 `Unknown subcommand`로 실패했다 — 새 `plugin add`는
+  전역 설정에만 쓴다. 이제 `plugin` 배열에 모듈을 직접 넣고 뺀다.
+- **OpenCode MCP 등록 실패.** `opencode run` 지시문은 LLM 실행이라 모델 크레딧이
+  없으면 `Add credits to continue`로 실패했다. 이제 `mcp.<이름>`을 직접 쓴다.
+- **방식.** 감지가 읽는 같은 설정 파일(`./opencode.jsonc`, 전역
+  `~/.config/opencode/opencode.json`)을 jsonc-parser로 주석을 보존하며 고치고,
+  파일이 없으면 `$schema`와 함께 만든다.
+- **검증.** 새 Git 저장소에서 `mcp.graphify`·`skill.graphify`를 실제로 설치해
+  `opencode mcp list`가 `graphify connected`, 재실행은 `Nothing to change.`였다.
+  플러그인 경로는 단위 테스트로만 확인했다.
+
 ## graphify 실행 파일과 /graphify 스킬을 함께 설치한다 (2026-11-13, 2.3.2)
 
 - **graphify MCP가 연결되지 않던 문제.** `mcp.graphify`는 `.mcp.json`·

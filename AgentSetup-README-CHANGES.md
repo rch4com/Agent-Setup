@@ -5,6 +5,23 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Edit OpenCode config files directly instead of calling its CLI (2026-11-13, 2.3.3)
+
+- **OpenCode plugin installs failed.** On OpenCode 2.x (checked 2.2.5),
+  `opencode plugin <module>` failed with `Unknown subcommand`; the new
+  `plugin add` writes only the global config. The installer now adds and
+  removes the module in the `plugin` array itself.
+- **OpenCode MCP registration failed.** The `opencode run` instruction is an
+  LLM run, so it failed with `Add credits to continue` without model credits.
+  The installer now writes `mcp.<name>` itself.
+- **How.** It edits the same config file detection reads (`./opencode.jsonc`,
+  global `~/.config/opencode/opencode.json`) with jsonc-parser, preserving
+  comments, and creates it with `$schema` when missing.
+- **Verified.** In a fresh Git repository, installing `mcp.graphify` and
+  `skill.graphify` for real gave `graphify connected` in `opencode mcp list`,
+  and a rerun printed `Nothing to change.`. The plugin path was checked by unit
+  tests only.
+
 ## Install the graphify binary and the /graphify skill (2026-11-13, 2.3.2)
 
 - **graphify MCP never connected.** `mcp.graphify` only registered the
