@@ -5,6 +5,24 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Claude Code now sees skills in repos without bootstrap (2026-11-13, 2.3.1)
+
+- **Only Claude Code missed shared skills.** Claude Code scans only
+  `.claude/skills`, and the junction from there to `.agents/skills` was made
+  only by bootstrap. In a repository where only skill items were installed,
+  the other CLIs saw the skills and Claude did not. Repo-scope skill installs
+  now set up the same adapter themselves and add `.claude/skills` to
+  `.gitignore`. A hand-made real `.claude/skills` directory is left alone
+  and reported as a failure.
+- **Detection.** A repo-scope skill reads as installed only when it is also
+  visible under `.claude/skills`. In repositories installed earlier those
+  skills now show as not installed; select and apply them again, or run
+  bootstrap.
+- **Verified.** In a fresh Git repository without bootstrap, installing unslop
+  and html-plan for real created the junction, a rerun printed `Nothing to
+  change.`, `git status` listed no `.claude/skills`, and `claude -p`
+  recognized both skills.
+
 ## agent-desktop, ego lite, and installing the apps skills drive (2026-11-13, 2.3.0)
 
 - **`skill.agent-desktop`.** vercel-labs/agent-desktop (Apache-2.0). The skill

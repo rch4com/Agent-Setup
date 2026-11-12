@@ -5,6 +5,21 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 스킬만 설치한 저장소에서 Claude Code가 스킬을 못 보던 문제를 고친다 (2026-11-13, 2.3.1)
+
+- **Claude Code만 공유 스킬을 못 보던 문제.** Claude Code는 `.claude/skills`만
+  훑는데, 그 자리에 `.agents/skills`를 잇는 Junction은 부트스트랩만 만들었다.
+  부트스트랩 없이 스킬 항목만 깐 저장소에서는 다른 CLI는 스킬을 보고
+  Claude만 못 봤다. 이제 저장소 범위 스킬 설치가 같은 어댑터를 직접 맞추고
+  `.gitignore`에 `.claude/skills`를 넣는다. 손으로 만든 실제
+  `.claude/skills`는 덮지 않고 실패로 알린다.
+- **감지.** 저장소 범위 스킬은 `.claude/skills` 경로에서도 보여야 설치됨이다.
+  이미 깐 저장소에서는 해당 스킬이 미설치로 보이니, 다시 골라 적용하거나
+  부트스트랩을 실행한다.
+- **검증.** 부트스트랩 없는 새 Git 저장소에서 unslop·html-plan을 실제로
+  설치하자 Junction이 생기고, 재실행은 `Nothing to change.`, `git status`에
+  `.claude/skills`가 없었다. `claude -p`가 두 스킬을 인식했다.
+
 ## agent-desktop·ego lite를 넣고 스킬이 쓰는 앱을 함께 설치한다 (2026-11-13, 2.3.0)
 
 - **`skill.agent-desktop`.** vercel-labs/agent-desktop(Apache-2.0). 데스크톱
