@@ -60,6 +60,9 @@ export function shellQuote(text, platform = process.platform) {
 
 const execFileAsync = promisify(execFile)
 
+// 셸이 따옴표 없이도 한 단어로 읽는 명령 이름(npx·claude·git 등).
+const BARE_COMMAND = /^[A-Za-z0-9_.-]+$/
+
 // 외부 명령 하나에 주는 시간. npx·git clone이 네트워크에서 멈추면 예전에는
 // 영원히 기다렸다 — Ctrl+C도 항목 경계에서만 보므로 그 항목이 끝나야 멈췄다.
 // 10분이면 gsd(3,500파일)·ECC 같은 큰 설치도 끝나고, 멈춘 명령은 결국 실패로
@@ -85,7 +88,11 @@ export function makeExec(dryRun, log = console.log, t = null) {
     const shell = opts.shell ?? process.platform === 'win32'
     // shell + 인자 배열을 함께 넘기면 Node가 DEP0190으로 경고한다(인자가 quote 없이 이어붙기 때문).
     // 어차피 우리가 직접 quote하므로, 완성된 한 줄 명령을 넘기고 인자 배열은 비운다.
-    const [file, fileArgs] = shell ? [[cmd, ...args].map((s) => shellQuote(s)).join(' '), []] : [cmd, args]
+    // 명령 이름은 메타문자가 없으면 감싸지 않는다 — cmd.exe는 따옴표로 감싼
+    // 확장자 없는 이름("npx")을 PATH에서 찾으면 그 배치 안의 %~dp0를 현재
+    // 디렉터리로 풀어, npx.cmd가 node_modules\npm을 못 찾고 죽는다.
+    const head = BARE_COMMAND.test(cmd) ? cmd : shellQuote(cmd)
+    const [file, fileArgs] = shell ? [[head, ...args.map((s) => shellQuote(s))].join(' '), []] : [cmd, args]
     try {
       // execFile은 stdio를 강제로 파이프로 고정하고 옵션으로 넘겨도 무시한다 —
       // 그래서 stdout·stderr는 버퍼링이 공짜로 따라온다. 문제는 stdin이다:

@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { makeExec, shellQuote } from '../lib/catalog.mjs'
@@ -68,6 +70,20 @@ test('makeExec: 존재하지 않는 바이너리는 빈 진단이 아니라 바�
   assert.equal(r.ok, false)
   assert.notEqual(r.output, '')
   assert.match(r.output, /definitely-not-a-real-binary-xyz/)
+})
+
+// 회귀: cmd.exe는 확장자 없이 따옴표로 감싼 명령("npx")을 PATH에서 찾으면 그
+// 배치 파일 안의 %~dp0를 현재 디렉터리로 푼다. npm의 npx.cmd는 %~dp0로
+// node_modules\npm을 찾으므로 MODULE_NOT_FOUND로 죽었다 — skills add를 쓰는
+// 모든 항목이 실패했다(Node 26.13, npm 11.20, 2026-11-12).
+test('makeExec: PATH의 .cmd 심이 자기 위치(%~dp0)를 제대로 본다 (win32)', { skip: process.platform !== 'win32' }, async () => {
+  const bin = mkdtempSync(join(tmpdir(), 'shim-bin-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'shim-cwd-'))
+  writeFileSync(join(bin, 'fakeshim.cmd'), '@ECHO OFF\r\nTYPE "%~dp0\\marker.txt"\r\n')
+  writeFileSync(join(bin, 'marker.txt'), 'found')
+  const exec = makeExec(false, () => {})
+  const r = await exec('fakeshim', [], { cwd, env: { ...process.env, PATH: `${bin};${process.env.PATH}` } })
+  assert.equal(r.output.trim(), 'found', r.output)
 })
 
 // 회귀: execFile은 stdio 옵션을 무시하고 자식에게 열린 stdin 파이프를 그대로
