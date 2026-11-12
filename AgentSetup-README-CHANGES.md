@@ -5,6 +5,28 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Three new skills and a Windows npx fix (2026-11-12, 2.2.0)
+
+2.1.0 was never published to npm; the 2.1.0 entry below ships for the
+first time in this release.
+
+- **`skill.html-plan`.** html-plan from the Anthropic community marketplace
+  (MIT). Turns `/html-plan <what to build>` into one interactive HTML plan
+  page with a claim tree, mockups and decision points. Only the marketplace
+  subpath is fetched, so other plugins' skills stay out.
+- **`skill.unslop`.** heydamir/unslop (CC-BY-4.0). Redesigns AI-looking UI in
+  a direction drawn from the product.
+- **`skill.agent-handoff-manager`.** rch4com/agent-handoff-manager (MIT).
+  Saves and resumes work handoffs between agents. Its core is
+  `scripts/handoff.py`, so Python 3.10+ must be on PATH.
+- **Every npx-based install failed on Windows.** The installer quoted the
+  command name too (`"npx"`), and cmd.exe then resolved `%~dp0` inside
+  `npx.cmd` to the current directory, ending in `MODULE_NOT_FOUND`. Command
+  names without metacharacters are no longer quoted (confirmed on Node 26.13
+  and npm 11.20).
+- **Verified.** In a fresh Git repository, the three skills were installed,
+  re-run (`Nothing to change.`) and removed (`--set=`) through the installer.
+
 ## GitHub Copilot CLI and VS Code Copilot return (2026-11-07, 2.1.0)
 
 - **Six supported CLIs.** GitHub Copilot CLI and VS Code Copilot, dropped in

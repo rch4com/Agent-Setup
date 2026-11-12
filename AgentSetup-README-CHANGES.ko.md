@@ -5,6 +5,27 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 스킬 세 개를 넣고 Windows의 npx 실행을 고친다 (2026-11-12, 2.2.0)
+
+2.1.0은 npm에 발행되지 않았다. 아래 2.1.0 항목의 내용도 이 버전으로
+처음 배포된다.
+
+- **`skill.html-plan`.** Anthropic 커뮤니티 마켓플레이스의 html-plan(MIT).
+  `/html-plan <만들 것>`을 주장 트리·목업·결정 지점이 담긴 대화형 HTML
+  계획서 한 장으로 만든다. 마켓 저장소의 하위 경로만 받아 다른 플러그인의
+  스킬이 끼지 않는다.
+- **`skill.unslop`.** heydamir/unslop(CC-BY-4.0). AI가 만든 티가 나는 UI를
+  제품에 맞는 방향으로 다시 디자인한다.
+- **`skill.agent-handoff-manager`.** rch4com/agent-handoff-manager(MIT).
+  에이전트 사이 작업 인계를 저장하고 이어받는다. 본체가
+  `scripts/handoff.py`라 Python 3.10 이상이 PATH에 있어야 한다.
+- **Windows에서 npx를 쓰는 설치가 모두 실패하던 문제.** 설치기가 명령
+  이름까지 따옴표로 감싸(`"npx"`) cmd.exe가 `npx.cmd` 안의 `%~dp0`를 현재
+  디렉터리로 풀었고, `MODULE_NOT_FOUND`로 끝났다. 메타문자 없는 명령
+  이름은 이제 감싸지 않는다(Node 26.13·npm 11.20에서 확인).
+- **검증.** 새 Git 저장소에서 세 스킬의 설치, 재실행(`Nothing to change.`),
+  제거(`--set=`)를 설치기로 왕복했다.
+
 ## GitHub Copilot CLI와 VS Code Copilot이 돌아온다 (2026-11-07, 2.1.0)
 
 - **지원 CLI는 여섯이다.** 2.0.0에서 뺐던 GitHub Copilot CLI와 VS Code
