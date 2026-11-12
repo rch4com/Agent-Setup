@@ -440,6 +440,7 @@ export default {
   'action.scope.label': '설치 범위',
   'action.scope.hint': '현재: {current} · Enter로 저장소 ↔ 사용자 전역 전환',
   'tui.scope.switched': '범위: {current}',
+  'tui.scope.scanning': '{current} 설치 상태를 확인하는 중 — CLI 목록 명령이라 1분 가까이 걸릴 수 있습니다…',
   'action.bootstrap.label': '부트스트랩 실행',
   'action.bootstrap.hint': '지침 · 스킬 · 도구별 설정 · 파일 {total}개 중 {present}개 존재',
   'action.sync.installed.label': '설치본 업데이트',

@@ -453,6 +453,7 @@ export default {
   'action.scope.label': 'Install scope',
   'action.scope.hint': 'now: {current} · Enter switches repo ↔ user-global',
   'tui.scope.switched': 'Scope: {current}',
+  'tui.scope.scanning': 'Scanning {current} installs — CLI list commands can take up to a minute…',
   'action.bootstrap.label': 'Run bootstrap',
   'action.bootstrap.hint': 'guides · skills · per-tool config · {present} of {total} files exist',
   'action.sync.installed.label': 'Update installed',

@@ -391,6 +391,10 @@ export async function runTui(root, opts = {}) {
         if (row?.id === 'action.language') { status = await cycleLanguage(); continue }
         if (row?.id === 'action.scope') {
           scope = scope === 'project' ? 'user' : 'project'
+          // 전역 감지는 CLI 목록 명령(codex plugin list 등)을 돌려 수십 초 걸린다.
+          // 그동안 화면이 그대로면 멈춘 것으로 읽힌다 — 먼저 진행 중임을 그린다.
+          status = t('tui.scope.scanning', { current: t(`scope.${scope}`) })
+          paint()
           // 다른 범위의 설치 상태로 선택을 다시 맞춘다 — 저장소에서 고르던 체크가
           // 전역 목록에 남으면 엉뚱한 항목이 설치된다.
           await rebuild(false)

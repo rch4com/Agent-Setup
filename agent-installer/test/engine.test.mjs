@@ -230,6 +230,26 @@ test('scan은 probe를 detect에 넘기고 결과를 result로 보존한다; pla
   assert.deepEqual(change.state.targets, ['claude'])
 })
 
+// 전역 스캔은 서로 다른 CLI 목록 명령을 기다린다. 차례로 기다리면 시간이 더해져
+// 범위 전환이 1분 넘게 멈춘 것처럼 보였다 — 감지는 함께 돌고 순서는 지켜야 한다.
+test('scan은 항목 감지를 함께 돌리고 결과 순서를 지킨다', async () => {
+  let running = 0
+  let peak = 0
+  const item = (id, ms) => ({
+    id, category: 'plugin', label: id,
+    detect: async () => {
+      peak = Math.max(peak, ++running)
+      await new Promise((r) => setTimeout(r, ms))
+      running--
+      return { status: 'absent' }
+    },
+    install: async () => {}, uninstall: async () => {},
+  })
+  const states = await scan('/r', [item('a', 30), item('b', 10), item('c', 20)], { probe: {} })
+  assert.equal(peak, 3)
+  assert.deepEqual(states.map((s) => s.item.id), ['a', 'b', 'c'])
+})
+
 test('apply는 change.state를 ctx.state로 넘긴다', async () => {
   let got = null
   const item = { id: 'x', category: 'plugin', label: 'x', detect: async () => ({ status: 'absent' }), install: async (ctx) => { got = ctx.state }, uninstall: async () => {} }

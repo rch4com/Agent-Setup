@@ -6,19 +6,20 @@ import { createProbe } from './probe.mjs'
 // 항목처럼 probe를 안 쓰는 detect는 그냥 무시한다.
 export async function scan(root, items, { probe = null, scope = 'project' } = {}) {
   const shared = probe ?? createProbe({ root, scope, exec: makeExec(false) })
-  const states = []
-  for (const item of items) {
+  // 항목 감지를 함께 돌린다 — 감지는 읽기뿐이고 같은 CLI 질의는 probe가 한 번으로
+  // 묶는다. 차례로 돌리면 서로 다른 목록 명령(codex 수십 초, npx skills 십여 초)의
+  // 시간이 더해져 전역 스캔이 1분을 넘겼다. Promise.all은 순서를 지킨다.
+  return Promise.all(items.map(async (item) => {
     try {
       const r = await item.detect({ root, probe: shared })
       // excluded는 "이 머신에 없는 CLI"를 알리는 자리다 — 행 힌트가 supports를
       // 나열할 때 그 CLI를 빼고 따로 표시한다. result는 감지 결과 전체로,
       // 레시피 항목의 steps()가 어느 CLI에 이미 있는지(present)를 읽는다.
-      states.push({ item, status: r.status, detail: r.detail, excluded: r.excluded ?? [], result: r })
+      return { item, status: r.status, detail: r.detail, excluded: r.excluded ?? [], result: r }
     } catch (err) {
-      states.push({ item, status: 'absent', detail: msg('item.scanFailed', { message: err.message }) })
+      return { item, status: 'absent', detail: msg('item.scanFailed', { message: err.message }) }
     }
-  }
-  return states
+  }))
 }
 
 // item.exclusive는 "이 항목들은 같은 파일 하나를 두고 다툰다"는 표시다.

@@ -436,6 +436,16 @@ test('범위 행에서 Enter를 누르면 사용자 전역으로 바뀐다', asy
   assert.ok(screen.includes('범위: 사용자 전역'), '범위 전환 안내가 없다')
 })
 
+// 전역 감지는 수십 초 걸린다 — 스캔을 시작하기 전에 진행 중임을 먼저 그려야
+// 멈춘 화면으로 읽히지 않는다.
+test('범위를 바꾸면 스캔 전에 확인 중 안내를 그린다', async () => {
+  const { frames } = await drive([DOWN, ENTER, CC])
+  const i = frames.findIndex((f) => f.includes('사용자 전역 설치 상태를 확인하는 중'))
+  const j = frames.findIndex((f) => f.includes('범위: 사용자 전역'))
+  assert.ok(i !== -1, '확인 중 안내가 없다')
+  assert.ok(i < j, '안내가 스캔 뒤에 그려졌다')
+})
+
 // 전역 범위의 항목은 이 체크 하나가 저장소 밖(~/.codex 등)을 건드린다 — 켜는 순간
 // 상태줄이 그 사실을 말해야 한다.
 test('전역 범위에서 항목을 켜면 상태줄이 머신 전역임을 알린다', async () => {
