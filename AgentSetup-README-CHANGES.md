@@ -5,6 +5,25 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## agent-desktop, ego lite, and installing the apps skills drive (2026-11-13, 2.3.0)
+
+- **`skill.agent-desktop`.** vercel-labs/agent-desktop (Apache-2.0). The skill
+  for a computer-use CLI that reads desktop app accessibility trees as JSON.
+- **`skill.ego-lite`.** The `ego-browser` skill from citrolabs/ego-lite (MIT).
+  It drives ego lite, a Chromium browser shared by you and your agent.
+- **Skills now install the app they drive.** When the app is missing,
+  agent-browser, agent-desktop and ego lite install it after the skill —
+  `npm i -g agent-browser` then `agent-browser install`, `npm i -g
+  agent-desktop`, and for ego lite the upstream Windows installer or the
+  upstream macOS `install.sh` (no Linux build). An existing app is skipped,
+  and removal deletes only the skill. An item reads as installed only when
+  both the skill and the app are present.
+- **ego lite detection.** `ego-browser` reaches PATH only after onboarding,
+  so detection also checks `ego lite.app` on macOS and the uninstall entry's
+  display name on Windows.
+- **Verified.** Unit tests and `--set … --dry-run` confirmed the planned
+  commands. Real app installs and the macOS path were not exercised.
+
 ## Scope switch no longer looks frozen (2026-11-12, 2.2.1)
 
 - **The screen appeared frozen after switching scope.** Pressing Enter on

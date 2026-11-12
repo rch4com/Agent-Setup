@@ -5,6 +5,23 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## agent-desktop·ego lite를 넣고 스킬이 쓰는 앱을 함께 설치한다 (2026-11-13, 2.3.0)
+
+- **`skill.agent-desktop`.** vercel-labs/agent-desktop(Apache-2.0). 데스크톱
+  앱의 접근성 트리를 JSON으로 읽어 조작하는 computer-use CLI의 스킬이다.
+- **`skill.ego-lite`.** citrolabs/ego-lite(MIT)의 `ego-browser` 스킬. 사람과
+  에이전트가 함께 쓰는 Chromium 브라우저 ego lite를 구동한다.
+- **스킬이 구동하는 앱을 함께 설치한다.** agent-browser·agent-desktop·ego
+  lite는 앱이 없으면 스킬 설치에 이어 앱도 깐다 — `npm i -g agent-browser`
+  후 `agent-browser install`, `npm i -g agent-desktop`, ego lite는 Windows
+  상류 설치기 실행·macOS 상류 `install.sh`(Linux 빌드 없음). 앱이 이미
+  있으면 건너뛰고, 제거는 스킬만 지운다. 스킬과 앱이 둘 다 있어야
+  설치됨으로 읽는다.
+- **ego lite 감지.** `ego-browser`는 온보딩 뒤에야 PATH에 생겨, macOS는
+  `ego lite.app` 위치를, Windows는 제거 목록의 표시 이름을 함께 본다.
+- **검증.** 단위 테스트와 `--set … --dry-run`으로 예정 명령을 확인했다.
+  실제 앱 설치와 macOS 경로는 실측하지 않았다.
+
 ## 설치 범위 전환이 멈춘 듯 보이던 문제를 고친다 (2026-11-12, 2.2.1)
 
 - **범위 전환 뒤 화면이 멈춘 것처럼 보이던 문제.** 설치 범위 행에서
