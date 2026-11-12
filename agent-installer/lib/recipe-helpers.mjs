@@ -25,29 +25,19 @@ const SKILLS = ['npx', '-y', 'skills@latest']
 // 2026-11-06)도 ~/.agents/skills를 읽으므로 codex가 깐 것을 그대로 본다.
 export const SKILLS_AGENTS = ['claude-code', 'codex', 'antigravity-cli']
 
-const OPENCODE_FILE = {
-  project: 'the project config ./opencode.jsonc (or ./opencode.json if only that one exists)',
-  user: 'the global config ~/.config/opencode/opencode.json (or opencode.jsonc there if only that one exists)',
-}
-
-// `opencode mcp add`는 대화형뿐이라 OpenCode 에이전트에게 편집을 맡긴다.
-// 지시문에는 큰따옴표를 남기지 않는다 — Windows에서 명령 한 줄은 cmd.exe를
-// 거치고, shellQuote는 그 안의 큰따옴표를 안전하게 이스케이프할 수 없어 거부한다.
-export function opencodePrompt(scope, task) {
-  return `Edit ${OPENCODE_FILE[scope]}. ${task} Keep comments and every other key unchanged. Do not run any other command. Reply only DONE.`
-    .replace(/"/g, "'")
-}
-
-// JSON을 작은따옴표로 적고 "파일에는 표준 JSON으로"라고 덧붙인다.
-const quotedJson = (value) => `${JSON.stringify(value)} (written with single quotes here; use standard JSON double quotes in the file)`
-
-// LLM 실행이라 결과가 비결정적이다 — 파일을 다시 읽는 이 단계가 유일한 성공 근거다.
-function verifyOpencode(scope, check, describe) {
+// OpenCode 설정은 CLI 대신 파일을 직접 고친다. 명령은 버전마다 바뀌었고
+// (2.x: `opencode plugin <모듈>` → `plugin add`는 전역 전용, `mcp`에는 remove 없음 —
+// 2026-11-13 opencode 2.2.5 실측), 예전에 쓰던 `opencode run` 지시문은 LLM 실행이라
+// 크레딧이 없으면 "Add credits to continue"로 실패했다. jsonfile은 jsonc-parser로
+// 주석을 보존하며 고친다. 감지(probe)도 같은 파일을 읽으므로 둘이 어긋나지 않는다.
+// 파일이 없으면 OpenCode가 만들 자리(opencodeConfigFile)에 $schema와 함께 만든다.
+function opencodeStep(scope, describe, edit) {
   return {
     describe,
     fn: ({ root }) => {
       const { file, data } = readOpencodeConfig({ root, scope, home: homedir() })
-      if (!check(data)) throw new LocalizedError('error.opencodeVerify', { file })
+      if (data == null) setKey(file, ['$schema'], 'https://opencode.ai/config.json')
+      edit(file, data ?? {})
     },
   }
 }
@@ -145,13 +135,17 @@ export function marketplacePlugin({ claude, codex, opencode, antigravity, copilo
     detect.codex = (p) => p.codexPlugin(codex.id)
   }
   if (opencode) {
-    // 설치 명령은 있지만 제거 명령은 문서에 없다 — 제거는 run 지시문 + 검증이다.
+    // 설정의 plugin 배열에 모듈을 적으면 OpenCode가 시작할 때 받아 온다.
+    const list = (d) => (Array.isArray(d.plugin) ? d.plugin : [])
     const at = (scope) => ({
-      install: [['opencode', 'plugin', opencode.module, ...(scope === 'user' ? ['-g'] : [])]],
-      uninstall: [
-        ['opencode', 'run', opencodePrompt(scope, `Remove the string '${opencode.module}' from the top-level 'plugin' array; delete the array if it becomes empty.`)],
-        verifyOpencode(scope, (d) => !(Array.isArray(d?.plugin) && d.plugin.includes(opencode.module)), `check ${fileName(scope)} no longer lists plugin ${opencode.module}`),
-      ],
+      install: [opencodeStep(scope, `add ${opencode.module} to the plugin array in ${fileName(scope)}`, (file, d) => {
+        if (!list(d).includes(opencode.module)) setKey(file, ['plugin'], [...list(d), opencode.module])
+      })],
+      uninstall: [opencodeStep(scope, `remove ${opencode.module} from the plugin array in ${fileName(scope)}`, (file, d) => {
+        const rest = list(d).filter((m) => m !== opencode.module)
+        if (rest.length > 0) setKey(file, ['plugin'], rest)
+        else removeKey(file, ['plugin'])
+      })],
     })
     recipes.opencode = { project: at('project'), user: at('user') }
     detect.opencode = (p) => p.opencodePlugin(opencode.module)
@@ -192,14 +186,8 @@ export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode',
     ? { type: 'remote', url: server.url, enabled: true }
     : { type: 'local', command: [server.command, ...server.args], enabled: true }
   const opencodeAt = (scope) => ({
-    install: [
-      ['opencode', 'run', opencodePrompt(scope, `Under the top-level 'mcp' object (create it, and the file with '$schema': 'https://opencode.ai/config.json', if missing) set the key '${name}' to this value: ${quotedJson(entry)}.`)],
-      verifyOpencode(scope, (d) => d?.mcp?.[name] !== undefined, `check ${fileName(scope)} has mcp.${name}`),
-    ],
-    uninstall: [
-      ['opencode', 'run', opencodePrompt(scope, `Delete the key '${name}' from the top-level 'mcp' object.`)],
-      verifyOpencode(scope, (d) => d?.mcp?.[name] === undefined, `check ${fileName(scope)} no longer has mcp.${name}`),
-    ],
+    install: [opencodeStep(scope, `set mcp.${name} in ${fileName(scope)}`, (file) => setKey(file, ['mcp', name], entry))],
+    uninstall: [opencodeStep(scope, `remove mcp.${name} from ${fileName(scope)}`, (file) => removeKey(file, ['mcp', name]))],
   })
   const claudeAt = (scope) => ({
     install: [http ? ['claude', 'mcp', 'add', '-s', scope, '-t', 'http', name, server.url] : ['claude', 'mcp', 'add', '-s', scope, name, ...tail]],

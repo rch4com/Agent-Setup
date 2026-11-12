@@ -239,7 +239,6 @@ export default {
   'error.recipeInvalid': '항목 {id}의 레시피가 잘못됐습니다: {why}',
   'error.stepsFailed': ['일부 명령이 실패했습니다:', '{details}'],
   'error.codexMcpVerify': 'Codex에 MCP 서버 {name}가 등록되지 않았습니다 — codex mcp list를 확인하고 출력된 명령을 직접 실행하세요',
-  'error.opencodeVerify': 'OpenCode가 {file}에 변경을 반영하지 않았습니다 — 파일을 확인하고 출력된 명령을 직접 실행하세요',
   'error.appInstall': '앱 설치 실패: {command} — {output}',
   'error.appUnsupported': '{app}은(는) {platform}용 빌드가 없습니다 — 스킬만 설치하거나 상류 사이트를 확인하세요',
   'error.claudeAdapter': 'Claude Code가 공유 스킬을 볼 수 없습니다: {path}이(가) {reason}입니다 — 옮겨 둔 뒤 다시 실행하거나 bootstrap을 실행하세요',

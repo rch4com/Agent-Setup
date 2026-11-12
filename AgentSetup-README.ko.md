@@ -207,8 +207,8 @@ npx @rch4com/agent-setup bootstrap --adopt
 
 | 항목 | 실행되는 것 |
 |---|---|
-| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <범위>` + `claude plugin install <id> --scope <범위>`. Codex(전역): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <모듈>`(전역은 `-g`). Antigravity(전역): `agy plugin install <git URL>`. Copilot CLI(전역): `copilot plugin marketplace add <repo>` + `copilot plugin install <id>`. 항목마다 상류가 안내하는 CLI만 배선합니다. 마켓플레이스 등록이 "이미 있음"으로 실패하는 것은 무시합니다 |
-| `mcp.*` | Claude Code: `claude mcp add -s <범위> <이름> …`. Codex(전역): `codex mcp add <이름> …`. Antigravity(전역): `agy mcp add <이름> …`. Copilot CLI(전역): `copilot mcp add [--transport http] <이름> …`. VS Code Copilot: 명령이 없어 `.vscode/mcp.json`(저장소)·`~/.copilot/mcp-config.json`(전역)을 직접 고칩니다. OpenCode: `opencode mcp add`가 대화형뿐이라 `opencode run "<지시문>"`으로 OpenCode 에이전트에게 설정 편집을 맡기고, 설정 파일을 다시 읽어 반영됐는지 확인합니다 |
+| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <범위>` + `claude plugin install <id> --scope <범위>`. Codex(전역): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `./opencode.jsonc`(전역 `~/.config/opencode/opencode.json`)의 `plugin` 배열에 모듈을 주석을 보존하며 직접 넣습니다. Antigravity(전역): `agy plugin install <git URL>`. Copilot CLI(전역): `copilot plugin marketplace add <repo>` + `copilot plugin install <id>`. 항목마다 상류가 안내하는 CLI만 배선합니다. 마켓플레이스 등록이 "이미 있음"으로 실패하는 것은 무시합니다 |
+| `mcp.*` | Claude Code: `claude mcp add -s <범위> <이름> …`. Codex(전역): `codex mcp add <이름> …`. Antigravity(전역): `agy mcp add <이름> …`. Copilot CLI(전역): `copilot mcp add [--transport http] <이름> …`. VS Code Copilot: 명령이 없어 `.vscode/mcp.json`(저장소)·`~/.copilot/mcp-config.json`(전역)을 직접 고칩니다. OpenCode: 같은 설정 파일의 `mcp.<이름>`을 주석을 보존하며 직접 씁니다(OpenCode CLI 문법이 2.x에서 바뀌었고, 예전 `opencode run` 경로는 LLM 크레딧이 필요했습니다) |
 | `skill.*` (레지스트리 스킬: agent-browser, agent-desktop, agent-handoff-manager, archify, caveman, diagram-design, ego-lite, eli5, find-skills, hallmark, html-plan, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste, unslop) | 저장소 범위: `npx -y skills@latest add <github 저장소> --skill <이름> --agent universal --yes --copy` — 공유 `.agents/skills`에 복사합니다. 전역: `… -g -a claude-code codex antigravity-cli --yes --copy`(`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode는 앞의 둘을, Copilot CLI·VS Code Copilot은 `~/.agents/skills`를 읽습니다). 제거는 `npx -y skills@latest remove`를 돌린 뒤 남은 디렉터리와 `skills-lock.json` 항목을 지웁니다 |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<런타임> --local` — 런타임(claude·codex·opencode·copilot)마다 한 번씩, 확인 프롬프트 없이(`-y`) 최신 버전을 내려받아 실행합니다 |
 | `skill.gstack` | `github.com/garrytan/gstack` 기본 브랜치를 shallow clone한 뒤 저장소 안에서 `bash ./setup`을 실행합니다. 커밋을 고정하거나 무결성을 검증하지는 않습니다 |
@@ -224,10 +224,9 @@ npx @rch4com/agent-setup bootstrap --adopt
   바꾸지 않습니다.
 - MCP 항목은 각 CLI 설정에 URL·명령만 등록합니다. 인증(OAuth)은 각 CLI를
   처음 쓸 때 진행되며 토큰은 이 저장소에 저장되지 않습니다.
-- `opencode run`은 LLM 실행이라 결과가 비결정적입니다. 설치기는 설정 파일을
-  다시 읽어 확인하고, 반영되지 않았거나 권한 요청에서 멈춰 시간 제한(10분)에
-  걸리면 실패로 보고합니다 — 그때는 `--print`가 낸 지시문을 OpenCode에서 직접
-  실행하세요. 2.0.0 시점 이 경로는 실제 OpenCode로 검증하지 못했습니다.
+- OpenCode 항목은 OpenCode CLI를 부르지 않고 설정 파일을 직접 고쳐, LLM 크레딧
+  없이도, CLI 문법이 바뀌어도 동작합니다. OpenCode 2.2.5로 확인했습니다
+  (`opencode mcp list`가 서버를 connected로 보여 줍니다).
 
 ## Windows
 

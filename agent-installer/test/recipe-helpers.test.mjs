@@ -4,7 +4,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { defineRecipe, bindScope } from '../lib/recipe.mjs'
-import { marketplacePlugin, mcpServer, skillsAdd, opencodePrompt, SKILLS_AGENTS, withApp, npmApp } from '../lib/recipe-helpers.mjs'
+import { readJson } from '../lib/jsonfile.mjs'
+import { marketplacePlugin, mcpServer, skillsAdd, SKILLS_AGENTS, withApp, npmApp } from '../lib/recipe-helpers.mjs'
 
 const lines = (item, action, state = {}) => item.steps(action, state).map((s) => (s.argv ? s.argv.join(' ') : `# ${s.describe}`))
 
@@ -26,7 +27,7 @@ test('marketplacePlugin: project 범위 명령', () => {
   assert.deepEqual(lines(item, 'install'), [
     'claude plugin marketplace add DietrichGebert/ponytail --scope project',
     'claude plugin install ponytail@ponytail --scope project',
-    'opencode plugin @dietrichgebert/ponytail',
+    '# add @dietrichgebert/ponytail to the plugin array in ./opencode.jsonc',
   ])
   assert.equal(item.steps('install')[0].tolerateFail, true, '마켓플레이스 "이미 등록됨"은 실패가 아니다')
 })
@@ -40,7 +41,7 @@ test('marketplacePlugin: user 범위 명령과 제거', () => {
     'claude plugin install ponytail@ponytail --scope user',
     'codex plugin marketplace add DietrichGebert/ponytail',
     'codex plugin add ponytail@ponytail',
-    'opencode plugin @dietrichgebert/ponytail -g',
+    '# add @dietrichgebert/ponytail to the plugin array in ~/.config/opencode/opencode.json',
     'agy plugin install https://github.com/DietrichGebert/ponytail',
     'copilot plugin marketplace add DietrichGebert/ponytail',
     'copilot plugin install ponytail@ponytail',
@@ -48,10 +49,9 @@ test('marketplacePlugin: user 범위 명령과 제거', () => {
   const removal = lines(item, 'uninstall', all)
   assert.equal(removal[0], 'claude plugin uninstall ponytail@ponytail --scope user')
   assert.equal(removal[1], 'codex plugin remove ponytail@ponytail')
-  assert.match(removal[2], /^opencode run /)
-  assert.match(removal[3], /^# /, 'opencode run 뒤에는 검증 단계가 붙는다')
-  assert.equal(removal[4], 'agy plugin uninstall ponytail')
-  assert.equal(removal[5], 'copilot plugin uninstall ponytail@ponytail')
+  assert.equal(removal[2], '# remove @dietrichgebert/ponytail from the plugin array in ~/.config/opencode/opencode.json')
+  assert.equal(removal[3], 'agy plugin uninstall ponytail')
+  assert.equal(removal[4], 'copilot plugin uninstall ponytail@ponytail')
 })
 
 test('marketplacePlugin: Copilot은 전역 전용이고 마켓 등록 "이미 있음"을 참는다', () => {
@@ -90,10 +90,10 @@ test('mcpServer: stdio·http를 CLI별 문법으로', () => {
   const got = lines(user, 'install', { targets: user.supports })
   assert.equal(got[0], 'claude mcp add -s user graft -- npx -y @nanonets/graft mcp')
   assert.equal(got[1], 'codex mcp add graft -- npx -y @nanonets/graft mcp')
-  assert.match(got[2], /^opencode run /)
-  assert.equal(got[4], 'agy mcp add graft -- npx -y @nanonets/graft mcp')
-  assert.equal(got[5], 'copilot mcp add graft -- npx -y @nanonets/graft mcp')
-  assert.match(got[6], /^# add mcpServers\.graft to /, 'VS Code는 명령이 없어 파일을 쓰는 단계다')
+  assert.equal(got[2], '# set mcp.graft in ~/.config/opencode/opencode.json')
+  assert.equal(got[3], 'agy mcp add graft -- npx -y @nanonets/graft mcp')
+  assert.equal(got[4], 'copilot mcp add graft -- npx -y @nanonets/graft mcp')
+  assert.match(got[5], /^# add mcpServers\.graft to /, 'VS Code는 명령이 없어 파일을 쓰는 단계다')
   const http = defineRecipe({ id: 'mcp.notion', category: 'mcp', label: 'n', ...mcpServer({ name: 'notion', server: { kind: 'http', url: 'https://mcp.notion.com/mcp' } }) })
   const p = bindScope(http, 'project')
   assert.deepEqual(p.supports, ['claude', 'opencode', 'vscode'])
@@ -175,24 +175,30 @@ test('mcpServer: clis로 일부 CLI만 고른다', () => {
   assert.deepEqual(Object.keys(part.detect), ['opencode', 'antigravity'])
 })
 
-test('opencodePrompt에는 큰따옴표가 없다 — Windows cmd 인용이 거부한다', () => {
-  const prompt = opencodePrompt('project', `set ${JSON.stringify({ type: 'local', command: ['a b'] })}`)
-  assert.doesNotMatch(prompt, /"/)
-  assert.match(prompt, /opencode\.jsonc/)
-  assert.match(opencodePrompt('user', 'x'), /~\/\.config\/opencode\/opencode\.json/)
-  const def = defineRecipe({ id: 'mcp.n', category: 'mcp', label: 'n', ...mcpServer({ name: 'n', server: { kind: 'stdio', command: 'x', args: ['--flag'] } }) })
-  for (const s of bindScope(def, 'user').steps('install', { targets: ['opencode'] })) {
-    if (s.argv) assert.doesNotMatch(s.argv.join(' '), /"/)
-  }
-})
-
-test('OpenCode 검증 단계: 파일에 반영되지 않았으면 던진다', async () => {
+// OpenCode는 CLI 문법이 버전마다 바뀌고(2.x) `opencode run`은 LLM 크레딧이 없으면
+// 실패했다 — 설정 파일을 직접, 주석을 보존하며 고친다.
+test('OpenCode: MCP·플러그인을 설정 파일에 직접 쓰고 지운다(주석 보존)', async () => {
   const root = mkdtempSync(join(tmpdir(), 'oc-'))
-  const def = defineRecipe({ id: 'mcp.n', category: 'mcp', label: 'n', ...mcpServer({ name: 'n', server: { kind: 'http', url: 'https://x' } }) })
-  const verify = bindScope(def, 'project').steps('install', { targets: ['opencode'] }).find((s) => s.fn)
-  await assert.rejects(async () => verify.fn({ root }), (err) => err.key === 'error.opencodeVerify')
-  writeFileSync(join(root, 'opencode.jsonc'), '{ "mcp": { "n": { "type": "remote", "url": "https://x", "enabled": true } } }')
-  await verify.fn({ root })
+  const file = join(root, 'opencode.jsonc')
+  const run = async (item, action) => {
+    for (const st of item.steps(action, { targets: ['opencode'], present: action === 'install' ? [] : ['opencode'] })) await st.fn({ root })
+  }
+  const mcp = bindScope(defineRecipe({ id: 'mcp.n', category: 'mcp', label: 'n', ...mcpServer({ name: 'n', server: { kind: 'stdio', command: 'n-mcp', args: [] } }) }), 'project')
+  await run(mcp, 'install')
+  const created = JSON.parse(readFileSync(file, 'utf8'))
+  assert.equal(created.$schema, 'https://opencode.ai/config.json')
+  assert.deepEqual(created.mcp.n, { type: 'local', command: ['n-mcp'], enabled: true })
+
+  writeFileSync(file, '{\n  // keep me\n  "plugin": ["other"]\n}\n')
+  const plugin = bindScope(ponytail(), 'project')
+  await run(plugin, 'install')
+  await run(plugin, 'install')
+  assert.match(readFileSync(file, 'utf8'), /\/\/ keep me/)
+  assert.deepEqual(readJson(file).plugin, ['other', '@dietrichgebert/ponytail'])
+  await run(plugin, 'uninstall')
+  assert.deepEqual(readJson(file).plugin, ['other'])
+  await run(mcp, 'uninstall')
+  assert.equal(readJson(file).mcp?.n, undefined)
 })
 
 test('skillsAdd: 공유 단계 하나로 네 CLI, 전역은 에이전트 명시', () => {

@@ -247,7 +247,6 @@ export default {
   'error.recipeInvalid': 'Invalid recipe in item {id}: {why}',
   'error.stepsFailed': ['Some commands failed:', '{details}'],
   'error.codexMcpVerify': 'Codex did not register MCP server {name} — check codex mcp list and run the printed command by hand',
-  'error.opencodeVerify': 'OpenCode did not apply the change to {file} — check the file and run the printed command by hand',
   'error.appInstall': 'App install failed: {command} — {output}',
   'error.appUnsupported': '{app} has no build for {platform} — install the skill only, or check the upstream site',
   'error.claudeAdapter': 'Claude Code cannot see shared skills: {path} is {reason} — move it aside and rerun, or run bootstrap',

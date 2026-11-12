@@ -219,8 +219,8 @@ review screen in the interactive UI).
 
 | Item | What runs |
 |---|---|
-| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <scope>` + `claude plugin install <id> --scope <scope>`. Codex (global): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: `opencode plugin <module>` (`-g` for global). Antigravity (global): `agy plugin install <git URL>`. Copilot CLI (global): `copilot plugin marketplace add <repo>` + `copilot plugin install <id>`. Each item wires only the CLIs its upstream documents. A marketplace registration failing with "already exists" is ignored |
-| `mcp.*` | Claude Code: `claude mcp add -s <scope> <name> …`. Codex (global): `codex mcp add <name> …`. Antigravity (global): `agy mcp add <name> …`. Copilot CLI (global): `copilot mcp add [--transport http] <name> …`. VS Code Copilot: no command — edits `.vscode/mcp.json` (repo) or `~/.copilot/mcp-config.json` (global) directly. OpenCode: `opencode mcp add` is interactive only, so `opencode run "<instruction>"` asks the OpenCode agent to edit its config, and the installer re-reads the config file to confirm the change landed |
+| `plugin.*` | Claude Code: `claude plugin marketplace add <repo> --scope <scope>` + `claude plugin install <id> --scope <scope>`. Codex (global): `codex plugin marketplace add <repo>` + `codex plugin add <id>`. OpenCode: adds the module to the `plugin` array in `./opencode.jsonc` (global: `~/.config/opencode/opencode.json`) directly, preserving comments. Antigravity (global): `agy plugin install <git URL>`. Copilot CLI (global): `copilot plugin marketplace add <repo>` + `copilot plugin install <id>`. Each item wires only the CLIs its upstream documents. A marketplace registration failing with "already exists" is ignored |
+| `mcp.*` | Claude Code: `claude mcp add -s <scope> <name> …`. Codex (global): `codex mcp add <name> …`. Antigravity (global): `agy mcp add <name> …`. Copilot CLI (global): `copilot mcp add [--transport http] <name> …`. VS Code Copilot: no command — edits `.vscode/mcp.json` (repo) or `~/.copilot/mcp-config.json` (global) directly. OpenCode: sets `mcp.<name>` in the same config file directly, preserving comments (OpenCode CLI syntax changed in 2.x, and the old `opencode run` path needed LLM credits) |
 | `skill.*` (registry skills: agent-browser, agent-desktop, agent-handoff-manager, archify, caveman, diagram-design, ego-lite, eli5, find-skills, hallmark, html-plan, i-have-adhd, im-not-ai, impeccable, karpathy, mattpocock-skills, mcp-builder, officecli, prompt-master, remotion, strix, superpowers, taste, unslop) | Repo scope: `npx -y skills@latest add <github repo> --skill <name> --agent universal --yes --copy` — copies into the shared `.agents/skills`. Global: `… -g -a claude-code codex antigravity-cli --yes --copy` (`~/.claude/skills`, `~/.agents/skills`, `~/.gemini/antigravity-cli/skills` — OpenCode reads the first two, and Copilot CLI and VS Code Copilot read `~/.agents/skills`). Removal runs `npx -y skills@latest remove` and then deletes any leftover directory and the `skills-lock.json` entry |
 | `skill.gsd` | `npx -y @opengsd/gsd-core@latest --<runtime> --local` — once per runtime (claude, codex, opencode, copilot), downloading and running the latest version with no confirmation prompt (`-y`) |
 | `skill.gstack` | Shallow-clones the default branch of `github.com/garrytan/gstack` and then runs `bash ./setup` inside the repository. It does not pin a commit or verify integrity |
@@ -239,12 +239,9 @@ review screen in the interactive UI).
 - MCP items register only URLs and commands in each CLI's config.
   Authentication (OAuth) happens the first time you use each CLI, and tokens are
   not stored in this repository.
-- `opencode run` is an LLM run, so its result is nondeterministic. The installer
-  re-reads the config file to confirm, and reports a failure if the change did
-  not land or the run stalls on a permission prompt and hits the time limit
-  (10 minutes) — in that case, run the instruction `--print` shows directly in
-  OpenCode. As of 2.0.0 this path has not been verified against a real
-  OpenCode.
+- OpenCode items edit the config file directly instead of calling the OpenCode
+  CLI, so they work without LLM credits and across CLI syntax changes. Verified
+  with OpenCode 2.2.5 (`opencode mcp list` shows the server connected).
 
 ## Windows
 

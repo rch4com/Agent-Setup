@@ -50,7 +50,7 @@ test('apply dry-run: 레시피 항목은 예정 명령을 보고하고 아무것
 
   assert.equal(results[0].ok, true)
   assert.match(cap.text(), /\[dry-run\] claude mcp add -s project -t http demo https:\/\/example\.com\/mcp/)
-  assert.match(cap.text(), /\[dry-run\] opencode run /)
+  assert.match(cap.text(), /\[dry-run\] set mcp\.demo in \.\/opencode\.jsonc/)
   assert.equal(existsSync(join(root, '.mcp.json')), false, 'dry-run은 파일을 만들지 않는다')
 })
 
