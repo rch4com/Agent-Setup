@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { defineRecipe, bindScope } from '../lib/recipe.mjs'
 import { skillsAdd } from '../lib/recipe-helpers.mjs'
 import { createProbe } from '../lib/probe.mjs'
-import { makeTempRepo } from './helpers.mjs'
+import { linkClaudeSkills, makeTempRepo } from './helpers.mjs'
 
 // 레지스트리 스킬은 .agents/skills에 실물을 남긴다 — 이 저장소가 이미 공유
 // 스킬 자리로 쓰는 디렉터리다. 그래서 검사는 두 가지를 본다:
@@ -19,6 +19,7 @@ function putSkill(root, dir, name) {
   const path = join(root, '.agents', 'skills', dir)
   mkdirSync(path, { recursive: true })
   writeFileSync(join(path, 'SKILL.md'), `---\nname: ${name}\ndescription: t\n---\n\n# ${name}\n`)
+  linkClaudeSkills(root)
   return path
 }
 
@@ -211,3 +212,36 @@ test('레지스트리 스킬 uninstall: 잠금 파일이 깨져도 대표 스킬
 
   assert.equal(existsSync(dir), false)
 })
+
+// Claude Code는 .claude/skills만 훑는다. 부트스트랩 없이 스킬 항목만 깐 저장소에서
+// Claude만 공유 스킬을 못 봤다(2026-11-13 실사용 보고) — 설치가 어댑터를 직접 맞춘다.
+test('레지스트리 스킬 install: 부트스트랩 없는 저장소에도 Claude 어댑터를 만든다', async () => {
+  const root = makeTempRepo()
+  const it = item()
+  const exec = async () => {
+    putSkillOnly(root, 'design-taste-frontend')
+    return { ok: true, output: '' }
+  }
+  await it.install({ root, exec, state: await detect(it, root) })
+  assert.ok(existsSync(join(root, '.claude', 'skills', 'design-taste-frontend', 'SKILL.md')), 'Claude 경로에서 스킬이 안 보인다')
+  assert.match(readFileSync(join(root, '.gitignore'), 'utf8'), /^\.claude\/skills$/m)
+  assert.equal((await detect(it, root)).status, 'installed')
+})
+
+test('레지스트리 스킬 install: 손으로 만든 .claude/skills는 덮지 않고 실패로 알린다', async () => {
+  const root = makeTempRepo()
+  mkdirSync(join(root, '.claude', 'skills', 'mine'), { recursive: true })
+  const it = item()
+  const exec = async () => {
+    putSkillOnly(root, 'design-taste-frontend')
+    return { ok: true, output: '' }
+  }
+  await assert.rejects(it.install({ root, exec, state: await detect(it, root) }), /Claude Code cannot see shared skills/)
+  assert.ok(existsSync(join(root, '.claude', 'skills', 'mine')), '사용자 디렉터리를 지웠다')
+})
+
+function putSkillOnly(root, name) {
+  const path = join(root, '.agents', 'skills', name)
+  mkdirSync(path, { recursive: true })
+  writeFileSync(join(path, 'SKILL.md'), `---\nname: ${name}\n---\n`)
+}

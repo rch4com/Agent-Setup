@@ -250,6 +250,7 @@ export default {
   'error.opencodeVerify': 'OpenCode did not apply the change to {file} — check the file and run the printed command by hand',
   'error.appInstall': 'App install failed: {command} — {output}',
   'error.appUnsupported': '{app} has no build for {platform} — install the skill only, or check the upstream site',
+  'error.claudeAdapter': 'Claude Code cannot see shared skills: {path} is {reason} — move it aside and rerun, or run bootstrap',
   'item.unsupported.superpowersSeparate': 'upstream supports it via a separate per-harness install — this item wires the Claude Code plugin only',
   'item.unsupported.impeccableSkill': 'upstream supports it — the shared-skill edition skill.impeccable covers this CLI, and this plugin item wires Claude Code only',
   'item.unsupported.gstackShared': 'the upstream --host route is user-scoped, so it is not used. In a bootstrapped repository the shared .agents/skills junction reaches this CLI instead, and it scans recursively, so it sees the individual skills too (measured 2026-08-15)',

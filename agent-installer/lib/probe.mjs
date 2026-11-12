@@ -120,7 +120,12 @@ export function createProbe({ root, scope, exec, env = process.env, home = homed
       return false
     },
     async skill(name) {
-      if (scope === 'project') return findSkillDir(root, name) !== null
+      // Claude Code는 .claude/skills만 본다 — 공유 디렉터리에만 있으면 Claude에는
+      // 없는 것이라 설치됨으로 읽지 않는다. 다시 고르면 어댑터 단계가 채운다.
+      if (scope === 'project') {
+        const dir = findSkillDir(root, name)
+        return dir !== null && existsSync(join(root, '.claude/skills', dir, 'SKILL.md'))
+      }
       const list = JSON.parse(await run('npx', ['-y', 'skills@latest', 'list', '-g', '--json']))
       return list.some((s) => s.name === name)
     },

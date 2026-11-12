@@ -3,9 +3,11 @@
 // 따른다.
 import { existsSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
+import { configureAdapter } from './bootstrap/adapter.mjs'
+import { MANIFEST } from './bootstrap/manifest.mjs'
 import { repoPathStrict } from './context.mjs'
 import { ensureGitignoreEntries } from './gitignore.mjs'
-import { LocalizedError } from './i18n/index.mjs'
+import { LocalizedError, createT, toText } from './i18n/index.mjs'
 import { readJson, removeKey, setKey } from './jsonfile.mjs'
 import { VSCODE_MCP_FILE, copilotMcpFile, onPath, readOpencodeConfig } from './probe.mjs'
 import { SHARED } from './recipe.mjs'
@@ -244,6 +246,23 @@ function cleanup(root, names, lockNames = names) {
   pruneLock(root, lockNames)
 }
 
+// Claude Code는 .agents/skills를 읽지 않고 .claude/skills만 훑는다. 부트스트랩이
+// 그 자리에 .agents/skills를 가리키는 Junction(또는 관리 복사본)을 두는데, 부트스트랩
+// 없이 스킬 항목만 깐 저장소에서는 Claude만 공유 스킬을 못 봤다. 그래서 저장소
+// 범위 스킬 설치가 같은 어댑터를 직접 맞춘다 — 이미 있으면 건너뛰고, 관리 복사본이면
+// 새 스킬까지 다시 복사한다. 손으로 만든 실제 디렉터리는 덮지 않고 실패로 알린다.
+const claudeAdapterStep = {
+  describe: 'link .claude/skills to .agents/skills so Claude Code sees shared skills (skipped if already linked)',
+  fn: ({ root, skillMode = 'auto' }) => {
+    const adapter = MANIFEST.adapters.find((a) => a.tool === 'Claude Code')
+    const r = configureAdapter(root, adapter, { skillMode, log: () => {} })
+    if (!r.ok || r.action === 'warn') {
+      throw new LocalizedError('error.claudeAdapter', { path: adapter.path, reason: toText(createT('en'), r.message) })
+    }
+    if (r.action !== 'skip') ensureGitignoreEntries(root, [adapter.path])
+  },
+}
+
 export function skillsAdd({ source, skill, anchor = null }) {
   const wildcard = skill === '*'
   // 스킬 전부(*)를 넣으면 detect가 볼 이름을 정해 둬야 한다 — 없으면 설치해도
@@ -251,7 +270,7 @@ export function skillsAdd({ source, skill, anchor = null }) {
   if (wildcard && !anchor) throw new LocalizedError('error.registrySkillAnchor', { id: sourceKey(source) })
   const probeName = anchor ?? skill
   const project = {
-    install: [[...SKILLS, 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy']],
+    install: [[...SKILLS, 'add', source, '--skill', skill, '--agent', 'universal', '--yes', '--copy'], claudeAdapterStep],
     uninstall: wildcard
       ? [{
           describe: `npx -y skills@latest remove <each skill from ${sourceKey(source)} in skills-lock.json> --agent universal --yes, then remove leftover ${SHARED_SKILLS} dirs`,

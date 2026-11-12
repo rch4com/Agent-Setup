@@ -242,6 +242,7 @@ export default {
   'error.opencodeVerify': 'OpenCode가 {file}에 변경을 반영하지 않았습니다 — 파일을 확인하고 출력된 명령을 직접 실행하세요',
   'error.appInstall': '앱 설치 실패: {command} — {output}',
   'error.appUnsupported': '{app}은(는) {platform}용 빌드가 없습니다 — 스킬만 설치하거나 상류 사이트를 확인하세요',
+  'error.claudeAdapter': 'Claude Code가 공유 스킬을 볼 수 없습니다: {path}이(가) {reason}입니다 — 옮겨 둔 뒤 다시 실행하거나 bootstrap을 실행하세요',
   'item.unsupported.unmeasuredUpstream': '상류에 설치 명령이 있지만 감지·제거 경로를 실측하지 못해 아직 배선하지 않습니다 — 상류 README의 명령으로 직접 설치할 수 있습니다',
   'item.unsupported.superpowersSeparate': '상류가 하니스별 별도 설치로 지원합니다 — 이 항목은 Claude Code 플러그인만 배선합니다',
   'item.unsupported.impeccableSkill': '상류는 지원합니다 — 공유 스킬 판 skill.impeccable이 이 CLI를 맡고, 이 플러그인 항목은 Claude Code만 배선합니다',

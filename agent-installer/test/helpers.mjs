@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -148,4 +148,14 @@ export function recordingOpener() {
   const opener = (t) => { targets.push(t); return { ok: true } }
   opener.targets = targets
   return opener
+}
+
+// 부트스트랩·스킬 설치가 두는 Claude 어댑터(.claude/skills → .agents/skills).
+// 저장소 범위 스킬 감지는 Claude 경로에서도 보여야 설치됨으로 읽는다.
+export function linkClaudeSkills(root) {
+  const target = join(root, '.claude', 'skills')
+  if (existsSync(target)) return
+  mkdirSync(join(root, '.agents', 'skills'), { recursive: true })
+  mkdirSync(join(root, '.claude'), { recursive: true })
+  symlinkSync(join(root, '.agents', 'skills'), target, 'junction')
 }

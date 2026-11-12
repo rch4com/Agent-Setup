@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createProbe, onPath, parseAgyMcpList, opencodeConfigFile } from '../lib/probe.mjs'
+import { linkClaudeSkills } from './helpers.mjs'
 
 const FIX = join(import.meta.dirname, 'fixtures', 'probe')
 const fixture = (name) => readFileSync(join(FIX, name), 'utf8')
@@ -146,6 +147,9 @@ test('스킬: project는 .agents/skills 스캔, user는 npx skills list -g --jso
   mkdirSync(join(root, '.agents', 'skills', 'caveman'), { recursive: true })
   writeFileSync(join(root, '.agents', 'skills', 'caveman', 'SKILL.md'), '---\nname: caveman\n---\n')
   const { exec } = fakeExec({ 'npx -y skills@latest list -g --json': fixture('skills-list.json') })
+  // Claude Code는 .claude/skills만 본다 — 공유 디렉터리에만 있으면 설치됨이 아니다.
+  assert.equal(await createProbe({ root, scope: 'project', exec, home, env: {} }).skill('caveman'), false)
+  linkClaudeSkills(root)
   assert.equal(await createProbe({ root, scope: 'project', exec, home, env: {} }).skill('caveman'), true)
   assert.equal(await createProbe({ root, scope: 'user', exec, home, env: {} }).skill('find-skills'), true)
 })

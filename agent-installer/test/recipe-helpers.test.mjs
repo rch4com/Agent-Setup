@@ -199,7 +199,10 @@ test('skillsAdd: 공유 단계 하나로 네 CLI, 전역은 에이전트 명시'
   const def = defineRecipe({ id: 'skill.caveman', category: 'skill', label: 'c', ...skillsAdd({ source: 'https://github.com/JuliusBrussee/caveman', skill: 'caveman' }) })
   const p = bindScope(def, 'project')
   assert.deepEqual(p.supports, ['claude', 'codex', 'opencode', 'antigravity', 'copilot', 'vscode'])
-  assert.deepEqual(lines(p, 'install'), ['npx -y skills@latest add https://github.com/JuliusBrussee/caveman --skill caveman --agent universal --yes --copy'])
+  assert.deepEqual(lines(p, 'install'), [
+    'npx -y skills@latest add https://github.com/JuliusBrussee/caveman --skill caveman --agent universal --yes --copy',
+    '# link .claude/skills to .agents/skills so Claude Code sees shared skills (skipped if already linked)',
+  ])
   const removal = lines(p, 'uninstall', { present: ['shared'], targets: ['shared'] })
   assert.equal(removal[0], 'npx -y skills@latest remove caveman --agent universal --yes')
   assert.match(removal[1], /^# /)
