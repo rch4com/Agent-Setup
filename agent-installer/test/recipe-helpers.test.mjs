@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { defineRecipe, bindScope } from '../lib/recipe.mjs'
-import { marketplacePlugin, mcpServer, skillsAdd, opencodePrompt, SKILLS_AGENTS } from '../lib/recipe-helpers.mjs'
+import { marketplacePlugin, mcpServer, skillsAdd, opencodePrompt, SKILLS_AGENTS, withApp, npmApp } from '../lib/recipe-helpers.mjs'
 
 const lines = (item, action, state = {}) => item.steps(action, state).map((s) => (s.argv ? s.argv.join(' ') : `# ${s.describe}`))
 
@@ -250,4 +250,38 @@ test('mcpServer: Codex 원격 MCP는 로그인 대기를 끊고 목록으로 등
   const listing = (names) => async () => ({ ok: true, output: JSON.stringify(names.map((name) => ({ name }))) })
   await verify.fn({ root: '/r', exec: listing(['supabase']) })
   await assert.rejects(async () => verify.fn({ root: '/r', exec: listing(['vercel']) }), (err) => err.key === 'error.codexMcpVerify')
+})
+
+// 스킬이 구동하는 앱은 없을 때만 깔고, 제거는 스킬만 지운다. 감지는 둘 다 있어야
+// 설치됨이다 — 앱이 빠진 채 설치됨으로 읽히면 다시 고를 길이 없다.
+test('withApp: 앱이 없을 때만 깔고, 제거는 앱을 건드리지 않는다', async () => {
+  for (const [has, expectInstall] of [[false, true], [true, false]]) {
+    let installed = 0
+    const def = defineRecipe({
+      id: 'skill.x', category: 'skill', label: 'x',
+      ...withApp(skillsAdd({ source: 'https://github.com/o/r', skill: 'x' }), {
+        describe: 'install x app', present: async () => has, install: async () => { installed++ },
+      }),
+    })
+    const item = bindScope(def, 'user')
+    const install = item.steps('install', { targets: ['shared'] })
+    assert.equal(install.at(-1).describe, 'install x app')
+    await install.at(-1).fn({})
+    assert.equal(installed, expectInstall ? 1 : 0)
+    assert.ok(!item.steps('uninstall', { targets: ['shared'], present: ['shared'] }).some((s) => s.describe === 'install x app'))
+    const state = await item.detect({ probe: { has: () => true, skill: async () => true } })
+    assert.equal(state.status, has ? 'installed' : 'absent')
+  }
+})
+
+test('npmApp: 전역 npm 설치 뒤 후속 명령을 차례로 돌리고, 실패면 명령과 출력을 싣는다', async () => {
+  const calls = []
+  const app = npmApp({ bin: 'nope-bin-xyz', pkg: 'nope', after: [['nope', 'install']] })
+  await app.install({ exec: async (cmd, args) => { calls.push([cmd, ...args].join(' ')); return { ok: true } } })
+  assert.deepEqual(calls, ['npm install -g nope', 'nope install'])
+  assert.equal(await app.present(), false)
+  await assert.rejects(
+    app.install({ exec: async () => ({ ok: false, output: 'E404' }) }),
+    /npm install -g nope.*E404/,
+  )
 })

@@ -7,7 +7,7 @@ import { repoPathStrict } from './context.mjs'
 import { ensureGitignoreEntries } from './gitignore.mjs'
 import { LocalizedError } from './i18n/index.mjs'
 import { readJson, removeKey, setKey } from './jsonfile.mjs'
-import { VSCODE_MCP_FILE, copilotMcpFile, readOpencodeConfig } from './probe.mjs'
+import { VSCODE_MCP_FILE, copilotMcpFile, onPath, readOpencodeConfig } from './probe.mjs'
 import { SHARED } from './recipe.mjs'
 import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock, sourceKey } from './skills-registry.mjs'
 
@@ -278,4 +278,36 @@ export function skillsAdd({ source, skill, anchor = null }) {
     }
   }
   return { recipes: { [SHARED]: byScope }, detect: { [SHARED]: (p) => p.skill(probeName) } }
+}
+
+// 스킬이 구동하는 앱(바이너리)을 함께 보장한다. 스킬을 먼저 깔고, 앱이 없을
+// 때만 install을 돈다 — 이미 깐 앱을 다시 받지 않는다. 제거는 스킬만 지운다:
+// 앱은 사용자가 따로 쓰는 머신 전역 프로그램이라 스킬과 수명이 다르다.
+// 감지는 둘 다 있어야 설치됨이다 — 앱이 빠지면 다시 골라 채울 수 있게.
+export function withApp(base, { describe, install, present }) {
+  const step = { describe, fn: async (ctx) => { if (!(await present())) await install(ctx) } }
+  const byScope = Object.fromEntries(Object.entries(base.recipes[SHARED])
+    .map(([scope, r]) => [scope, { ...r, install: [...r.install, step] }]))
+  return {
+    recipes: { [SHARED]: byScope },
+    detect: { [SHARED]: async (p) => (await present()) && base.detect[SHARED](p) },
+  }
+}
+
+// 명령 하나를 돌리고 실패면 출력과 함께 던진다 — fn 단계 안에서 쓰는 exec용.
+export async function mustRun(exec, cmd, args, opts = {}) {
+  const r = await exec(cmd, args, opts)
+  if (!r.ok) throw new LocalizedError('error.appInstall', { command: [cmd, ...args].join(' '), output: String(r.output ?? '').trim() })
+}
+
+// npm 전역 패키지로 배포되는 CLI 앱. after는 설치 직후 한 번 돌 명령들이다.
+export function npmApp({ bin, pkg, after = [] }) {
+  return {
+    describe: `npm install -g ${pkg}${after.map((a) => ` && ${a.join(' ')}`).join('')} (only if ${bin} is not on PATH)`,
+    present: async () => onPath(bin),
+    install: async ({ exec }) => {
+      await mustRun(exec, 'npm', ['install', '-g', pkg])
+      for (const [cmd, ...args] of after) await mustRun(exec, cmd, args)
+    },
+  }
 }

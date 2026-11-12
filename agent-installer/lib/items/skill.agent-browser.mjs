@@ -1,5 +1,5 @@
 import { defineRecipe } from '../recipe.mjs'
-import { skillsAdd } from '../recipe-helpers.mjs'
+import { npmApp, skillsAdd, withApp } from '../recipe-helpers.mjs'
 // SKILL.md는 안내 스텁이다 — 실제 워크플로 지침은 설치된 CLI가 런타임에 준다
 // (`agent-browser skills get core`). 그래서 스킬 복사만으로는 반쪽이고, PATH의
 // agent-browser 바이너리(npm i -g agent-browser)와 최초 1회
@@ -9,9 +9,14 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // hidden: true는 Claude Code 문법이라 다른 CLI는 무시한다.
 // (2026-08-15 확인: skills/agent-browser/SKILL.md 단일 스킬, npm agent-browser
 // 0.34.0 = vercel-labs 리포, 네이티브 바이너리는 Windows x64 포함.)
+// 2026-11-12부터 바이너리가 PATH에 없으면 함께 깐다 — npm i -g 뒤 최초 1회
+// agent-browser install(Chrome for Testing). 제거는 스킬만 지운다(withApp).
 export default defineRecipe({
   id: 'skill.agent-browser', category: 'skill', label: 'agent-browser', group: '__service',
   note: 'item.skill.agent-browser.note',
-  verified: '2026-08-15',
-  ...skillsAdd({ source: 'https://github.com/vercel-labs/agent-browser', skill: 'agent-browser' }),
+  verified: '2026-11-12',
+  ...withApp(
+    skillsAdd({ source: 'https://github.com/vercel-labs/agent-browser', skill: 'agent-browser' }),
+    npmApp({ bin: 'agent-browser', pkg: 'agent-browser', after: [['agent-browser', 'install']] }),
+  ),
 })
