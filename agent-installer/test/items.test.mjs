@@ -13,9 +13,9 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 44개, user 36개를 id순으로', async () => {
+test('loadItems: project 45개, user 36개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 44)
+  assert.equal(project.length, 45)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
@@ -23,7 +23,7 @@ test('loadItems: project 44개, user 36개를 id순으로', async () => {
     'mcp.notion', 'mcp.supabase', 'mcp.vercel', 'plugin.ai-memory', 'plugin.cli-anything', 'plugin.ecc', 'plugin.hyperframes',
     'plugin.impeccable', 'plugin.mattpocock-skills', 'plugin.ponytail', 'plugin.superpowers', 'plugin.understand-anything',
     'skill.agent-browser', 'skill.agent-desktop', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
-    'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
+    'skill.graphify', 'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
     'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.strix',
     'skill.superpowers', 'skill.taste', 'skill.unslop',
   ]) assert.ok(ids.includes(id), id)

@@ -251,7 +251,7 @@ function cleanup(root, names, lockNames = names) {
 // 없이 스킬 항목만 깐 저장소에서는 Claude만 공유 스킬을 못 봤다. 그래서 저장소
 // 범위 스킬 설치가 같은 어댑터를 직접 맞춘다 — 이미 있으면 건너뛰고, 관리 복사본이면
 // 새 스킬까지 다시 복사한다. 손으로 만든 실제 디렉터리는 덮지 않고 실패로 알린다.
-const claudeAdapterStep = {
+export const claudeAdapterStep = {
   describe: 'link .claude/skills to .agents/skills so Claude Code sees shared skills (skipped if already linked)',
   fn: ({ root, skillMode = 'auto' }) => {
     const adapter = MANIFEST.adapters.find((a) => a.tool === 'Claude Code')
@@ -299,24 +299,38 @@ export function skillsAdd({ source, skill, anchor = null }) {
   return { recipes: { [SHARED]: byScope }, detect: { [SHARED]: (p) => p.skill(probeName) } }
 }
 
-// 스킬이 구동하는 앱(바이너리)을 함께 보장한다. 스킬을 먼저 깔고, 앱이 없을
-// 때만 install을 돈다 — 이미 깐 앱을 다시 받지 않는다. 제거는 스킬만 지운다:
+// 스킬이 구동하는 앱(바이너리)을 함께 보장한다. 앱 단계가 맨 앞이다 — 상류
+// 설치기로 스킬을 까는 항목(graphify install)은 앱이 있어야 다음 단계가 돈다.
+// 앱이 없을 때만 install을 돈다 — 이미 깐 앱을 다시 받지 않는다. 제거는 스킬만 지운다:
 // 앱은 사용자가 따로 쓰는 머신 전역 프로그램이라 스킬과 수명이 다르다.
 // 감지는 둘 다 있어야 설치됨이다 — 앱이 빠지면 다시 골라 채울 수 있게.
+//
+// CLI별 레시피(MCP 등)는 감지를 감싸지 않는다: 앱이 빠졌다고 미설치로 읽으면 다시
+// 골랐을 때 이미 있는 등록을 또 추가하다(`claude mcp add`) 실패한다. 설치 단계만 붙는다.
 export function withApp(base, { describe, install, present }) {
   const step = { describe, fn: async (ctx) => { if (!(await present())) await install(ctx) } }
-  const byScope = Object.fromEntries(Object.entries(base.recipes[SHARED])
-    .map(([scope, r]) => [scope, { ...r, install: [...r.install, step] }]))
-  return {
-    recipes: { [SHARED]: byScope },
-    detect: { [SHARED]: async (p) => (await present()) && base.detect[SHARED](p) },
-  }
+  const recipes = Object.fromEntries(Object.entries(base.recipes).map(([cli, byScope]) => [cli,
+    Object.fromEntries(Object.entries(byScope).map(([scope, r]) => [scope, { ...r, install: [step, ...r.install] }]))]))
+  const detect = base.detect[SHARED]
+    ? { [SHARED]: async (p) => (await present()) && base.detect[SHARED](p) }
+    : base.detect
+  return { ...base, recipes, detect }
 }
 
 // 명령 하나를 돌리고 실패면 출력과 함께 던진다 — fn 단계 안에서 쓰는 exec용.
 export async function mustRun(exec, cmd, args, opts = {}) {
   const r = await exec(cmd, args, opts)
   if (!r.ok) throw new LocalizedError('error.appInstall', { command: [cmd, ...args].join(' '), output: String(r.output ?? '').trim() })
+}
+
+// uv tool로 배포되는 파이썬 CLI 앱. uv가 콘솔 스크립트를 ~/.local/bin에 둔다 —
+// 그 경로가 PATH에 없으면 상류 안내대로 `uv tool update-shell` 뒤 새 터미널이 필요하다.
+export function uvToolApp({ bin, pkg }) {
+  return {
+    describe: `uv tool install ${pkg} (only if ${bin} is not on PATH)`,
+    present: async () => onPath(bin),
+    install: ({ exec }) => mustRun(exec, 'uv', ['tool', 'install', pkg]),
+  }
 }
 
 // npm 전역 패키지로 배포되는 CLI 앱. after는 설치 직후 한 번 돌 명령들이다.

@@ -268,8 +268,8 @@ test('withApp: 앱이 없을 때만 깔고, 제거는 앱을 건드리지 않는
     })
     const item = bindScope(def, 'user')
     const install = item.steps('install', { targets: ['shared'] })
-    assert.equal(install.at(-1).describe, 'install x app')
-    await install.at(-1).fn({})
+    assert.equal(install[0].describe, 'install x app')
+    await install[0].fn({})
     assert.equal(installed, expectInstall ? 1 : 0)
     assert.ok(!item.steps('uninstall', { targets: ['shared'], present: ['shared'] }).some((s) => s.describe === 'install x app'))
     const state = await item.detect({ probe: { has: () => true, skill: async () => true } })
@@ -287,4 +287,25 @@ test('npmApp: 전역 npm 설치 뒤 후속 명령을 차례로 돌리고, 실패
     app.install({ exec: async () => ({ ok: false, output: 'E404' }) }),
     /npm install -g nope.*E404/,
   )
+})
+
+// CLI별 레시피(MCP)는 앱 단계만 붙고 감지는 그대로다 — 앱이 빠졌다고 미설치로 읽으면
+// 다시 골랐을 때 이미 있는 등록을 또 추가하다 실패한다.
+test('withApp: CLI별 레시피는 CLI마다 앱 단계를 앞에 붙이고 감지는 감싸지 않는다', async () => {
+  const base = mcpServer({ name: 'g', server: { kind: 'stdio', command: 'g-mcp', args: [] } })
+  const wrapped = withApp(base, { describe: 'install g app', present: async () => false, install: async () => {} })
+  assert.equal(wrapped.detect, base.detect)
+  for (const byScope of Object.values(wrapped.recipes)) {
+    for (const r of Object.values(byScope)) assert.equal(r.install[0].describe, 'install g app')
+  }
+})
+
+// graphify 스킬은 상류 설치기가 깐다 — 앱 단계가 맨 앞이어야 graphify 명령이 있다.
+test('skill.graphify: 앱 → 상류 설치기 → Claude 어댑터 순서로 돈다', async () => {
+  const { default: def } = await import('../lib/items/skill.graphify.mjs')
+  const steps = bindScope(def, 'project').steps('install', { targets: ['shared'] })
+  assert.match(steps[0].describe, /uv tool install graphifyy\[mcp\]/)
+  assert.deepEqual(steps[1].argv, ['graphify', 'install', '--project', '--platform', 'agents'])
+  assert.match(steps[2].describe, /\.claude\/skills/)
+  assert.equal(bindScope(def, 'user'), null)
 })
