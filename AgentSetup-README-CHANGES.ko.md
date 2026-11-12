@@ -5,6 +5,19 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## graphify 실행 파일과 /graphify 스킬을 함께 설치한다 (2026-11-13, 2.3.2)
+
+- **graphify MCP가 연결되지 않던 문제.** `mcp.graphify`는 `.mcp.json`·
+  `.vscode/mcp.json`에 서버를 등록만 하고 `graphify-mcp` 실행 파일은 깔지
+  않아, 세션 시작 때 `CONNECTION_CLOSED`로 끝났다. 이제 실행 파일이 PATH에
+  없으면 `uv tool install "graphifyy[mcp]"`를 먼저 돌린다(uv 필요).
+- **`skill.graphify`.** `/graphify` 스킬은 MCP 등록과 별개다(상류 README).
+  상류 설치기 `graphify install --project --platform agents`로 공유
+  `.agents/skills`에 넣고, Claude Code는 `.claude/skills` 어댑터로 본다.
+  저장소 범위 전용이고, 제거는 앱을 남긴다.
+- **검증.** 단위 테스트와 `--set … --dry-run`으로 단계 순서를 확인했다.
+  실제 `uv tool install`과 `graphify install`은 실측하지 않았다.
+
 ## 스킬만 설치한 저장소에서 Claude Code가 스킬을 못 보던 문제를 고친다 (2026-11-13, 2.3.1)
 
 - **Claude Code만 공유 스킬을 못 보던 문제.** Claude Code는 `.claude/skills`만

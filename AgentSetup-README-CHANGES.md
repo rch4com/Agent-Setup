@@ -5,6 +5,21 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Install the graphify binary and the /graphify skill (2026-11-13, 2.3.2)
+
+- **graphify MCP never connected.** `mcp.graphify` only registered the
+  server in `.mcp.json` and `.vscode/mcp.json` and never installed the
+  `graphify-mcp` binary, so sessions ended with `CONNECTION_CLOSED`. When the
+  binary is not on PATH, the install now runs `uv tool install
+  "graphifyy[mcp]"` first (needs uv).
+- **`skill.graphify`.** The `/graphify` skill is separate from the MCP
+  registration (upstream README). It runs the upstream installer
+  `graphify install --project --platform agents` into the shared
+  `.agents/skills`, which Claude Code sees through the `.claude/skills`
+  adapter. Repo scope only; removal leaves the app in place.
+- **Verified.** Unit tests and `--set … --dry-run` confirmed the step order.
+  The real `uv tool install` and `graphify install` were not exercised.
+
 ## Claude Code now sees skills in repos without bootstrap (2026-11-13, 2.3.1)
 
 - **Only Claude Code missed shared skills.** Claude Code scans only
