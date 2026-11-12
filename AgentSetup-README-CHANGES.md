@@ -5,6 +5,16 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Scope switch no longer looks frozen (2026-11-12, 2.2.1)
+
+- **The screen appeared frozen after switching scope.** Pressing Enter on
+  the install-scope row re-detects global installs, which waited on CLI
+  list commands such as `codex plugin list` (48 s on first run) and
+  `npx skills list -g` (10 s) one after another, adding their times while
+  the screen stayed unchanged. The installer now draws a "checking install
+  state" notice before scanning and runs item detection concurrently, so
+  the wait is the slowest single command (9.0 s → 4.4 s on the same machine).
+
 ## Three new skills and a Windows npx fix (2026-11-12, 2.2.0)
 
 2.1.0 was never published to npm; the 2.1.0 entry below ships for the
