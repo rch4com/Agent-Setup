@@ -5,6 +5,14 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 모션 그래픽 · SNS 운영 분류 추가 (2026-11-13, 2.5.1)
+
+- **모션 그래픽 · 영상.** `plugin.hyperframes`·`skill.remotion`·`skill.animated-shorts`·
+  `skill.line-art-animation`·`skill.iart-motion`(외부 서비스에서), `skill.motion-design`
+  (디자인 감각에서)을 옮겼다.
+- **SNS 운영.** `skill.instagram-agent`·`skill.youtube-agent`를 옮겼다.
+- TUI 소분류 순서는 … 작업 방식 · 커밋 템플릿 · 모션 그래픽 · SNS 운영 · 외부 서비스다.
+
 ## 모션·숏폼·SNS 운영 스킬 6개 추가 (2026-11-13, 2.5.0)
 
 - **스킬 하나:** `skill.line-art-animation`(SVG 선화 애니메이션),

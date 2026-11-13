@@ -5,6 +5,15 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Motion graphics and social media groups (2026-11-13, 2.5.1)
+
+- **Motion graphics · video.** Moved `plugin.hyperframes`, `skill.remotion`,
+  `skill.animated-shorts`, `skill.line-art-animation`, `skill.iart-motion` (from
+  External services) and `skill.motion-design` (from Design taste).
+- **Social media.** Moved `skill.instagram-agent` and `skill.youtube-agent`.
+- TUI subgroup order is now … Way of working · Commit template · Motion graphics ·
+  Social media · External services.
+
 ## Six motion, short-form and social skills added (2026-11-13, 2.5.0)
 
 - **Single skills:** `skill.line-art-animation` (SVG line-art animation),
