@@ -5,6 +5,19 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 커밋 템플릿을 모든 에이전트 CLI가 따른다 (2026-11-13, 2.6.0)
+
+- **문제.** `git commit.template`은 에디터로 커밋할 때만 뜬다. 에이전트는
+  `git commit -m`으로 메시지를 넘겨 `.gitmessage.txt`를 보지 않았다.
+- **`config.gitmessage.*`.** 설치 때 `AGENTS.md`(Codex·OpenCode·Antigravity·Copilot·
+  VS Code)에 템플릿을 따르라는 표시된 블록을 넣는다. Claude Code용 `CLAUDE.md`가
+  `@AGENTS.md`를 가져오지 않으면 같은 블록을 `CLAUDE.md`에도 넣는다. 제거는 그
+  블록만 걷고, 블록뿐이던 파일은 지운다.
+- **기존 설치.** 블록이 없으면 일부 설치(partial)로 읽혀, 다시 적용하면 보완된다.
+- **검증.** 새 저장소에서 bootstrap 뒤 `--set config.gitmessage.ko` — 재실행
+  `Nothing to change.`, `claude -p`가 한국어 `<타입(<영역>)>: <주제>` 규칙을 답했다.
+  Codex·OpenCode·Antigravity는 AGENTS.md 네이티브 지원에 기대며 실측하지 않았다.
+
 ## 모션 그래픽 · SNS 운영 분류 추가 (2026-11-13, 2.5.1)
 
 - **모션 그래픽 · 영상.** `plugin.hyperframes`·`skill.remotion`·`skill.animated-shorts`·

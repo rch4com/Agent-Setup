@@ -5,6 +5,22 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Every agent CLI follows the commit template (2026-11-13, 2.6.0)
+
+- **Problem.** `git commit.template` opens only when you commit in an editor.
+  Agents pass messages with `git commit -m`, so they never saw `.gitmessage.txt`.
+- **`config.gitmessage.*`.** Installing now adds a marked rule block to
+  `AGENTS.md` (Codex, OpenCode, Antigravity, Copilot, VS Code) telling agents to
+  follow the template. When `CLAUDE.md` does not import `@AGENTS.md`, the same
+  block goes into `CLAUDE.md` for Claude Code. Removal strips only that block and
+  deletes a file that held nothing else.
+- **Existing installs.** Without the block they read as partial, and applying
+  again completes them.
+- **Verified.** In a fresh repo, bootstrap then `--set config.gitmessage.ko`: the
+  rerun printed `Nothing to change.` and `claude -p` stated the Korean
+  `<type>(<scope>): <subject>` rule. Codex, OpenCode and Antigravity rely on their
+  native AGENTS.md support and were not measured.
+
 ## Motion graphics and social media groups (2026-11-13, 2.5.1)
 
 - **Motion graphics · video.** Moved `plugin.hyperframes`, `skill.remotion`,
