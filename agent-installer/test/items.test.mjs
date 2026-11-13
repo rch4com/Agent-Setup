@@ -13,16 +13,16 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 44개, user 35개를 id순으로', async () => {
+test('loadItems: project 50개, user 38개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 44)
+  assert.equal(project.length, 50)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
     'config.gitmessage.en', 'config.gitmessage.ko', 'mcp.graft', 'mcp.graphify', 'mcp.headroom',
     'mcp.notion', 'mcp.supabase', 'mcp.vercel', 'plugin.ai-memory', 'plugin.cli-anything', 'plugin.ecc', 'plugin.hyperframes',
     'plugin.impeccable', 'plugin.mattpocock-skills', 'plugin.ponytail', 'plugin.superpowers', 'plugin.understand-anything',
-    'skill.agent-browser', 'skill.agent-desktop', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
+    'skill.agent-browser', 'skill.agent-desktop', 'skill.animated-shorts', 'skill.iart-motion', 'skill.instagram-agent', 'skill.line-art-animation', 'skill.motion-design', 'skill.youtube-agent', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
     'skill.graphify', 'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
     'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.strix',
     'skill.superpowers', 'skill.taste', 'skill.unslop',
@@ -32,7 +32,7 @@ test('loadItems: project 44개, user 35개를 id순으로', async () => {
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 35)
+  assert.equal(user.length, 38)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
   for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
