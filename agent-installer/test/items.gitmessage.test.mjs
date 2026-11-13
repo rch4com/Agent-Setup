@@ -263,3 +263,37 @@ test('dry-run은 VS Code 설정 파일을 만들지 않고 키를 알린다', as
   assert.equal(existsSync(join(root, SETTINGS)), false)
   assert.ok(c.lines.some((l) => l.includes(EDITOR_KEY)))
 })
+
+// 에이전트는 git commit -m으로 메시지를 넘겨 commit.template을 보지 않는다 —
+// 지침 파일(AGENTS.md, CLAUDE.md)에 템플릿을 따르라는 블록이 있어야 한다.
+test('설치는 AGENTS.md·CLAUDE.md에 커밋 지침 블록을 넣고, 제거는 블록만 걷는다', async () => {
+  const { ko, en } = await items()
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'AGENTS.md'), '# Rules\n\nKeep me.\n')
+  await ko.install(ctx(root))
+  const agents = readFileSync(join(root, 'AGENTS.md'), 'utf8')
+  assert.match(agents, /Keep me\.[\s\S]*agent-setup:gitmessage:begin[\s\S]*\.gitmessage\.txt/)
+  assert.match(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), /\.gitmessage\.txt/, 'CLAUDE.md가 AGENTS.md를 안 가져오면 따로 둔다')
+  assert.equal((await ko.detect({ root })).status, 'installed')
+
+  // 언어를 바꿔도 블록은 하나다.
+  await en.install(ctx(root))
+  await ko.uninstall(ctx(root))
+  assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8').split('agent-setup:gitmessage:begin').length, 2)
+
+  await en.uninstall(ctx(root))
+  assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), '# Rules\n\nKeep me.\n')
+  assert.ok(!existsSync(join(root, 'CLAUDE.md')), '블록뿐이던 CLAUDE.md는 지운다')
+})
+
+test('CLAUDE.md가 @AGENTS.md를 가져오면 블록은 AGENTS.md에만, 블록이 빠지면 partial', async () => {
+  const { ko } = await items()
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'CLAUDE.md'), '@AGENTS.md\n')
+  await ko.install(ctx(root))
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\n')
+  assert.match(readFileSync(join(root, 'AGENTS.md'), 'utf8'), /agent-setup:gitmessage:begin/)
+
+  writeFileSync(join(root, 'AGENTS.md'), '# Rules\n')
+  assert.equal((await ko.detect({ root })).status, 'partial')
+})

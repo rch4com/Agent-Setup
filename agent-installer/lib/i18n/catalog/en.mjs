@@ -326,9 +326,12 @@ export default {
   'item.skill.gsd.note': 'npx @opengsd/gsd-core, installed per project — one command per runtime for claude, codex, opencode and copilot (.claude/commands, .codex/skills, .opencode/skills, .github/skills). Each runtime writes roughly 700 files. Antigravity has an upstream flag, but its install path is not measured yet',
   // 커밋 템플릿은 CLI 배선이 아니라 저장소 규약이다 — note가 "무엇이 놓이고
   // 무엇이 설정되는가"를 대신 말한다(상세 패널에 배선표가 없다).
-  'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set)',
-  'item.config.gitmessage.ko.note': 'commit messages in Korean. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set)',
+  'item.config.gitmessage.en.note': 'commit messages in English. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set). Adds a commit-message rule block to AGENTS.md (and to CLAUDE.md when it does not import AGENTS.md) so every agent CLI follows the template',
+  'item.config.gitmessage.ko.note': 'commit messages in Korean. Writes the template and points git commit.template at it, so it opens in every editor and every tool in this repository. Also sets VS Code to open the commit editor and to apply the template to Copilot message generation (.vscode/settings.json, only keys not already set). Adds a commit-message rule block to AGENTS.md (and to CLAUDE.md when it does not import AGENTS.md) so every agent CLI follows the template',
   'item.gitmessage.unregistered': 'file is in place, but commit.template does not point at it yet',
+  'item.gitmessage.noAgentRule': 'template is set up, but AGENTS.md/CLAUDE.md do not tell the agent CLIs to follow it yet',
+  'log.gitmessage.ruleAdd': '  [dry-run] add the commit-message rule to {path}',
+  'log.gitmessage.ruleRemove': '  [dry-run] remove the commit-message rule from {path}',
   'log.gitmessage.write': '  [dry-run] write {path}',
   'log.gitmessage.remove': '  [dry-run] remove {path}',
   'log.gitmessage.settingsAdd': '  [dry-run] add {path} — {key}',

@@ -161,6 +161,73 @@ export const GITMESSAGE_EN = `# Commit message template ( * Lines that start wit
 ################################
 `
 
+// 에이전트 CLI에게 템플릿을 따르라고 알리는 지침 블록. git commit.template은
+// 사람이 에디터로 커밋할 때만 뜨고, 에이전트는 git commit -m으로 메시지를 직접
+// 넘겨 템플릿을 보지 않는다. Codex·OpenCode·Antigravity·Copilot·VS Code는 루트
+// AGENTS.md를 읽고, Claude Code는 CLAUDE.md만 읽는다 — CLAUDE.md가 @AGENTS.md를
+// 가져오지 않으면 같은 블록을 CLAUDE.md에도 둔다. 언어·형식은 템플릿 본문이
+// 정하므로 블록은 두 판이 같다(언어를 바꿔도 블록은 그대로).
+export const AGENT_FILES = ['AGENTS.md', 'CLAUDE.md']
+const RULE_BEGIN = '<!-- agent-setup:gitmessage:begin -->'
+const RULE_END = '<!-- agent-setup:gitmessage:end -->'
+export const AGENT_RULE = `${RULE_BEGIN}
+## Commit messages
+
+Write every commit message by the template in \`.gitmessage.txt\` at the
+repository root. Read it before each commit: it sets the format, the allowed
+types, the length limits and the language. Lines starting with \`#\` are
+guidance, not message text.
+${RULE_END}
+`
+
+function readText(root, rel) {
+  try { return readFileSync(repoPath(root, rel), 'utf8') } catch { return null }
+}
+
+// CLAUDE.md가 AGENTS.md를 가져오면 Claude는 AGENTS.md의 블록을 이미 본다.
+function claudeImportsAgents(root) {
+  return /^\s*@AGENTS\.md\s*$/m.test(readText(root, 'CLAUDE.md') ?? '')
+}
+
+function ruleTargets(root) {
+  return claudeImportsAgents(root) ? ['AGENTS.md'] : AGENT_FILES
+}
+
+function hasRule(text) {
+  return text !== null && text.includes(RULE_BEGIN) && text.includes(RULE_END)
+}
+
+export function agentRulesInPlace(root) {
+  return ruleTargets(root).every((rel) => hasRule(readText(root, rel)))
+}
+
+function addRules(root, { dryRun, log, t }) {
+  for (const rel of ruleTargets(root)) {
+    const text = readText(root, rel)
+    if (hasRule(text)) continue
+    if (dryRun) { log(t('log.gitmessage.ruleAdd', { path: rel })); continue }
+    const sep = !text ? '' : text.endsWith('\n') ? '\n' : '\n\n'
+    writeFileSync(repoPathStrict(root, rel), (text ?? '') + sep + AGENT_RULE, { encoding: 'utf8' })
+  }
+}
+
+// 블록만 걷어 낸다. 블록뿐이던 파일(우리가 만든 것)은 지운다.
+function removeRules(root, { dryRun, log, t }) {
+  for (const rel of AGENT_FILES) {
+    const text = readText(root, rel)
+    if (!hasRule(text)) continue
+    if (dryRun) { log(t('log.gitmessage.ruleRemove', { path: rel })); continue }
+    const begin = text.indexOf(RULE_BEGIN)
+    const end = text.indexOf(RULE_END, begin) + RULE_END.length
+    const before = text.slice(0, begin).replace(/\s+$/, '')
+    const after = text.slice(end).replace(/^\s+/, '')
+    const rest = [before, after].filter(Boolean).join('\n\n')
+    const target = repoPathStrict(root, rel)
+    if (rest === '') rmSync(target, { force: true })
+    else writeFileSync(target, `${rest}\n`, { encoding: 'utf8' })
+  }
+}
+
 export const GITMESSAGE_BODIES = [GITMESSAGE_EN, GITMESSAGE_KO].map(normalizeBody)
 
 function readCurrent(root) {
@@ -212,7 +279,9 @@ export function defineGitmessage({ id, label, body, note }) {
       if (current === null || normalizeBody(current) !== wanted) return { status: 'absent' }
       // 파일만 놓여 있고 git이 그것을 모르면 템플릿은 한 번도 뜨지 않는다.
       // 설치됨으로 찍으면 "왜 안 뜨지"를 사용자가 혼자 풀어야 한다.
-      return pointsHere(root) ? { status: 'installed' } : { status: 'partial', detail: msg('item.gitmessage.unregistered') }
+      if (!pointsHere(root)) return { status: 'partial', detail: msg('item.gitmessage.unregistered') }
+      // 에이전트 지침이 없으면 CLI들이 템플릿을 모른다 — 보완 설치가 블록을 더한다.
+      return agentRulesInPlace(root) ? { status: 'installed' } : { status: 'partial', detail: msg('item.gitmessage.noAgentRule') }
     },
 
     async install({ root, dryRun, exec, log = () => {}, t }) {
@@ -236,6 +305,7 @@ export function defineGitmessage({ id, label, body, note }) {
         else if (dryRun) log(t('log.gitmessage.settingsAdd', { path: VSCODE_SETTINGS, key }))
         else setKey(file, [key], value)
       }
+      addRules(root, { dryRun, log, t })
     },
 
     async uninstall({ root, dryRun, exec, log = () => {}, t }) {
@@ -257,6 +327,7 @@ export function defineGitmessage({ id, label, body, note }) {
         if (dryRun) log(t('log.gitmessage.settingsRemove', { path: VSCODE_SETTINGS, key }))
         else removeKey(file, [key])
       }
+      removeRules(root, { dryRun, log, t })
     },
   }
 }
