@@ -5,7 +5,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // 만든다 — 렌더에는 Remotion이 필요하니 skill.remotion과 함께 쓰면 좋다
 // (2026-11-13 확인).
 export default defineRecipe({
-  id: 'skill.animated-shorts', category: 'skill', label: 'Animated Shorts', group: '__service',
+  id: 'skill.animated-shorts', category: 'skill', label: 'Animated Shorts', group: '__motion',
   note: 'item.skill.animated-shorts.note',
   verified: '2026-11-13',
   ...skillsAdd({ source: 'https://github.com/mromidev/claude-animated-shorts', skill: 'cartoon-3d-short' }),

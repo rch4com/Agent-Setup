@@ -5,7 +5,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // 있지만 훅·명령 없이 스킬뿐이라, 다섯 CLI가 함께 보는 공유 스킬 판을 택했다.
 // anchor는 묶음의 중심인 ig-reel(2026-11-13 확인).
 export default defineRecipe({
-  id: 'skill.instagram-agent', category: 'skill', label: 'Instagram Agent', group: '__service',
+  id: 'skill.instagram-agent', category: 'skill', label: 'Instagram Agent', group: '__social',
   note: 'item.skill.instagram-agent.note',
   verified: '2026-11-13',
   ...skillsAdd({ source: 'https://github.com/Jakeschincariol/instagram-agent-skill', skill: '*', anchor: 'ig-reel' }),

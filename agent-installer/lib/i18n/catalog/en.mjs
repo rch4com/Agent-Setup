@@ -485,6 +485,8 @@ export default {
   // 헤더 하나가 "무엇을 고르는 자리이고 규칙이 무엇인가"를 함께 말한다 —
   // 대상 파일이 하나뿐인 배타 묶음이라 라디오 표시와 짝이 된다.
   'category.commit': 'Commit template · .gitmessage.txt · pick one',
+  'category.motion': 'Motion graphics · video',
+  'category.social': 'Social media',
   'category.service': 'External services',
   // PLUGIN 탭 전용 범위 그룹 — 검토 화면(renderReview)의 소제목도 같은 키를 쓴다.
   'category.scope-project': 'Repo scope — this repository only',

@@ -8,7 +8,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // 상류 라이선스는 SPDX가 아닌 Remotion License다 — 개인·직원 3명 이하 영리
 // 조직·비영리는 무료, 그보다 큰 영리 조직은 회사 라이선스가 필요하다.
 export default defineRecipe({
-  id: 'skill.remotion', category: 'skill', label: 'Remotion', group: '__service',
+  id: 'skill.remotion', category: 'skill', label: 'Remotion', group: '__motion',
   note: 'item.skill.remotion.note',
   verified: '2026-10-06',
   ...skillsAdd({ source: 'https://github.com/remotion-dev/skills', skill: 'remotion-best-practices' }),

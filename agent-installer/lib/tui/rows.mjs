@@ -31,7 +31,7 @@ export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config'
 // __commit은 CONFIG 탭에만 나오지만 규칙은 같다 — 헤더가 "무엇을 고르는
 // 자리인가"를 말한다. 커밋 템플릿은 대상 파일이 하나뿐이라 헤더에 그 파일
 // 이름과 "하나만"이라는 규칙까지 실어, 라디오 표시와 함께 읽히게 한다.
-export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__commit', '__service']
+export const GROUP_ORDER = ['__token', '__context', '__style', '__flow', '__commit', '__motion', '__social', '__service']
 
 function groupRank(group) {
   const i = GROUP_ORDER.indexOf(group)

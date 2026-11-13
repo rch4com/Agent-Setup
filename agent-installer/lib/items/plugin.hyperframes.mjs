@@ -11,7 +11,7 @@ import { marketplacePlugin } from '../recipe-helpers.mjs'
 // 같은 상류를 스킬로 넣지 않는 것은 코어만 고르려면 대화형 선택기가 필요해서다
 // (비대화형 실행은 21종 전부를 설치한다).
 export default defineRecipe({
-  id: 'plugin.hyperframes', category: 'plugin', label: 'HyperFrames', group: '__service',
+  id: 'plugin.hyperframes', category: 'plugin', label: 'HyperFrames', group: '__motion',
   note: 'item.plugin.hyperframes.note',
   verified: '2026-10-06',
   ...marketplacePlugin({

@@ -445,7 +445,7 @@ the filter would make it impossible to type `codex` as a query.
   direction ("what works in this CLI").
 - **Within a tab, items are grouped by character** — subgroup headers appear in
   the order Token savings · Code understanding · Design sense · Way of working ·
-  External services, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
+  Motion graphics · Social media · External services, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
   "what installs it", which makes comparison hard when picking — the same tab
   mixes something that saves tokens with something that reviews your design.
   **The install scope is chosen on the `Install scope` row of the Actions tab**

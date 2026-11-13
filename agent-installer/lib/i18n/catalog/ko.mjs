@@ -470,6 +470,8 @@ export default {
   'category.flow': '작업 방식',
   // 헤더 하나가 무엇을 고르는 자리이고 규칙이 무엇인지 함께 말한다. en.mjs 쪽 주석 참고.
   'category.commit': '커밋 메시지 템플릿 · .gitmessage.txt · 하나만 고릅니다',
+  'category.motion': '모션 그래픽 · 영상',
+  'category.social': 'SNS 운영',
   'category.service': '외부 서비스',
   // PLUGIN 탭 전용 범위 그룹 — 검토 화면(renderReview)의 소제목도 같은 키를 쓴다.
   'category.scope-project': '저장소 범위 — 이 저장소에만 적용',
