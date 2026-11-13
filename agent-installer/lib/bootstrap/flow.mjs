@@ -4,6 +4,7 @@ import { MANIFEST } from './manifest.mjs'
 import {
   configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
 } from './apply.mjs'
+import { ensureSnippets } from './snippets.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
 import { SKILL_MODES } from '../args.mjs'
 import { createT, LocalizedError, toText } from '../i18n/index.mjs'
@@ -43,7 +44,7 @@ export function runBootstrap(root, opts = {}) {
   let total = adopt
     ? 1
     : manifest.dirs.length + manifest.files.length + (manifest.settings ?? []).length
-      + manifest.blocks.length + manifest.adapters.length + manifest.ignore.length + 1
+      + manifest.blocks.length + (manifest.snippets ?? []).length + manifest.adapters.length + manifest.ignore.length + 1
   let done = 0
   const step = (results) => {
     const list = Array.isArray(results) ? results : [results]
@@ -91,6 +92,7 @@ export function runBootstrap(root, opts = {}) {
     ...runStep((c) => ensureFiles(root, manifest.files, c)),
     ...runStep((c) => ensureJsonKeys(root, manifest.settings ?? [], c)),
     ...runStep((c) => ensureBlocks(root, manifest.blocks, c)),
+    ...runStep((c) => ensureSnippets(root, manifest.snippets ?? [], c)),
   ]
 
   if (!adopt) {

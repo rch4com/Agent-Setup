@@ -169,6 +169,7 @@ export default {
   'log.block.update': 'update managed block: {path}',
   'log.block.missing': 'no managed block — left alone: {path}',
   'log.block.userEdited': 'block edited by you — left alone: {path}',
+  'log.snippet.add': 'add missing content: {path} — {label}',
   'log.json.keep': 'config key present: {path} — {key}',
   'log.json.add': 'add config key: {path} — {key}',
   'log.ignore.keep': '.gitignore entries present: {entries}',

@@ -332,7 +332,7 @@ Check usage (creates no files):
 
 ## Handling of existing files
 
-The following files are preserved as-is if they already exist.
+The following files are kept if they already exist.
 
 ```text
 AGENTS.md
@@ -342,8 +342,17 @@ CLAUDE.md
 opencode.jsonc
 ```
 
-Even when `CLAUDE.md` exists, if it has no agent-kit managed block, only the
-shared-instruction import block is added.
+Existing files are never overwritten, but the bootstrap checks their **content**
+and appends only what is missing (each check is by content, so a rerun changes
+nothing and anything you wrote yourself counts):
+
+- `AGENTS.md` — each `## ` section of the template (matched by heading); and,
+  when `.gitmessage.txt` exists, a rule telling agents to follow it (skipped if
+  the file already mentions `.gitmessage.txt`).
+- `CLAUDE.md` — the shared-instruction import block, unless the file already has
+  the agent-kit block or an `@AGENTS.md` line.
+- `.codex/config.toml` — `project_doc_max_bytes`, inserted before the first table.
+- `opencode.jsonc` — the `$schema` key.
 
 ## Optional-item installer (agent-installer)
 

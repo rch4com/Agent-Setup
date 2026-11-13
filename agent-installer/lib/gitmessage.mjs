@@ -11,6 +11,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { isDeepStrictEqual } from 'node:util'
+import { AGENT_RULE, CLAUDE_IMPORT, RULE_BEGIN, RULE_END, RULE_PRESENT } from './bootstrap/snippets.mjs'
 import { normalizeBody } from './bootstrap/text.mjs'
 import { repoPath, repoPathStrict } from './context.mjs'
 import { LocalizedError, msg } from './i18n/index.mjs'
@@ -168,32 +169,26 @@ export const GITMESSAGE_EN = `# Commit message template ( * Lines that start wit
 // 가져오지 않으면 같은 블록을 CLAUDE.md에도 둔다. 언어·형식은 템플릿 본문이
 // 정하므로 블록은 두 판이 같다(언어를 바꿔도 블록은 그대로).
 export const AGENT_FILES = ['AGENTS.md', 'CLAUDE.md']
-const RULE_BEGIN = '<!-- agent-setup:gitmessage:begin -->'
-const RULE_END = '<!-- agent-setup:gitmessage:end -->'
-export const AGENT_RULE = `${RULE_BEGIN}
-## Commit messages
-
-Write every commit message by the template in \`.gitmessage.txt\` at the
-repository root. Read it before each commit: it sets the format, the allowed
-types, the length limits and the language. Lines starting with \`#\` are
-guidance, not message text.
-${RULE_END}
-`
-
 function readText(root, rel) {
   try { return readFileSync(repoPath(root, rel), 'utf8') } catch { return null }
 }
 
 // CLAUDE.md가 AGENTS.md를 가져오면 Claude는 AGENTS.md의 블록을 이미 본다.
 function claudeImportsAgents(root) {
-  return /^\s*@AGENTS\.md\s*$/m.test(readText(root, 'CLAUDE.md') ?? '')
+  return CLAUDE_IMPORT.test(readText(root, 'CLAUDE.md') ?? '')
 }
 
 function ruleTargets(root) {
   return claudeImportsAgents(root) ? ['AGENTS.md'] : AGENT_FILES
 }
 
+// 내용 기준: 손으로 쓴 지침이라도 .gitmessage.txt를 언급하면 이미 안내된 것이다.
 function hasRule(text) {
+  return text !== null && RULE_PRESENT.test(text)
+}
+
+// 제거는 우리가 넣은 표시 블록만 대상이다 — 손으로 쓴 지침은 남긴다.
+function hasBlock(text) {
   return text !== null && text.includes(RULE_BEGIN) && text.includes(RULE_END)
 }
 
@@ -215,7 +210,7 @@ function addRules(root, { dryRun, log, t }) {
 function removeRules(root, { dryRun, log, t }) {
   for (const rel of AGENT_FILES) {
     const text = readText(root, rel)
-    if (!hasRule(text)) continue
+    if (!hasBlock(text)) continue
     if (dryRun) { log(t('log.gitmessage.ruleRemove', { path: rel })); continue }
     const begin = text.indexOf(RULE_BEGIN)
     const end = text.indexOf(RULE_END, begin) + RULE_END.length

@@ -315,7 +315,7 @@ Claude Code의 스킬 어댑터 방식:
 
 ## 기존 파일 처리
 
-다음 파일이 이미 있으면 그대로 보존합니다.
+다음 파일이 이미 있으면 유지합니다.
 
 ```text
 AGENTS.md
@@ -325,8 +325,16 @@ CLAUDE.md
 opencode.jsonc
 ```
 
-`CLAUDE.md`는 파일이 존재하더라도 agent-kit 관리 블록이 없으면 공통 지침
-import 블록만 추가합니다.
+기존 파일을 덮어쓰지는 않지만, 들어 있어야 할 **내용**을 확인해 빠진 것만
+덧붙입니다(내용 기준 판정이라 재실행해도 바뀌지 않고, 직접 써 둔 내용도
+인정합니다).
+
+- `AGENTS.md` — 템플릿의 `## ` 절마다(제목으로 판정). `.gitmessage.txt`가 있으면
+  그것을 따르라는 지침도 넣습니다(파일이 이미 `.gitmessage.txt`를 언급하면 생략).
+- `CLAUDE.md` — agent-kit 블록이나 `@AGENTS.md` 줄이 없을 때만 공통 지침
+  import 블록.
+- `.codex/config.toml` — `project_doc_max_bytes`(첫 표 앞에 넣음).
+- `opencode.jsonc` — `$schema` 키.
 
 ## 선택 항목 설치기 (agent-installer)
 

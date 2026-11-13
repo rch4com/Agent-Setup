@@ -60,7 +60,7 @@ export function ensureFiles(root, files, { dryRun = false, log, t = createT('en'
 }
 
 export function ensureBlocks(root, blocks, { dryRun = false, log, t = createT('en') }) {
-  return blocks.map(({ path: rel, block }) => {
+  return blocks.map(({ path: rel, block, present }) => {
     // 존재 확인은 어휘적 경로로 한다 — 만들지 않을 것이면 지켜야 할 쓰기도 없다.
     if (!pathExists(repoPath(root, rel))) {
       // 실제로 만드는 경로만 엄격 검사한다(링크를 통한 저장소 이탈 차단).
@@ -80,7 +80,7 @@ export function ensureBlocks(root, blocks, { dryRun = false, log, t = createT('e
       return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
     }
 
-    if (text.includes(BEGIN_MARKER)) {
+    if (text.includes(BEGIN_MARKER) || present?.test(text)) {
       log(t('log.block.keep', { path: rel }))
       return { ok: true, action: 'skip', path: rel }
     }

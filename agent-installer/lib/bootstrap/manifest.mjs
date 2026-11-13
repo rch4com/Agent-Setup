@@ -2,6 +2,7 @@ import {
   AGENTS_TEMPLATE, CLAUDE_BLOCK, SKILL_README, EXAMPLE_SKILL,
   AGENT_KIT_README, CLAUDE_SETTINGS, CODEX_CONFIG, OPENCODE_CONFIG,
 } from './templates.mjs'
+import { CLAUDE_IMPORT, defaultSnippets } from './snippets.mjs'
 
 // 저장소 부트스트랩이 만들 대상 선언.
 // 도구 추가 = dirs 한 줄 + files 한 줄. 실행 로직은 apply.mjs·adapter.mjs에 있다.
@@ -31,12 +32,18 @@ export const MANIFEST = {
   // 마커가 없을 때만 덧붙인다. 파일이 없으면 블록만으로 생성한다.
   // Claude Code는 AGENTS.md를 직접 읽지 않아 CLAUDE.md의 import가 필요하다.
   blocks: [
-    { path: 'CLAUDE.md', block: CLAUDE_BLOCK },
+    // present: 마커가 없어도 @AGENTS.md 줄이 있으면 이미 연결된 것으로 본다.
+    { path: 'CLAUDE.md', block: CLAUDE_BLOCK, present: CLAUDE_IMPORT },
   ],
 
   // 기존 파일을 보존한 채 최상위 키만 보장한다. 키가 이미 있으면 손대지 않는다.
-  // 지금 보장할 키는 없다(VS Code Copilot 지원 종료) — 기구는 남겨 둔다.
-  settings: [],
+  settings: [
+    { path: 'opencode.jsonc', key: '$schema', value: 'https://opencode.ai/config.json' },
+  ],
+
+  // 파일이 이미 있어도 내용(절·지침·키)이 빠졌으면 덧붙인다. 판정은 내용 기준이다
+  // (snippets.mjs). .gitmessage.txt가 있으면 AGENTS.md에 따르라는 지침도 넣는다.
+  snippets: defaultSnippets(),
 
   // .agents/skills 를 가리키는 도구별 어댑터.
   //

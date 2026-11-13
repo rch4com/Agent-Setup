@@ -163,6 +163,7 @@ export default {
   'log.block.update': '관리 블록 갱신: {path}',
   'log.block.missing': '관리 블록 없음 — 건드리지 않음: {path}',
   'log.block.userEdited': '블록 사용자 수정 — 건드리지 않음: {path}',
+  'log.snippet.add': '빠진 내용 추가: {path} — {label}',
   'log.json.keep': '설정 키 확인: {path} — {key}',
   'log.json.add': '설정 키 추가: {path} — {key}',
   'log.ignore.keep': '.gitignore 항목 확인: {entries}',

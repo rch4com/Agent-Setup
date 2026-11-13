@@ -55,11 +55,47 @@ test('부트스트랩은 .vscode/settings.json에 손대지 않는다', () => {
   assert.equal(readFileSync(join(kept, '.vscode/settings.json'), 'utf8'), '{\n  "editor.tabSize": 2\n}\n')
 })
 
-test('기존 파일을 보존한다', () => {
+test('기존 파일은 보존하고, 빠진 절만 뒤에 덧붙인다', () => {
   const root = makeTempRepo()
-  writeFileSync(join(root, 'AGENTS.md'), '내가 쓴 지침\n')
+  const mine = '내가 쓴 지침\n\n## Rules\n\n- 내 규칙\n'
+  writeFileSync(join(root, 'AGENTS.md'), mine)
   runBootstrap(root, { t, log() {} })
-  assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), '내가 쓴 지침\n')
+  const text = readFileSync(join(root, 'AGENTS.md'), 'utf8')
+  assert.ok(text.startsWith(mine), '사용자 본문은 앞에 그대로')
+  assert.equal(text.match(/^## Rules$/gm).length, 1, '이미 있는 절은 다시 넣지 않는다')
+  for (const h of ['Scope', 'Required workflow', 'Repository commands', 'Behavioral guidelines']) {
+    assert.match(text, new RegExp(`^## ${h}$`, 'm'), h)
+  }
+  assert.doesNotMatch(text, /gitmessage/, '.gitmessage.txt가 없으면 지침을 넣지 않는다')
+
+  // 재실행은 바꾸지 않는다 — 내용 기준 멱등.
+  runBootstrap(root, { t, log() {} })
+  assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), text)
+})
+
+test('.gitmessage.txt가 있으면 AGENTS.md에 따르라는 지침을 넣는다 — 손으로 쓴 언급이 있으면 그대로', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, '.gitmessage.txt'), '# template\n')
+  runBootstrap(root, { t, log() {} })
+  assert.match(readFileSync(join(root, 'AGENTS.md'), 'utf8'), /agent-setup:gitmessage:begin[\s\S]*\.gitmessage\.txt/)
+
+  const other = makeTempRepo()
+  writeFileSync(join(other, '.gitmessage.txt'), '# template\n')
+  writeFileSync(join(other, 'AGENTS.md'), '# Mine\n\nFollow .gitmessage.txt.\n')
+  runBootstrap(other, { t, log() {} })
+  assert.doesNotMatch(readFileSync(join(other, 'AGENTS.md'), 'utf8'), /agent-setup:gitmessage/)
+})
+
+test('CLAUDE.md에 @AGENTS.md 줄이 있으면 블록을 붙이지 않고, codex 최상위 키는 첫 표 앞에 넣는다', () => {
+  const root = makeTempRepo()
+  writeFileSync(join(root, 'CLAUDE.md'), '# Claude\n@AGENTS.md\n')
+  mkdirSync(join(root, '.codex'), { recursive: true })
+  writeFileSync(join(root, '.codex/config.toml'), '[mcp_servers.x]\ncommand = "x"\n')
+  writeFileSync(join(root, 'opencode.jsonc'), '{\n  // mine\n}\n')
+  runBootstrap(root, { t, log() {} })
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), '# Claude\n@AGENTS.md\n')
+  assert.match(readFileSync(join(root, '.codex/config.toml'), 'utf8'), /^project_doc_max_bytes = 65536\n\[mcp_servers\.x\]/)
+  assert.match(readFileSync(join(root, 'opencode.jsonc'), 'utf8'), /"\$schema": "https:\/\/opencode\.ai\/config\.json"[\s\S]*\/\/ mine/)
 })
 
 test('dry-run은 파일시스템을 전혀 바꾸지 않는다', () => {

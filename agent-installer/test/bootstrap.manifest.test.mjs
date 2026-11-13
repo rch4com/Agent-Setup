@@ -38,7 +38,7 @@ test('부트스트랩은 여섯 도구를 다루되 만드는 파일은 네 도�
   }
   assert.deepEqual(MANIFEST.blocks.map((b) => b.path), ['CLAUDE.md'])
   assert.deepEqual(MANIFEST.adapters.map((a) => a.path), ['.claude/skills'])
-  assert.deepEqual(MANIFEST.settings, [])
+  assert.deepEqual(MANIFEST.settings.map((s) => [s.path, s.key]), [['opencode.jsonc', '$schema']])
 })
 
 test('경로는 저장소 상대 경로이고 중복이 없다', () => {

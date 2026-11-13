@@ -7,6 +7,7 @@ import { MANIFEST } from './bootstrap/manifest.mjs'
 import {
   configureAdapterSafe, ensureIgnore, ensureJsonKeys, updateBlocks, updateFiles,
 } from './bootstrap/apply.mjs'
+import { ensureSnippets } from './bootstrap/snippets.mjs'
 import { RECORD_REL, managedKey, readRecord, toolVersion, writeRecord } from './bootstrap/record.mjs'
 import { LocalizedError, createT, toText } from './i18n/index.mjs'
 
@@ -45,6 +46,7 @@ export async function runUpdate(root, opts = {}) {
     ...updateBlocks(root, manifest.blocks, ctx),
     // 키 보장과 gitignore 항목 추가는 원래 멱등이라 그대로 재실행한다.
     ...ensureJsonKeys(root, manifest.settings ?? [], { dryRun, log: say, t }),
+    ...ensureSnippets(root, manifest.snippets ?? [], { dryRun, log: say, t }),
     ...ensureIgnore(root, manifest.ignore, { dryRun, log: say, t }),
   ]
 
