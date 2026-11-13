@@ -5,6 +5,19 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## graphify MCP를 고르면 /graphify 스킬도 함께 고르고 Codebase Memory MCP를 뺀다 (2026-11-13, 2.4.0)
+
+- **`mcp.graphify` → `skill.graphify`.** MCP는 `graph.json`을 읽기만 하고 그것을
+  만드는 `/graphify`는 스킬이라, MCP만 고르면 쓸 수 없는 서버가 됐다. 이제
+  `mcp.graphify`를 고르면(TUI 체크, `--set`) `skill.graphify`도 함께 골라진다.
+  스킬은 저장소 범위 전용이라 전역 범위에서는 MCP만 깔린다. 끌 때는 각각 따로
+  끈다. 항목의 `bundles` 필드가 짝을 정한다.
+- **`mcp.codebase-memory` 제거.** 설치 목록에서 뺐다. 이미 등록한 서버는 각 CLI
+  설정에서 직접 지운다(`claude mcp remove` 등).
+- **검증.** 새 Git 저장소에서 `--set mcp.graphify` 두 번 실행 — 첫 실행이 MCP와
+  스킬을 깔고, 재실행은 `Nothing to change.`였다(짝이 목록 밖으로 읽혀 제거되지
+  않음).
+
 ## OpenCode 설정을 CLI 대신 파일로 직접 고친다 (2026-11-13, 2.3.3)
 
 - **OpenCode 플러그인 설치 실패.** OpenCode 2.x(2.2.5 확인)에서

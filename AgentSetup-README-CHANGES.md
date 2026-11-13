@@ -5,6 +5,19 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Selecting graphify MCP also selects the /graphify skill; Codebase Memory MCP removed (2026-11-13, 2.4.0)
+
+- **`mcp.graphify` brings `skill.graphify`.** The MCP server only reads `graph.json`;
+  the `/graphify` skill builds it, so the MCP alone was a server with nothing to
+  serve. Selecting `mcp.graphify` (TUI check or `--set`) now selects
+  `skill.graphify` too. The skill is repo-scope only, so user scope installs just
+  the MCP. Each is unchecked separately. The item field `bundles` names the pair.
+- **`mcp.codebase-memory` removed** from the list. Remove an existing registration
+  in each CLI yourself (`claude mcp remove` and so on).
+- **Verified.** In a fresh Git repo, `--set mcp.graphify` twice: the first run
+  installed the MCP and the skill, the rerun printed `Nothing to change.` (the
+  paired skill is not read as unlisted and removed).
+
 ## Edit OpenCode config files directly instead of calling its CLI (2026-11-13, 2.3.3)
 
 - **OpenCode plugin installs failed.** On OpenCode 2.x (checked 2.2.5),
