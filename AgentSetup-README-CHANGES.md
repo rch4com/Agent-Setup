@@ -5,6 +5,25 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Bootstrap fills in missing instructions by content (2026-11-13, 2.7.0)
+
+- **Problem.** The bootstrap kept any existing file without looking inside, so an
+  existing `AGENTS.md` missing template sections or the commit rule stayed that way.
+- **Content-based checks.** Nothing is overwritten; only missing content is
+  appended (`update` does the same).
+  - `AGENTS.md`: each `## ` section of the template (matched by heading).
+  - `AGENTS.md`: when `.gitmessage.txt` exists, a rule to follow it (skipped if
+    the file already mentions it).
+  - `CLAUDE.md`: the import block only without the managed block or an
+    `@AGENTS.md` line.
+  - `.codex/config.toml`: `project_doc_max_bytes` (before the first table).
+    `opencode.jsonc`: `$schema`.
+- **`config.gitmessage.*`.** The rule check uses the same content test — a
+  hand-written rule counts, and removal strips only the block the installer added.
+- **Verified.** In a fresh repo with a hand-written `AGENTS.md` (only `## Rules`)
+  and `.gitmessage.txt`, the sh launcher added the 4 missing sections and the rule;
+  the ps1 launcher run after it changed nothing.
+
 ## Every agent CLI follows the commit template (2026-11-13, 2.6.0)
 
 - **Problem.** `git commit.template` opens only when you commit in an editor.

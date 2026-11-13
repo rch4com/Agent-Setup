@@ -5,6 +5,20 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 부트스트랩이 내용 기준으로 빠진 지침을 채운다 (2026-11-13, 2.7.0)
+
+- **문제.** 부트스트랩은 파일이 있으면 내용을 보지 않고 보존해, 기존 `AGENTS.md`에
+  템플릿 절이나 커밋 지침이 빠져 있어도 채우지 못했다.
+- **내용 기준 보장.** 덮어쓰지 않고 빠진 것만 덧붙인다(`update`도 같다).
+  - `AGENTS.md`: 템플릿의 `## ` 절마다(제목으로 판정).
+  - `AGENTS.md`: `.gitmessage.txt`가 있으면 따르라는 지침(파일 이름을 언급하면 생략).
+  - `CLAUDE.md`: 관리 블록이나 `@AGENTS.md` 줄이 없을 때만 import 블록.
+  - `.codex/config.toml`: `project_doc_max_bytes`(첫 표 앞). `opencode.jsonc`: `$schema`.
+- **`config.gitmessage.*`.** 지침 판정을 같은 내용 기준으로 바꿨다 — 손으로 쓴
+  지침도 인정하고, 제거는 설치기가 넣은 블록만 걷는다.
+- **검증.** 손으로 쓴 `AGENTS.md`(`## Rules`만)와 `.gitmessage.txt`가 있는 새 저장소에서
+  sh 실행기가 빠진 절 4개와 지침을 넣고, 이어 ps1 실행기는 바꾸지 않았다.
+
 ## 커밋 템플릿을 모든 에이전트 CLI가 따른다 (2026-11-13, 2.6.0)
 
 - **문제.** `git commit.template`은 에디터로 커밋할 때만 뜬다. 에이전트는
