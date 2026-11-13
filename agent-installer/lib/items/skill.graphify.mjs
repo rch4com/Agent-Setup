@@ -5,7 +5,7 @@ import { claudeAdapterStep, withApp } from '../recipe-helpers.mjs'
 import { SHARED } from '../recipe.mjs'
 import { SHARED_SKILLS } from '../skills-registry.mjs'
 import { GRAPHIFY_APP } from './mcp.graphify.mjs'
-// /graphify 스킬. MCP 등록(mcp.graphify)과는 별개다 — 상류 README "CLI skills or
+// /graphify 스킬. mcp.graphify를 고르면 bundles로 함께 골라진다. MCP 등록과는 별개다 — 상류 README "CLI skills or
 // MCP instructions?": graphify install은 MCP 연결을 만들지 않고, MCP는 스킬을 주지
 // 않는다. 상류에 레지스트리용 SKILL.md가 없어(graphify/skill.md 등 플랫폼별 원본)
 // npx skills가 아니라 상류 설치기를 쓴다.

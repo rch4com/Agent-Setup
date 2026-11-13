@@ -145,6 +145,16 @@ test('액션 행은 토글되지 않는다 — 제거 개념이 없는 작업이
   assert.equal(toggle(s).selected.size, 0)
 })
 
+// mcp.graphify를 켜면 skill.graphify도 켜진다. 끄는 건 따로 — 짝을 남기고 싶을 수 있다.
+test('토글: 켤 때 짝 항목(bundles)을 함께 켜고, 끌 때는 짝을 두고 간다', () => {
+  const rows = [{ ...item('mcp.g', 'mcp', 'G MCP'), bundles: ['skill.g', 'skill.missing'] }, item('skill.g', 'skill', 'G')]
+  let s = createState(rows)
+  s = toggle(s)
+  assert.deepEqual([...s.selected].sort(), ['mcp.g', 'skill.g'], '목록에 없는 짝은 고르지 않는다')
+  s = toggle(s)
+  assert.deepEqual([...s.selected], ['skill.g'])
+})
+
 test('토글은 같은 행에서 켜고 끈다', () => {
   let s = setTab(createState(ROWS), 1)
   s = toggle(s)

@@ -315,3 +315,10 @@ test('skill.graphify: 앱 → 상류 설치기 → Claude 어댑터 순서로 �
   assert.match(steps[2].describe, /\.claude\/skills/)
   assert.equal(bindScope(def, 'user'), null)
 })
+
+// MCP만 깔면 graph.json을 만들 /graphify가 없다 — 고를 때 스킬도 함께 고른다.
+test('mcp.graphify: 저장소·전역 모두 skill.graphify를 짝(bundles)으로 싣는다', async () => {
+  const { default: def } = await import('../lib/items/mcp.graphify.mjs')
+  assert.deepEqual(bindScope(def, 'project').bundles, ['skill.graphify'])
+  assert.deepEqual(bindScope(def, 'user').bundles, ['skill.graphify'])
+})

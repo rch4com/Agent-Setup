@@ -81,6 +81,9 @@ async function runClassic(root, { dryRun, listOnly, setArg, scope = 'project', t
   const selectedIds = new Set(setArg.split(',').map((s) => s.trim()).filter(Boolean))
   const known = new Set(items.map((i) => i.id))
   for (const id of selectedIds) if (!known.has(id)) throw new LocalizedError('error.unknownItem', { id })
+  // 짝 항목(item.bundles)을 함께 고른다 — 따로 깔린 짝이 다음 --set에서 목록 밖으로
+  // 읽혀 제거되지 않게, 선언 단계에서 넣는다.
+  for (const item of items) if (selectedIds.has(item.id)) for (const id of item.bundles ?? []) if (known.has(id)) selectedIds.add(id)
   assertExclusive(items, selectedIds)
 
   // 전역(scope: 'user') 항목은 --set 생략만으로 지우지 않는다. --set은 "저장소가

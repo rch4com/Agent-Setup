@@ -13,13 +13,13 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 45개, user 36개를 id순으로', async () => {
+test('loadItems: project 44개, user 35개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 45)
+  assert.equal(project.length, 44)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
-    'config.gitmessage.en', 'config.gitmessage.ko', 'mcp.codebase-memory', 'mcp.graft', 'mcp.graphify', 'mcp.headroom',
+    'config.gitmessage.en', 'config.gitmessage.ko', 'mcp.graft', 'mcp.graphify', 'mcp.headroom',
     'mcp.notion', 'mcp.supabase', 'mcp.vercel', 'plugin.ai-memory', 'plugin.cli-anything', 'plugin.ecc', 'plugin.hyperframes',
     'plugin.impeccable', 'plugin.mattpocock-skills', 'plugin.ponytail', 'plugin.superpowers', 'plugin.understand-anything',
     'skill.agent-browser', 'skill.agent-desktop', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
@@ -32,7 +32,7 @@ test('loadItems: project 45개, user 36개를 id순으로', async () => {
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 36)
+  assert.equal(user.length, 35)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
   for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
@@ -144,7 +144,7 @@ test('Copilot CLI·VS Code 배선: MCP와 ai-memory 브리지, 직접 설치 플
   const pick = (items, id) => items.find((i) => i.id === id)
   const cmds = (item) => item.steps('install', { targets: item.supports }).filter((s) => s.argv).map((s) => s.argv.join(' '))
   // 모든 MCP 항목은 저장소 범위에서 VS Code, 전역에서 Copilot CLI·VS Code를 지원한다.
-  for (const id of ['mcp.codebase-memory', 'mcp.graft', 'mcp.graphify', 'mcp.headroom', 'mcp.notion', 'mcp.supabase', 'mcp.vercel']) {
+  for (const id of ['mcp.graft', 'mcp.graphify', 'mcp.headroom', 'mcp.notion', 'mcp.supabase', 'mcp.vercel']) {
     assert.ok(pick(project, id).supports.includes('vscode'), `${id}: 저장소 VS Code`)
     assert.ok(!pick(project, id).supports.includes('copilot'), `${id}: Copilot CLI는 저장소 범위가 없다`)
     for (const cli of ['copilot', 'vscode']) assert.ok(pick(user, id).supports.includes(cli), `${id}: 전역 ${cli}`)

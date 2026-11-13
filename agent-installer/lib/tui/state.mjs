@@ -172,6 +172,8 @@ export function toggle(state) {
   } else {
     selected.add(row.id)
     dropSiblings(state.rows, selected, row)
+    // 짝 항목(row.bundles)은 켤 때만 따라 켠다 — 끄는 건 사용자가 따로 고른다.
+    for (const id of row.bundles ?? []) if (state.rows.some((r) => r.id === id)) selected.add(id)
   }
   return { ...state, selected }
 }

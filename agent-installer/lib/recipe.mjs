@@ -72,7 +72,7 @@ export function bindScope(def, scope) {
 
   return {
     id: def.id, category: def.category, label: def.label,
-    group: def.group ?? null, exclusive: def.exclusive ?? null, note: def.note ?? null,
+    group: def.group ?? null, exclusive: def.exclusive ?? null, bundles: def.bundles ?? [], note: def.note ?? null,
     verified: def.verified ?? null, hooks: Boolean(def.hooks), postInstall: def.postInstall ?? null,
     scope, supports, unsupported,
 

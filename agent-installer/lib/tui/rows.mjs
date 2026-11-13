@@ -163,6 +163,8 @@ function itemRow({ id, section, label, hint, fullHint = hint, statusDetail = nul
     // 선택 배타는 state.mjs가 이 값만 보고 처리한다 — 순수 리듀서가 항목의
     // 속내를 몰라도 되게 행에 미리 올려 둔다.
     exclusive: item?.exclusive ?? null,
+    // 이 항목을 켜면 함께 켜질 항목 id(mcp.graphify → skill.graphify).
+    bundles: item?.bundles ?? [],
     label,
     hint,
     // 화면에 안 찍히는 긴 힌트. 비대화형 목록(printPlain)과 검색이 쓴다 —
