@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## billion-context context-compression plugin added (2026-11-13, 2.8.0)
+
+- **`plugin.billion-context`.** Context compression through a local proxy
+  (`ranxianglei/billion-context`, MIT). **Global scope only** — installs the `bili`
+  app with `npm i -g billion-context` when missing, then runs
+  `bili plugin install claude|codex|opencode`. Detected by the MCP name `bili`;
+  removed with `bili plugin remove <client>`.
+- **Caveat.** It sets a custom `ANTHROPIC_BASE_URL` and turns off auto-compaction,
+  so Claude Code loses account-bound features such as Remote Control while active.
+- **Verified.** Only the commands, with `--global --print`. A real install routes
+  this machine's model traffic through the proxy, so it was not measured.
+
 ## Bootstrap fills in missing instructions by content (2026-11-13, 2.7.0)
 
 - **Problem.** The bootstrap kept any existing file without looking inside, so an

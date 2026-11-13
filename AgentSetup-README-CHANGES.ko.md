@@ -5,6 +5,17 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## billion-context 문맥 압축 플러그인 추가 (2026-11-13, 2.8.0)
+
+- **`plugin.billion-context`.** 로컬 프록시로 문맥을 압축한다(`ranxianglei/billion-context`,
+  MIT). **전역 범위 전용** — `bili` 앱이 없으면 `npm i -g billion-context`로 깔고
+  `bili plugin install claude|codex|opencode`를 돌린다. 감지는 MCP 이름 `bili`,
+  제거는 `bili plugin remove <클라이언트>`.
+- **주의.** 사용자 지정 `ANTHROPIC_BASE_URL`과 자동 압축 끄기 때문에, 켜져 있는 동안
+  Claude Code의 Remote Control 같은 계정 기능이 사라진다.
+- **검증.** `--global --print`로 명령만 확인했다. 실제 설치는 이 머신의 모델
+  트래픽을 프록시로 돌리므로 실측하지 않았다.
+
 ## 부트스트랩이 내용 기준으로 빠진 지침을 채운다 (2026-11-13, 2.7.0)
 
 - **문제.** 부트스트랩은 파일이 있으면 내용을 보지 않고 보존해, 기존 `AGENTS.md`에
