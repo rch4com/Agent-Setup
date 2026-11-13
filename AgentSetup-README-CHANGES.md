@@ -5,6 +5,20 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Six motion, short-form and social skills added (2026-11-13, 2.5.0)
+
+- **Single skills:** `skill.line-art-animation` (SVG line-art animation),
+  `skill.animated-shorts` (cartoon-3d-short — cartoon shorts with three.js +
+  Remotion), `skill.motion-design` (LottieFiles UI motion principles). Repo and
+  global scope.
+- **Skill packs (repo scope only):** `skill.instagram-agent` (13 ig-* skills),
+  `skill.youtube-agent` (11 yt-* skills), `skill.iart-motion` (9 skills).
+- **iart.** `iart-ai/motion-skills` is only an index of 19 packs with no skills of
+  its own, and the packs share names, so only the flagship
+  `iart-ai/motion-design-skills` is installed.
+- **Verified.** In a fresh Git repo, all six items were installed, rerun
+  (`Nothing to change.`) and removed for real.
+
 ## Selecting graphify MCP also selects the /graphify skill; Codebase Memory MCP removed (2026-11-13, 2.4.0)
 
 - **`mcp.graphify` brings `skill.graphify`.** The MCP server only reads `graph.json`;

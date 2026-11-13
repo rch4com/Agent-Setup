@@ -5,6 +5,18 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 모션·숏폼·SNS 운영 스킬 6개 추가 (2026-11-13, 2.5.0)
+
+- **스킬 하나:** `skill.line-art-animation`(SVG 선화 애니메이션),
+  `skill.animated-shorts`(cartoon-3d-short — three.js + Remotion 카툰 숏폼),
+  `skill.motion-design`(LottieFiles UI 모션 원칙). 저장소·전역 범위.
+- **스킬 묶음(저장소 범위 전용):** `skill.instagram-agent`(ig-* 13개),
+  `skill.youtube-agent`(yt-* 11개), `skill.iart-motion`(9개).
+- **iart.** `iart-ai/motion-skills`는 19개 묶음의 색인일 뿐 스킬이 없고 묶음끼리
+  이름이 겹쳐, 대표 묶음 `iart-ai/motion-design-skills`만 받는다.
+- **검증.** 새 Git 저장소에서 여섯 항목을 실제 설치·재실행(`Nothing to
+  change.`)·제거했다.
+
 ## graphify MCP를 고르면 /graphify 스킬도 함께 고르고 Codebase Memory MCP를 뺀다 (2026-11-13, 2.4.0)
 
 - **`mcp.graphify` → `skill.graphify`.** MCP는 `graph.json`을 읽기만 하고 그것을
