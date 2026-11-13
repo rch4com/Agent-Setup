@@ -13,7 +13,7 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 50개, user 38개를 id순으로', async () => {
+test('loadItems: project 50개, user 39개를 id순으로', async () => {
   const project = await loadItems()
   assert.equal(project.length, 50)
   const ids = project.map((i) => i.id)
@@ -32,7 +32,7 @@ test('loadItems: project 50개, user 38개를 id순으로', async () => {
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 38)
+  assert.equal(user.length, 39)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
   for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
