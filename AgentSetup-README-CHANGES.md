@@ -5,6 +5,20 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Handoff skill picks up upstream updates (2026-11-15, 2.9.0)
+
+- **Problem.** Re-selecting an installed skill changed nothing, so the repository
+  copy stayed stale after `rch4com/agent-handoff-manager` changed.
+- **Change.** `skill.agent-handoff-manager` hashes the skill folder on GitHub's
+  default branch the same way the registry does and compares it with
+  `computedHash` in `skills-lock.json`. On a mismatch the row reads
+  **Update available**; applying it with the item selected runs the same
+  `skills add … --copy` again as an **Update**. Deselecting still removes it.
+- **Scope.** Repository-scoped installs only. Offline or rate-limited checks
+  count as up to date.
+- **Verified.** The hash matches the lock value against the real upstream, and a
+  scratch repository went Update available → Update → Installed → no changes.
+
 ## billion-context context-compression plugin added (2026-11-13, 2.8.0)
 
 - **`plugin.billion-context`.** Context compression through a local proxy

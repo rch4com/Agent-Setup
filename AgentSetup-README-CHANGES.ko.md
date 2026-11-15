@@ -5,6 +5,18 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 핸드오프 스킬 원본 갱신을 다시 받는다 (2026-11-15, 2.9.0)
+
+- **문제.** 설치된 스킬은 다시 골라도 변경이 없어, `rch4com/agent-handoff-manager`가
+  바뀌어도 저장소 복사본이 낡은 채 남았다.
+- **변경.** `skill.agent-handoff-manager`는 `skills-lock.json`의 `computedHash`와
+  GitHub 기본 브랜치의 스킬 폴더를 같은 방식으로 해시해 비교한다. 다르면
+  **새 버전 있음**으로 보이고, 고른 채 적용하면 **업데이트** 동작이 같은
+  `skills add … --copy`를 다시 돌린다. 해제하면 지금처럼 제거한다.
+- **범위.** 저장소 범위 설치만 비교한다. 오프라인·API 한도는 새 것 없음으로 본다.
+- **검증.** 실제 원본으로 해시가 잠금 값과 일치함을 확인했고, 임시 저장소에서
+  새 버전 있음 → 업데이트 → 설치됨 → 변경 없음 순서를 실측했다.
+
 ## billion-context 문맥 압축 플러그인 추가 (2026-11-13, 2.8.0)
 
 - **`plugin.billion-context`.** 로컬 프록시로 문맥을 압축한다(`ranxianglei/billion-context`,
