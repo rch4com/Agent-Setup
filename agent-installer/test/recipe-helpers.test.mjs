@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { defineRecipe, bindScope } from '../lib/recipe.mjs'
 import { readJson } from '../lib/jsonfile.mjs'
+import { skillFolderHash, upstreamChanged } from '../lib/skills-registry.mjs'
 import { marketplacePlugin, mcpServer, skillsAdd, SKILLS_AGENTS, withApp, npmApp } from '../lib/recipe-helpers.mjs'
 
 const lines = (item, action, state = {}) => item.steps(action, state).map((s) => (s.argv ? s.argv.join(' ') : `# ${s.describe}`))
@@ -215,6 +216,35 @@ test('skillsAdd: 공유 단계 하나로 네 CLI, 전역은 에이전트 명시'
   const u = bindScope(def, 'user')
   assert.deepEqual(SKILLS_AGENTS, ['claude-code', 'codex', 'antigravity-cli'])
   assert.deepEqual(lines(u, 'install'), [`npx -y skills@latest add https://github.com/JuliusBrussee/caveman --skill caveman -g -a ${SKILLS_AGENTS.join(' ')} --yes --copy`])
+})
+
+test('skillsAdd trackUpstream: 원본이 바뀌면 stale, 다시 고르면 add를 한 번 더 돈다', async () => {
+  const def = defineRecipe({ id: 'skill.h', category: 'skill', label: 'h', ...skillsAdd({ source: 'https://github.com/o/r', skill: 'h', trackUpstream: true }) })
+  const p = bindScope(def, 'project')
+  const root = mkdtempSync(join(tmpdir(), 'sk-up-'))
+  const local = [{ path: 'SKILL.md', content: Buffer.from('a\r\nb') }]
+  writeFileSync(join(root, 'skills-lock.json'), JSON.stringify({ skills: { h: { source: 'o/r', sourceType: 'github', skillPath: 'skills/h/SKILL.md', computedHash: skillFolderHash(local) } } }))
+  const remote = { 'skills/h/SKILL.md': 'a\nb' }
+  const fetchImpl = async (url) => url.includes('/git/trees/')
+    ? { ok: true, json: async () => ({ sha: 'c0ffee', tree: [{ type: 'blob', path: 'skills/h/SKILL.md' }, { type: 'blob', path: 'README.md' }] }) }
+    : { ok: true, arrayBuffer: async () => new TextEncoder().encode(remote[url.split('/c0ffee/')[1]]).buffer }
+  // CRLF만 다른 것은 같은 내용이다.
+  assert.equal(await upstreamChanged(root, 'h', { fetchImpl }), false)
+  remote['skills/h/SKILL.md'] = 'a\nb\nc'
+  assert.equal(await upstreamChanged(root, 'h', { fetchImpl }), true)
+  assert.equal(await upstreamChanged(root, 'h', { fetchImpl: async () => { throw new Error('offline') } }), false)
+
+  const probe = { root, scope: 'project', has: () => false, skill: async () => true }
+  const orig = globalThis.fetch
+  globalThis.fetch = fetchImpl
+  try {
+    const state = await p.detect({ probe })
+    assert.equal(state.status, 'stale')
+    assert.equal(lines(p, 'install', state)[0], 'npx -y skills@latest add https://github.com/o/r --skill h --agent universal --yes --copy')
+    assert.equal(lines(p, 'uninstall', state)[0], 'npx -y skills@latest remove h --agent universal --yes')
+  } finally {
+    globalThis.fetch = orig
+  }
 })
 
 test('skillsAdd: 단일 스킬 제거는 남은 디렉터리와 잠금 항목을 치운다', async () => {

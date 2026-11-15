@@ -39,7 +39,7 @@ const flag = preScanLang(argv)
 let sessionT = null
 
 // 상태 라벨은 로케일마다 길이가 다르다 — 폭을 상수로 박으면 한쪽이 어긋난다.
-const STATUS_KEYS = ['status.installed', 'status.partial', 'status.absent']
+const STATUS_KEYS = ['status.installed', 'status.partial', 'status.stale', 'status.absent']
 
 // 대화형 화면은 TUI가 맡는다.
 async function openTui(root, { dryRun, skillMode, designDirs, scope, t, localeForced }) {

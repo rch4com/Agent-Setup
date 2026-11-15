@@ -345,7 +345,7 @@ export function render(state, opts = {}) {
   return lines
 }
 
-const CHANGE_MARK = { install: '+', complete: '±', uninstall: '−' }
+const CHANGE_MARK = { install: '+', complete: '±', update: '↑', uninstall: '−' }
 
 // 제출 검토 화면 — 적용 직전에 무엇이 바뀌는지만 보여 준다.
 // 목록이 길면 잘라내고 남은 건수를 알린다(스크롤 대신) — 여기서 길을 잃을 이유는 없다.

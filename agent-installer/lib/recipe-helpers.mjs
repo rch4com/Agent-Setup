@@ -11,7 +11,7 @@ import { LocalizedError, createT, toText } from './i18n/index.mjs'
 import { readJson, removeKey, setKey } from './jsonfile.mjs'
 import { VSCODE_MCP_FILE, copilotMcpFile, onPath, readOpencodeConfig } from './probe.mjs'
 import { SHARED } from './recipe.mjs'
-import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock, sourceKey } from './skills-registry.mjs'
+import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock, sourceKey, upstreamChanged } from './skills-registry.mjs'
 
 const SKILLS = ['npx', '-y', 'skills@latest']
 
@@ -251,7 +251,9 @@ export const claudeAdapterStep = {
   },
 }
 
-export function skillsAdd({ source, skill, anchor = null }) {
+// trackUpstream: 저장소 범위 설치본이 GitHub 원본보다 낡았으면 'stale'로 읽어
+// 다시 고를 때 같은 add 명령으로 덮어쓴다(add는 기존 복사본·잠금 해시를 갱신한다, 실측).
+export function skillsAdd({ source, skill, anchor = null, trackUpstream = false }) {
   const wildcard = skill === '*'
   // 스킬 전부(*)를 넣으면 detect가 볼 이름을 정해 둬야 한다 — 없으면 설치해도
   // 계속 absent로 읽히는 항목이 조용히 카탈로그에 들어간다.
@@ -284,7 +286,11 @@ export function skillsAdd({ source, skill, anchor = null }) {
       uninstall: [[...SKILLS, 'remove', skill, '-g', '-a', ...SKILLS_AGENTS, '--yes']],
     }
   }
-  return { recipes: { [SHARED]: byScope }, detect: { [SHARED]: (p) => p.skill(probeName) } }
+  const detect = async (p) => {
+    if (!(await p.skill(probeName))) return false
+    return trackUpstream && p.scope === 'project' && (await upstreamChanged(p.root, probeName)) ? 'stale' : true
+  }
+  return { recipes: { [SHARED]: byScope }, detect: { [SHARED]: detect } }
 }
 
 // 스킬이 구동하는 앱(바이너리)을 함께 보장한다. 앱 단계가 맨 앞이다 — 상류

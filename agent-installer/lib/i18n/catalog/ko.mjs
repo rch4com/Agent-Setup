@@ -127,10 +127,12 @@ export default {
 
   'status.installed': '설치됨',
   'status.partial': '일부 설치됨',
+  'status.stale': '새 버전 있음',
   'status.absent': '미설치',
 
   'change.install': '설치',
   'change.complete': '보완 설치',
+  'change.update': '업데이트',
   'change.uninstall': '제거',
 
   'apply.noChanges': '변경할 항목이 없습니다.',

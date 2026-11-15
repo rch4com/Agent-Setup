@@ -43,6 +43,7 @@ export function planChanges(states, selectedIds) {
     const selected = selectedIds.has(item.id)
     if (selected && status === 'absent') changes.push({ item, action: 'install', state: result })
     else if (selected && status === 'partial') changes.push({ item, action: 'complete', state: result })
+    else if (selected && status === 'stale') changes.push({ item, action: 'update', state: result })
     else if (!selected && status !== 'absent') changes.push({ item, action: 'uninstall', state: result })
   }
   return changes

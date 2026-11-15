@@ -99,7 +99,7 @@ export function progressLines(progress, opts = {}) {
   lines.push(cut(`${bar(done, progress.total, Math.max(0, w - width(meta)))}${meta}`, w))
   lines.push('')
 
-  const actionWidth = labelWidth(t, ['change.install', 'change.complete', 'change.uninstall'])
+  const actionWidth = labelWidth(t, ['change.install', 'change.complete', 'change.update', 'change.uninstall'])
   const body = Math.max(1, height - lines.length - 2)
 
   // 지면이 모자라면 **완료된 것부터** 접는다. 지금 무엇이 도는지가 가장 알고

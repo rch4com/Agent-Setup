@@ -1,5 +1,6 @@
 // 공유 스킬 디렉터리(.agents/skills)와 레지스트리 잠금 파일을 읽고 정리하는
 // 보조 함수. 감지(probe)와 레지스트리 스킬 레시피가 함께 쓴다.
+import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { repoPath, repoPathStrict } from './context.mjs'
@@ -90,4 +91,53 @@ export function pruneLock(root, names) {
   // 빈 껍데기를 남기면 우리가 만든 흔적이 저장소에 계속 남는다.
   if (Object.keys(skills).length === 0) rmSync(file, { force: true })
   else writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`)
+}
+
+// 레지스트리(skills@1.8)가 잠금 파일의 computedHash를 만드는 방식 그대로다 —
+// 경로 정렬, 경로·길이·내용을 NUL로 잇고, 텍스트의 CRLF는 LF로 본다.
+// 상류가 이 방식을 바꾸면 항목이 늘 '갱신 있음'으로 읽힌다. 그때 치르는 값은
+// 같은 내용을 한 번 더 받는 것뿐이라 조용히 낡는 쪽보다 낫다.
+const HASH_SKIP = new Set(['metadata.json', '.git', '__pycache__', '__pypackages__'])
+export function skillFolderHash(files) {
+  const lf = (b) => (b.includes(0) || !b.includes('\r\n') ? b : Buffer.from(b.toString('latin1').replaceAll('\r\n', '\n'), 'latin1'))
+  const entries = files
+    .filter((f) => !f.path.split('/').some((part) => HASH_SKIP.has(part)))
+    .map((f) => ({ path: Buffer.from(f.path, 'utf8'), content: lf(f.content) }))
+    .sort((a, b) => Buffer.compare(a.path, b.path))
+  const hash = createHash('sha256')
+  for (const { path, content } of entries) {
+    hash.update(path); hash.update('\0'); hash.update(String(content.length)); hash.update('\0'); hash.update(content)
+  }
+  return hash.digest('hex')
+}
+
+const UPSTREAM_TIMEOUT_MS = 10 * 1000
+
+// 저장소에 깐 스킬보다 GitHub 기본 브랜치의 원본이 새로운가. 잠금 파일에
+// 적힌 해시와 상류 폴더를 같은 방식으로 해시해 비교한다. 오프라인·API 한도·
+// 잠금 항목 없음은 모두 "새 것 없음"이다 — 감지가 네트워크 때문에 설치본을
+// 미설치로 뒤집으면 안 된다.
+export async function upstreamChanged(root, skill, { fetchImpl = fetch } = {}) {
+  const entry = readLock(root)?.skills?.[skill]
+  if (!entry?.computedHash || entry.sourceType !== 'github' || !entry.skillPath) return false
+  const repo = sourceKey(entry.source)
+  const dir = entry.skillPath.split('/').slice(0, -1).join('/')
+  const prefix = dir ? `${dir}/` : ''
+  const get = async (url) => {
+    const res = await fetchImpl(url, { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) })
+    if (!res.ok) throw new Error(`${res.status} ${url}`)
+    return res
+  }
+  try {
+    const tree = await (await get(`https://api.github.com/repos/${repo}/git/trees/HEAD?recursive=1`)).json()
+    if (tree.truncated) return false
+    const blobs = tree.tree.filter((n) => n.type === 'blob' && n.path.startsWith(prefix))
+    const files = await Promise.all(blobs.map(async (n) => ({
+      path: n.path.slice(prefix.length),
+      content: Buffer.from(await (await get(`https://raw.githubusercontent.com/${repo}/${tree.sha}/${n.path}`)).arrayBuffer()),
+    })))
+    return files.length > 0 && skillFolderHash(files) !== entry.computedHash
+  } catch {
+    return false
+  }
 }

@@ -30,6 +30,11 @@ test('planChanges: partial+체크 유지=complete, partial+해제=uninstall', ()
   )
 })
 
+test('planChanges: stale+체크 유지=update, stale+해제=uninstall', () => {
+  const states = [fake('s1', 'stale'), fake('s2', 'stale')]
+  assert.deepEqual(planChanges(states, new Set(['s1'])).map((c) => [c.item.id, c.action]), [['s1', 'update'], ['s2', 'uninstall']])
+})
+
 test('planChanges: 변경 없으면 빈 배열', () => {
   const states = [fake('a', 'installed'), fake('b', 'absent')]
   assert.deepEqual(planChanges(states, new Set(['a'])), [])

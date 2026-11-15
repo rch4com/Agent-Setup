@@ -83,32 +83,39 @@ export function bindScope(def, scope) {
       const targets = shared ? [SHARED] : reach
       const present = []
       const failed = []
+      // detect가 'stale'을 돌려주면 깔려는 있지만 원본이 새로워진 것이다 —
+      // 제거 대상으로는 present, 다시 고르면 설치 단계를 한 번 더 돈다.
+      const stale = []
       for (const cli of targets) {
         try {
-          if (await def.detect[cli](probe)) present.push(cli)
+          const found = await def.detect[cli](probe)
+          if (found) present.push(cli)
+          if (found === 'stale') stale.push(cli)
         } catch {
           // 목록 명령 실패(로그인 만료 등)를 "없음"으로 읽으면 깔린 것을 또 깐다.
           failed.push(cli)
         }
       }
       const live = targets.filter((c) => !failed.includes(c))
-      const status = present.length === 0 ? 'absent' : present.length === live.length ? 'installed' : 'partial'
+      let status = present.length === 0 ? 'absent' : present.length === live.length ? 'installed' : 'partial'
+      if (status === 'installed' && stale.length > 0) status = 'stale'
       let detail = null
       if (failed.length > 0) detail = msg('item.probeFailed', { list: failed.join(', ') })
       else if (status === 'partial') {
         detail = msg('item.plugin.partial', { present: present.join(', '), missing: live.filter((c) => !present.includes(c)).join(', ') })
       } else if (targets.length === 0) detail = msg('item.global.noCli', { list: excluded.join(', ') })
-      return { status, detail, excluded, present, failed, targets, reach }
+      return { status, detail, excluded, present, failed, stale, targets, reach }
     },
 
     steps(action, state = {}) {
       const present = state.present ?? []
       const failed = state.failed ?? []
+      const stale = state.stale ?? []
       const targets = state.targets ?? (shared ? [SHARED] : supports)
       const removing = action === 'uninstall'
       const clis = removing
         ? targets.filter((c) => present.includes(c))
-        : targets.filter((c) => !present.includes(c) && !failed.includes(c))
+        : targets.filter((c) => (!present.includes(c) || stale.includes(c)) && !failed.includes(c))
       return clis.flatMap((cli) => recipeOf(cli)[removing ? 'uninstall' : 'install'].map((s) => normalizeStep(s, cli)))
     },
 

@@ -133,10 +133,12 @@ export default {
 
   'status.installed': 'Installed',
   'status.partial': 'Partial',
+  'status.stale': 'Update available',
   'status.absent': 'Not installed',
 
   'change.install': 'Install',
   'change.complete': 'Finish',
+  'change.update': 'Update',
   'change.uninstall': 'Remove',
 
   'apply.noChanges': 'Nothing to change.',
