@@ -1,8 +1,8 @@
 // 부트스트랩 진입점 — 순서와 보고만 담당한다.
 // 무엇을 만들지는 manifest.mjs가, 어떻게 만들지는 apply.mjs·adapter.mjs가 안다.
-import { MANIFEST } from './manifest.mjs'
+import { docLocale, manifestFor } from './manifest.mjs'
 import {
-  configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys,
+  configureAdapterSafe, ensureBlocks, ensureDirs, ensureFiles, ensureIgnore, ensureJsonKeys, ensureJsonPaths,
 } from './apply.mjs'
 import { ensureSnippets } from './snippets.mjs'
 import { RECORD_REL, collectManaged, emptyRecord, readRecord, writeRecord } from './record.mjs'
@@ -25,7 +25,9 @@ function counterTag(n, total) {
 }
 
 export function runBootstrap(root, opts = {}) {
-  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest = MANIFEST, onProgress = null, t = createT('en') } = opts
+  const { dryRun = false, skillMode = 'auto', adopt = false, log = console.log, manifest: given = null, onProgress = null, t = createT('en') } = opts
+  // 문서 언어는 저장소의 기록이 정한다(manifest.mjs docLocale). 테스트가 매니페스트를 직접 주면 그것이 이긴다.
+  const manifest = given ?? manifestFor(docLocale(root, t))
 
   if (!SKILL_MODES.includes(skillMode)) {
     throw new LocalizedError('error.badSkillModeRuntime', { list: SKILL_MODES.join(', '), value: skillMode })
@@ -43,7 +45,7 @@ export function runBootstrap(root, opts = {}) {
   // manifest.ignore.length보다 많은 결과(경고 포함)를 돌려줄 수 있다.
   let total = adopt
     ? 1
-    : manifest.dirs.length + manifest.files.length + (manifest.settings ?? []).length
+    : manifest.dirs.length + manifest.files.length + (manifest.settings ?? []).length + (manifest.jsonPaths ?? []).length
       + manifest.blocks.length + (manifest.snippets ?? []).length + manifest.adapters.length + manifest.ignore.length + 1
   let done = 0
   const step = (results) => {
@@ -91,6 +93,7 @@ export function runBootstrap(root, opts = {}) {
     ...runStep((c) => ensureDirs(root, manifest.dirs, c)),
     ...runStep((c) => ensureFiles(root, manifest.files, c)),
     ...runStep((c) => ensureJsonKeys(root, manifest.settings ?? [], c)),
+    ...runStep((c) => ensureJsonPaths(root, manifest.jsonPaths ?? [], c)),
     ...runStep((c) => ensureBlocks(root, manifest.blocks, c)),
     ...runStep((c) => ensureSnippets(root, manifest.snippets ?? [], c)),
   ]
@@ -112,7 +115,8 @@ export function runBootstrap(root, opts = {}) {
   const record = {
     ...emptyRecord({ skillMode }),
     // 부트스트랩은 배선만 다룬다. 사용자가 고른 언어·항목을 지울 권한이 없다.
-    lang: previous?.lang ?? null,
+    // 첫 부트스트랩이면 이번 문서 언어를 남긴다 — 이후 update·status가 같은 언어로 비교한다.
+    lang: previous ? previous.lang : t.locale,
     items: previous?.items ?? [],
     design: previous?.design ?? [],
     managed: collectManaged(root, manifest),

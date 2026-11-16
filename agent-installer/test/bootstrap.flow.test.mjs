@@ -63,7 +63,8 @@ test('기존 파일은 보존하고, 빠진 절만 뒤에 덧붙인다', () => {
   const text = readFileSync(join(root, 'AGENTS.md'), 'utf8')
   assert.ok(text.startsWith(mine), '사용자 본문은 앞에 그대로')
   assert.equal(text.match(/^## Rules$/gm).length, 1, '이미 있는 절은 다시 넣지 않는다')
-  for (const h of ['Scope', 'Required workflow', 'Repository commands', 'Behavioral guidelines']) {
+  // 로케일이 ko라 빠진 절은 한글 제목으로 붙는다. 이미 있는 영어 `## Rules`는 짝이라 다시 넣지 않는다.
+  for (const h of ['적용 범위', '프로젝트 문서', '필수 작업 흐름', '저장소 명령', '행동 지침']) {
     assert.match(text, new RegExp(`^## ${h}$`, 'm'), h)
   }
   assert.doesNotMatch(text, /gitmessage/, '.gitmessage.txt가 없으면 지침을 넣지 않는다')
@@ -148,10 +149,11 @@ test('bootstrap이 설치 기록을 남긴다', () => {
   const record = readRecord(root)
   assert.equal(record.pinnedVersion, toolVersion())
   assert.equal(record.skillMode, 'auto')
+  assert.equal(record.lang, 'ko', '첫 부트스트랩은 문서 언어를 남긴다')
   // 갓 만든 파일은 정의상 템플릿과 같으므로 전부 채택된다.
   const values = Object.values(record.managed)
-  // 파일 7개 + CLAUDE.md 블록 1개
-  assert.equal(values.length, 8, `관리 항목이 ${values.length}개다`)
+  // 파일 13개(프로젝트 문서 6개 포함) + CLAUDE.md 블록 1개
+  assert.equal(values.length, 14, `관리 항목이 ${values.length}개다`)
   assert.equal(values.filter((v) => v === null).length, 0, '갓 만든 파일이 미채택으로 잡혔다')
 })
 

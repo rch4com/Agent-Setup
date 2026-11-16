@@ -19,7 +19,7 @@ const bridge = mcpServer({
 })
 
 export default defineRecipe({
-  id: 'plugin.ai-memory', category: 'plugin', label: 'ai-memory', group: '__context',
+  id: 'plugin.ai-memory', category: 'plugin', label: 'ai-memory', group: '__memory',
   note: 'item.plugin.ai-memory.note',
   verified: '2026-11-06',
   hooks: true,

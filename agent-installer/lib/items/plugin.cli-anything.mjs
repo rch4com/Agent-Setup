@@ -10,7 +10,7 @@ import { marketplacePlugin } from '../recipe-helpers.mjs'
 // 같은 리포의 skills/cli-hub-meta-skill은 별개 항목이다 — 이미 만들어진 CLI를
 // 허브에서 찾아 설치하게 하는 스킬이고, 이 항목은 CLI를 새로 만드는 쪽이다.
 export default defineRecipe({
-  id: 'plugin.cli-anything', category: 'plugin', label: 'CLI-Anything', group: '__service',
+  id: 'plugin.cli-anything', category: 'plugin', label: 'CLI-Anything', group: '__control',
   note: 'item.plugin.cli-anything.note',
   verified: '2026-10-06',
   ...marketplacePlugin({

@@ -8,7 +8,7 @@ import { npmApp, skillsAdd, withApp } from '../recipe-helpers.mjs'
 // 안내하는 설치 명령이 --skill agent-desktop 하나다.
 // (2026-11-12 확인: agent-browser.dev/desktop/installation, Windows 10 1809+.)
 export default defineRecipe({
-  id: 'skill.agent-desktop', category: 'skill', label: 'agent-desktop', group: '__service',
+  id: 'skill.agent-desktop', category: 'skill', label: 'agent-desktop', group: '__control',
   note: 'item.skill.agent-desktop.note',
   verified: '2026-11-12',
   ...withApp(

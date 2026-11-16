@@ -12,7 +12,7 @@ import { npmApp, skillsAdd, withApp } from '../recipe-helpers.mjs'
 // 2026-11-12부터 바이너리가 PATH에 없으면 함께 깐다 — npm i -g 뒤 최초 1회
 // agent-browser install(Chrome for Testing). 제거는 스킬만 지운다(withApp).
 export default defineRecipe({
-  id: 'skill.agent-browser', category: 'skill', label: 'agent-browser', group: '__service',
+  id: 'skill.agent-browser', category: 'skill', label: 'agent-browser', group: '__control',
   note: 'item.skill.agent-browser.note',
   verified: '2026-11-12',
   ...withApp(

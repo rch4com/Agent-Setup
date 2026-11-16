@@ -9,7 +9,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // CLI를 함께 덮는 쪽을 택했다 — 상시 적용을 원하면 note가 안내하는 대로
 // 규칙 블록을 각 CLI의 지침 파일에 손으로 넣는다(상류 INSTALL.md).
 export default defineRecipe({
-  id: 'skill.i-have-adhd', category: 'skill', label: 'I Have ADHD', group: '__style',
+  id: 'skill.i-have-adhd', category: 'skill', label: 'I Have ADHD', group: '__writing',
   note: 'item.skill.i-have-adhd.note',
   verified: '2026-09-17',
   ...skillsAdd({ source: 'https://github.com/ayghri/i-have-adhd', skill: 'i-have-adhd' }),

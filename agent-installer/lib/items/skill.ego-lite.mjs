@@ -70,7 +70,7 @@ async function install({ root, exec }) {
 }
 
 export default defineRecipe({
-  id: 'skill.ego-lite', category: 'skill', label: 'ego lite', group: '__service',
+  id: 'skill.ego-lite', category: 'skill', label: 'ego lite', group: '__control',
   note: 'item.skill.ego-lite.note',
   verified: '2026-11-12',
   ...withApp(

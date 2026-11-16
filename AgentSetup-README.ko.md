@@ -26,6 +26,7 @@ npx @rch4com/agent-setup                       # 플러그인·MCP·스킬을 �
 ```text
 repository/
 ├─ AGENTS.md
+├─ README.md           # 프로젝트 문서 — 인터뷰로 채울 초안
 ├─ CLAUDE.md
 ├─ opencode.jsonc
 ├─ .agents/
@@ -37,14 +38,35 @@ repository/
 │  └─ skills/          # .agents/skills 링크 또는 관리되는 복제본
 ├─ .codex/
 │  └─ config.toml
+├─ docs/
+│  ├─ intent.md        # 왜, 누구를 위해, 성공의 의미
+│  ├─ spec.md          # 해야 하는 일과 완료 기준
+│  ├─ architecture.md  # 어떻게 만들었는지와 결정
+│  ├─ plan.md          # 마일스톤과 작업
+│  └─ review.md        # 변경을 확인하는 방법
 └─ .agent-kit/
    └─ README.md
 ```
 
+프로젝트 문서 여섯 개(`README.md`, `docs/intent.md`·`spec.md`·`architecture.md`·`plan.md`·
+`review.md`)는 설치기 언어(영어 또는 한국어)로 쓰인, 레이아웃만 있는 초안입니다. 각 문서는
+`Status: draft`, `<TBD: …>` 자리표시자, 끝의 **인터뷰 가이드**로 시작합니다. `AGENTS.md`의
+"프로젝트 문서" 절은 작업이 초안 문서에 달려 있으면 에이전트가 한 번에 질문 하나씩 인터뷰해
+사용자가 확인한 내용만 채우도록 안내합니다. 언어는 첫 부트스트랩 때(화면 언어) 정해져
+`.agent-kit/agent-setup.json`의 `lang`에 남고, 이후 실행과 다른 OS 언어를 쓰는 팀원도 그 값을
+따르므로 손대지 않은 문서가 `update`로 번역되는 일은 없습니다. `lang`이 없는 기록(옛 저장소)은
+영어입니다.
+
 ## 도구별 연결 방식
 
 - **Claude Code:** `CLAUDE.md`가 `AGENTS.md`를 가져오며,
-  `.claude/skills`가 `.agents/skills`에 연결됩니다.
+  `.claude/skills`가 `.agents/skills`에 연결됩니다. `.claude/settings.json`이
+  `env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE = "1"`로 Code Mode(실험 기능)를 기본으로 켭니다.
+  이 파일은 커밋되므로 팀 전체에 적용됩니다. 기존 `settings.json`은 내용을 그대로 두고 그 키만
+  더합니다(이미 `env` 객체가 있으면 그 안에). 직접 정한 값(`"0"` 포함)은 바꾸지 않습니다.
+  순수 JSON이 아니거나(주석) `env`가 객체가 아니면 경고만 하고 건드리지 않습니다. 끄려면 값을
+  `"0"`으로 바꾸세요. 확인한 것: 변수 이름이 Claude Code 2.1.325 바이너리에 있음. Code Mode의
+  실제 동작과 프로젝트 `env` 값이 거기에 닿는지는 실행해 보지 않았습니다.
 - **Codex:** 루트 `AGENTS.md`와 `.agents/skills`를 사용합니다.
 - **OpenCode:** 루트 `AGENTS.md`, `.agents/skills`, `opencode.jsonc`를 사용합니다.
 - **Antigravity (Google 에이전트 IDE/CLI):** 루트 `AGENTS.md`와 `.agents/`
@@ -164,6 +186,9 @@ npx @rch4com/agent-setup@latest status             # 의도 / 실제 / 버전 �
 `status`는 미배선 사유의 실측 날짜(`verified`)가 90일을 넘긴 항목도 `실측
 오래됨`으로 알립니다 — 사유는 상류를 실측한 날의 사실이라, 오래되면 화면에
 낡은 채 남기 때문입니다.
+
+`status`는 프로젝트 문서 여섯 개 가운데 초안(없거나 `Status: draft`·`<TBD: …>`가 남은 것)의 수와
+경로도 알립니다. 알리기만 하며 CI나 다른 파일은 건드리지 않습니다.
 
 ### 이미 쓰던 저장소 끌어오기
 
@@ -325,12 +350,36 @@ CLAUDE.md
 opencode.jsonc
 ```
 
+프로젝트 문서 여섯 개도 덮어쓰지 않고 유지하지만, 통째로 건너뛰지 않고 아래 내용 확인을 거칩니다.
+
+```text
+README.md
+docs/intent.md
+docs/spec.md
+docs/architecture.md
+docs/plan.md
+docs/review.md
+```
+
 기존 파일을 덮어쓰지는 않지만, 들어 있어야 할 **내용**을 확인해 빠진 것만
 덧붙입니다(내용 기준 판정이라 재실행해도 바뀌지 않고, 직접 써 둔 내용도
 인정합니다).
 
-- `AGENTS.md` — 템플릿의 `## ` 절마다(제목으로 판정). `.gitmessage.txt`가 있으면
+- `AGENTS.md` — 템플릿의 `## ` 절마다(영어·한국어 어느 제목이든 있으면 있는 것으로 보므로 영어 파일에 같은 절이 한국어로 또 붙지 않습니다). `.gitmessage.txt`가 있으면
   그것을 따르라는 지침도 넣습니다(파일이 이미 `.gitmessage.txt`를 언급하면 생략).
+- 프로젝트 문서 여섯 개(`README.md`, `docs/*.md`) — 템플릿의 `##` 절 가운데 파일에 없는 것을
+  설치기 언어로 끝에 덧붙입니다. 영어·한국어 어느 쪽이든 같은 이름의 제목이 있거나, 제목 단계가
+  달라도(`#`~`######`), 흔한 동의어(`README.md`는 Installation·Getting started·Examples·Structure·
+  Docs·Contribute·Licence 등)가 있으면 그 절이 있는 것으로 보므로, 직접 쓴 README에 같은 내용이
+  두 번 들어가지 않습니다. 인터뷰 가이드는 채울 `<TBD: …>`가 파일에 있을 때만 덧붙입니다.
+  설치기 표지인 `Status: draft` 또는 `Status: ready` 줄이 있는 문서는 통째로 건드리지 않으므로
+  지운 절이 되살아나지 않습니다 — 직접 쓴 문서가 완성되면 제목 아래에 `> Status: ready`를
+  적으면 부트스트랩이 더는 덧붙이지 않습니다. `Status: stable` 같은 줄은 표지로 보지 않습니다.
+- `AGENTS.md`의 "문서 인터뷰" 절 — 인터뷰 규칙은 문서가 초안인 동안만 필요합니다. 초안이 하나도 남지
+  않으면 에이전트가 이 절을 지우고(절 안에 그렇게 적혀 있습니다), 여섯 문서가 모두 있고 초안이 없는
+  저장소에서는 부트스트랩·`update`가 지운 절을 다시 넣지 않습니다. 별도 스킬은 만들지 않습니다.
+- `docs/plan.md`는 이슈 트래커를 묻습니다. 트래커를 쓰면 작업의 기준은 트래커이고 계획에는 목표·마일스톤
+  (이슈 링크)·위험만 둡니다.
 - `CLAUDE.md` — agent-kit 블록이나 `@AGENTS.md` 줄이 없을 때만 공통 지침
   import 블록.
 - `.codex/config.toml` — `project_doc_max_bytes`(첫 표 앞에 넣음).
@@ -424,8 +473,8 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
   목록에서 통째로 빠집니다. 상세 패널의 배선표가 항목 하나를 깊이 보여
   준다면, 이 필터는 반대 방향에서 같은 질문("이 CLI에서 뭐가 되나")에
   답합니다.
-- **탭 안쪽은 성격으로 묶입니다** — 토큰 절감 · 코드 이해 · 디자인 감각 ·
-  작업 방식 · 모션 그래픽 · SNS 운영 · 외부 서비스 순으로 소분류 헤더가 붙고 개수가 함께 나옵니다.
+- **탭 안쪽은 성격으로 묶입니다** — 토큰 절감 · 코드 이해 · 기억·인계 · 디자인 감각 ·
+  글·설명 방식 · 작업 방식 · 모션 그래픽 · SNS 운영 · 앱·브라우저 제어 · 외부 서비스·도구 순으로 소분류 헤더가 붙고 개수가 함께 나옵니다.
   탭(PLUGIN·MCP·SKILL)은 "무엇으로 설치되는가"라 고를 때 비교가 되지 않습니다 —
   같은 탭에 토큰을 아끼는 것과 디자인을 봐 주는 것이 섞여 있기 때문입니다.
   **설치 범위는 작업 탭의 `설치 범위` 행에서 고릅니다** — `Enter`로 저장소와
@@ -514,6 +563,7 @@ codex plugin add ponytail@ponytail
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 플러그인 | `plugin.ponytail` | 군더더기 없는 코드 규칙(`DietrichGebert/ponytail`). Claude Code(저장소·전역), Codex(전역), OpenCode(`@dietrichgebert/ponytail`, 저장소·전역), Antigravity(전역), Copilot CLI(전역)에 상류 공식 명령으로 설치합니다. Codex는 설치 뒤 `/hooks`에서 훅 두 개를 Trust해야 켜지고, 상시 활성화 훅에는 PATH의 Node.js가 필요합니다. 상류는 제거 전 `scripts/uninstall.js`로 `~/.config/ponytail` 정리를 안내합니다(이 항목은 플러그인만 제거) |
+| 플러그인 | `plugin.claude-mem` | 장기 기억(`thedotmack/claude-mem`, Apache-2.0): 세션 활동을 기록·압축해 다음 세션에 문맥으로 되돌립니다. **전역 범위 전용**이고 사실상 CLI 전체에 한 번만 깔립니다 — 어느 CLI를 골라도 Claude Code 플러그인이 함께 등록됩니다. 상류 설치기 `npx claude-mem install --ide <claude-code|codex-cli|opencode|copilot-cli> --provider claude --no-auto-start`를 돌립니다(본인 Anthropic 요금제, 계정 불필요. Bun·uv와 PATH의 `claude-mem` 런처도 깔고, Windows에서는 사용자 Path를 고칩니다). 감지는 `claude-mem` 플러그인(Claude Code·Codex) 또는 MCP 항목(OpenCode·Copilot CLI)으로 합니다. 제거는 `npx claude-mem uninstall`이며 **모든** CLI를 한꺼번에 지우고 `~/.claude-mem`은 남깁니다. 익명 텔레메트리가 기본 켜져 있습니다(`npx claude-mem telemetry disable` 또는 `DO_NOT_TRACK=1`). Copilot CLI는 기억 검색만 합니다. Linux Docker에서 실측했고 Windows 설치기는 돌리지 않았습니다. Antigravity는 감지·제거 경로를 검증하지 못해 연결하지 않았습니다 |
 | 플러그인 | `plugin.billion-context` | 로컬 프록시로 문맥을 압축합니다(`ranxianglei/billion-context`, MIT). **전역 범위 전용**: `bili` 앱이 없으면 설치하고(`npm i -g billion-context`) `bili plugin install claude|codex|opencode`로 각 CLI의 전역 설정을 고칩니다(Claude Code: 사용자 MCP `bili` + 관리 설정 블록, Codex: `[mcp_servers.bili]`, OpenCode: `mcp.bili` + 플러그인 항목). 감지는 MCP 이름 `bili`, 제거는 `bili plugin remove <클라이언트>`. 사용자 지정 `ANTHROPIC_BASE_URL`을 걸고 기본 자동 압축을 꺼서, 켜져 있는 동안 Claude Code의 Remote Control 같은 계정 기능이 사라집니다. Antigravity·Copilot은 상류 런처(`bili antigravity`, `bili copilot`)뿐입니다 |
 | 플러그인 | `plugin.ai-memory` | 여러 에이전트가 장기 기억과 작업 맥락을 나누는 `akitaonrails/ai-memory`(MIT). Claude Code(저장소·전역)·Codex(전역)는 상류 마켓플레이스 플러그인(훅·스킬)을, OpenCode·Antigravity·Copilot CLI(전역)·VS Code Copilot은 stdio 브리지 `ai-memory mcp-bridge --no-session-id`를 MCP로 겁니다(훅 없음) — 토큰은 브리지가 데이터 디렉터리에서 읽어 설정 파일에 남지 않습니다. 기억을 저장할 서버가 함께 돌아야 합니다: 바이너리를 상류 `install.sh`/`install.ps1`로 먼저 설치하고 `ai-memory setup`을 한 번 실행하세요. 세션을 이어받을 때는 `ai-memory run codex`처럼 실행합니다 |
 | 플러그인 | `plugin.superpowers` | Claude Code는 공식 마켓플레이스(`superpowers@claude-plugins-official`), Codex(전역)는 `obra/superpowers-marketplace`, OpenCode는 git 모듈, Antigravity(전역)는 `agy plugin install https://github.com/obra/superpowers`, Copilot CLI(전역)는 `obra/superpowers-marketplace`. `skill.superpowers`와 **하나만** 고를 수 있습니다 |

@@ -28,6 +28,7 @@ is reference material for later.
 ```text
 repository/
 ├─ AGENTS.md
+├─ README.md           # project docs — drafts to fill by interview
 ├─ CLAUDE.md
 ├─ opencode.jsonc
 ├─ .agents/
@@ -39,14 +40,38 @@ repository/
 │  └─ skills/          # link to .agents/skills, or a managed copy
 ├─ .codex/
 │  └─ config.toml
+├─ docs/
+│  ├─ intent.md        # why, who for, what success means
+│  ├─ spec.md          # what it must do, with acceptance criteria
+│  ├─ architecture.md  # how it is built, and the decisions
+│  ├─ plan.md          # milestones and tasks
+│  └─ review.md        # how changes are checked
 └─ .agent-kit/
    └─ README.md
 ```
 
+The six project documents (`README.md`, `docs/intent.md`, `spec.md`, `architecture.md`,
+`plan.md`, `review.md`) are layout-only drafts written in the installer's language
+(English or Korean). Each starts with `Status: draft`, `<TBD: …>` placeholders, and an
+**Interview guide** at the end. `AGENTS.md` carries a "Project documents" section that
+tells agents to interview you to fill a draft when the task depends on it, one question
+at a time, writing only what you confirmed. The language is chosen on the first bootstrap
+(the screen language) and stored as `lang` in `.agent-kit/agent-setup.json`; later runs
+and teammates on other OS languages keep it, so untouched documents are never translated
+by `update`. A record without `lang` (older repositories) means English.
+
 ## How each tool is wired
 
 - **Claude Code:** `CLAUDE.md` imports `AGENTS.md`, and `.claude/skills` is
-  linked to `.agents/skills`.
+  linked to `.agents/skills`. `.claude/settings.json` turns on Code Mode (experimental)
+  by default through `env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE = "1"`. The file is committed,
+  so it applies to the whole team. An existing `settings.json` keeps all its content: only
+  that key is added, inside an existing `env` object if there is one, and a value you set
+  yourself (including `"0"`) is never changed. A file that is not plain JSON (comments) or
+  whose `env` is not an object is left untouched with a warning. To turn it off, set the
+  value to `"0"`. Verified: the variable name exists in the Claude Code 2.1.325 binary;
+  the behavior of Code Mode itself and whether a project-level `env` value reaches it were
+  not exercised.
 - **Codex:** uses the root `AGENTS.md` and `.agents/skills`.
 - **OpenCode:** uses the root `AGENTS.md`, `.agents/skills`, and
   `opencode.jsonc`.
@@ -174,6 +199,10 @@ on Windows is not misjudged as drift.
 `status` also flags items whose unwired reasons were verified (`verified`) more
 than 90 days ago as `stale check` — a reason is a fact from the day upstream was
 measured, and a stale one lingers on screen otherwise.
+
+`status` also reports how many of the six project documents are still drafts (missing, or
+carrying `Status: draft` or `<TBD: …>`) and which. It only reports; it touches neither CI
+nor any other file.
 
 ### Adopting a repository that already uses this
 
@@ -342,13 +371,42 @@ CLAUDE.md
 opencode.jsonc
 ```
 
+The six project documents are kept too — never overwritten — but they get the content check
+below instead of being skipped whole.
+
+```text
+README.md
+docs/intent.md
+docs/spec.md
+docs/architecture.md
+docs/plan.md
+docs/review.md
+```
+
 Existing files are never overwritten, but the bootstrap checks their **content**
 and appends only what is missing (each check is by content, so a rerun changes
 nothing and anything you wrote yourself counts):
 
-- `AGENTS.md` — each `## ` section of the template (matched by heading); and,
+- `AGENTS.md` — each `## ` section of the template (matched by heading in either
+  language, so an English file is not given the same section again in Korean); and,
   when `.gitmessage.txt` exists, a rule telling agents to follow it (skipped if
   the file already mentions `.gitmessage.txt`).
+- The six project documents (`README.md`, `docs/*.md`) — each `##` section of the template
+  that the file lacks, appended at the end in the installer's language. A section counts as
+  present when a heading of the same name exists in either language, at any heading level
+  (`#`–`######`), or under a common synonym (for `README.md`: Installation, Getting started,
+  Examples, Structure, Docs, Contribute, Licence …), so a hand-written README is not given
+  the same content twice. The Interview guide is appended only when the file has a
+  `<TBD: …>` placeholder to fill. A document that carries the installer's own `Status: draft`
+  or `Status: ready` line is left alone entirely, so deleted sections are not brought back —
+  add `> Status: ready` under the title of a hand-written document once it is complete, and
+  the bootstrap stops appending to it. A line such as `Status: stable` does not count.
+- The "Document interview" section of `AGENTS.md` — interview rules are needed only while a
+  document is a draft. When no draft is left the agent deletes the section (the section says
+  so), and in a repository where all six documents exist and none is a draft, the bootstrap
+  and `update` do not put the deleted section back. No separate skill is created.
+- `docs/plan.md` asks about an issue tracker. With a tracker, the tracker is the source of
+  truth for tasks and the plan keeps only the goal, milestones (issue links), and risks.
 - `CLAUDE.md` — the shared-instruction import block, unless the file already has
   the agent-kit block or an `@AGENTS.md` line.
 - `.codex/config.toml` — `project_doc_max_bytes`, inserted before the first table.
@@ -453,8 +511,9 @@ the filter would make it impossible to type `codex` as a query.
   one item in depth, this filter answers the same question from the other
   direction ("what works in this CLI").
 - **Within a tab, items are grouped by character** — subgroup headers appear in
-  the order Token savings · Code understanding · Design sense · Way of working ·
-  Motion graphics · Social media · External services, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
+  the order Token savings · Code understanding · Memory & handoff · Design taste ·
+  Writing & explanation · Way of working · Motion graphics · Social media ·
+  App & browser control · External services & tools, with counts alongside. Tabs (PLUGIN·MCP·SKILL) are about
   "what installs it", which makes comparison hard when picking — the same tab
   mixes something that saves tokens with something that reviews your design.
   **The install scope is chosen on the `Install scope` row of the Actions tab**
@@ -549,6 +608,7 @@ behavior, like `--global`, `--print`, and `--design-dir`, can be combined).
 | Kind | Item | Notes |
 |---|---|---|
 | Plugin | `plugin.ponytail` | Lean-code ruleset (`DietrichGebert/ponytail`). Installed with upstream's official commands — Claude Code (repo and global), Codex (global), OpenCode (`@dietrichgebert/ponytail`, repo and global), Antigravity (global), and Copilot CLI (global). On Codex it turns on only after you trust its two hooks in `/hooks`, and the always-on hook needs Node.js on PATH. Upstream recommends `scripts/uninstall.js` to clean `~/.config/ponytail` before removal (this item removes the plugin only) |
+| Plugin | `plugin.claude-mem` | Long-term memory (`thedotmack/claude-mem`, Apache-2.0): records session activity, compresses it, and injects it into later sessions. **Global scope only**, and effectively one install for every CLI — whichever CLI you pick, the Claude Code plugin is registered too. Runs upstream's installer `npx claude-mem install --ide <claude-code|codex-cli|opencode|copilot-cli> --provider claude --no-auto-start` (your own Anthropic plan, no account; also installs Bun, uv and a `claude-mem` launcher on PATH, and on Windows edits your user Path). Detected by the `claude-mem` plugin (Claude Code, Codex) or MCP entry (OpenCode, Copilot CLI). Removal is `npx claude-mem uninstall`, which removes **all** CLIs at once and keeps `~/.claude-mem`. Anonymous telemetry is on by default (`npx claude-mem telemetry disable` or `DO_NOT_TRACK=1`). Copilot CLI only searches memory. Measured in Docker on Linux; the Windows installer was not run. Antigravity is not wired (its detect/remove path was not verified) |
 | Plugin | `plugin.billion-context` | Context compression through a local proxy (`ranxianglei/billion-context`, MIT). **Global scope only**: installs the `bili` app when missing (`npm i -g billion-context`), then `bili plugin install claude|codex|opencode`, which edits each CLI's global config (Claude Code: user MCP `bili` + a managed settings block; Codex: `[mcp_servers.bili]`; OpenCode: `mcp.bili` + plugin entry). Detected by the MCP name `bili`; removal runs `bili plugin remove <client>`. It sets a custom `ANTHROPIC_BASE_URL` and disables native auto-compaction, so Claude Code loses account-bound features such as Remote Control while it is active. Antigravity and Copilot have only upstream's launcher (`bili antigravity`, `bili copilot`) |
 | Plugin | `plugin.ai-memory` | `akitaonrails/ai-memory` (MIT), which lets several agents share long-term memory and working context. Claude Code (repo and global) and Codex (global) get the upstream marketplace plugin (hooks and skills); OpenCode, Antigravity, Copilot CLI (global) and VS Code Copilot get the stdio bridge `ai-memory mcp-bridge --no-session-id` as an MCP server (no hooks) — the bridge reads its token from the data directory, so it never lands in a config file. The server that stores the memory must be running too: install the binary first with upstream `install.sh`/`install.ps1` and run `ai-memory setup` once. To pick a session back up, launch through it, as in `ai-memory run codex` |
 | Plugin | `plugin.superpowers` | Claude Code uses the official marketplace (`superpowers@claude-plugins-official`), Codex (global) `obra/superpowers-marketplace`, OpenCode a git module, Antigravity (global) `agy plugin install https://github.com/obra/superpowers`, and Copilot CLI (global) `obra/superpowers-marketplace`. **Only one** of this and `skill.superpowers` can be chosen |

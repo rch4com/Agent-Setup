@@ -8,7 +8,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // .handoffs/에 쌓인다. 상류가 자주 바뀌어 원본 해시를 추적한다 — 새 버전이
 // 있으면 '새 버전 있음'으로 보이고, 고른 채 적용하면 다시 받는다.
 export default defineRecipe({
-  id: 'skill.agent-handoff-manager', category: 'skill', label: 'Agent Handoff Manager', group: '__context',
+  id: 'skill.agent-handoff-manager', category: 'skill', label: 'Agent Handoff Manager', group: '__memory',
   note: 'item.skill.agent-handoff-manager.note',
   verified: '2026-11-12',
   ...skillsAdd({ source: 'https://github.com/rch4com/agent-handoff-manager', skill: 'agent-handoff-manager', trackUpstream: true }),

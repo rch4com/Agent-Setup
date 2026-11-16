@@ -219,6 +219,9 @@ export default {
   'status.row.files': 'managed                 {current} of {total} current · {pending} pending · {drift} edited by you',
   'status.hint.pending': '                        → update',
   'status.hint.drift': '                        → update leaves files you edited alone',
+  'status.row.docs': 'documents               {drafts} of {total} still draft',
+  'status.row.docsList': '                        {list}',
+  'status.hint.docs': '                        → ask the agent to interview you (see AGENTS.md)',
   'status.row.items': 'items       installed   {list}',
   'status.row.recordOnly': '            record only {list}',
   'status.row.repoOnly': '            repo only   {list}',
@@ -288,6 +291,8 @@ export default {
   'item.plugin.mattpocock-skills.note': '35 engineering and productivity skills (code-review, diagnosing-bugs, domain-modeling, …)',
   'item.plugin.billion-context.note': 'context compression through a local proxy: month-long sessions in a small window. Installs the bili app if missing (npm i -g billion-context), then bili plugin install <client>. Global only. It sets a custom ANTHROPIC_BASE_URL and turns off native auto-compaction, so Claude Code loses account-bound features such as Remote Control while it is active. MIT',
   'item.plugin.billion-context.post': 'restart the CLI to activate. For sessions that need Remote Control, run plain claude without bili or remove the item (bili plugin remove claude)',
+  'item.plugin.claude-mem.note': 'long-term memory: records session activity, compresses it, and injects it into later sessions. Global only, one install for every CLI — whichever CLI you pick, the Claude Code plugin is registered too, and removal (npx claude-mem uninstall) removes all CLIs at once while ~/.claude-mem is kept. Runs upstream\'s installer (--provider claude: your own Anthropic plan, no account), which also installs Bun, uv and a claude-mem launcher on PATH (on Windows it edits your user Path). Anonymous telemetry is on by default (opt out: npx claude-mem telemetry disable or DO_NOT_TRACK=1). Copilot CLI records no sessions, only searches memory. Apache-2.0',
+  'item.plugin.claude-mem.post': 'restart the CLI, then start the worker with npx claude-mem start (viewer: http://127.0.0.1:37700). Check health with npx claude-mem doctor',
   'item.plugin.ponytail.note': 'lean-code ruleset. Installs with each CLI\'s own command — Claude and OpenCode per repository or user-globally, Codex, Antigravity and Copilot CLI user-globally. Upstream recommends scripts/uninstall.js to clean ~/.config/ponytail before removal',
   'item.mcp.oauth.post': 'sign in once with OAuth — in Codex run codex mcp login <server name>; Claude Code, OpenCode, Antigravity, Copilot CLI and VS Code Copilot ask on first use',
   'item.plugin.ponytail.post': 'Node.js must be on PATH for the always-on hook to run',
@@ -490,14 +495,17 @@ export default {
   // 항목 탭 안쪽의 성격 그룹. rows.mjs의 GROUP_ORDER가 표시 순서를 정한다.
   'category.token': 'Token savings',
   'category.context': 'Code understanding',
+  'category.memory': 'Memory & handoff',
   'category.style': 'Design taste',
+  'category.writing': 'Writing & explanation',
   'category.flow': 'Way of working',
   // 헤더 하나가 "무엇을 고르는 자리이고 규칙이 무엇인가"를 함께 말한다 —
   // 대상 파일이 하나뿐인 배타 묶음이라 라디오 표시와 짝이 된다.
   'category.commit': 'Commit template · .gitmessage.txt · pick one',
   'category.motion': 'Motion graphics · video',
   'category.social': 'Social media',
-  'category.service': 'External services',
+  'category.control': 'App & browser control',
+  'category.service': 'External services & tools',
   // PLUGIN 탭 전용 범위 그룹 — 검토 화면(renderReview)의 소제목도 같은 키를 쓴다.
   'category.scope-project': 'Repo scope — this repository only',
   'category.scope-user': 'Machine global — applies to this whole computer',

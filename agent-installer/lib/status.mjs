@@ -3,8 +3,9 @@
 // 실제 상태의 근거는 여전히 스캔이다. 기록은 의도일 뿐이므로 둘이 어긋나면
 // 어느 쪽에만 있는지 갈라 보여준다 — 수동 설치·제거를 그대로 잡는다는
 // 기존 강점을 기록이 가리지 않게 한다.
-import { MANIFEST } from './bootstrap/manifest.mjs'
+import { manifestFor } from './bootstrap/manifest.mjs'
 import { updateBlocks, updateFiles } from './bootstrap/apply.mjs'
+import { projectDocStates } from './bootstrap/snippets.mjs'
 import { readRecord, toolVersion } from './bootstrap/record.mjs'
 import { createT } from './i18n/index.mjs'
 import { makeExec } from './catalog.mjs'
@@ -20,8 +21,10 @@ function daysSince(iso, now) {
   return Number.isFinite(ms) ? Math.floor(ms / 86_400_000) : 0
 }
 
-export async function collectStatus(root, { manifest = MANIFEST, items = [], latest, now = Date.now(), probe = null } = {}) {
+export async function collectStatus(root, { manifest: given = null, items = [], latest, now = Date.now(), probe = null } = {}) {
   const record = readRecord(root)
+  // update와 같은 문서 언어로 비교해야 판정이 같다.
+  const manifest = given ?? manifestFor(record?.lang ?? 'en')
 
   // dry-run으로 갱신 판정만 얻는다 — 판정 로직을 두 벌 두면 status와 update가
   // 다른 답을 내는 순간이 온다.
@@ -66,6 +69,11 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
       pending: count('update') + count('create'),
       drift: count('drift'),
     },
+    // 초안(없거나 Status: draft·<TBD: …> 남음)인 프로젝트 문서. status만 알린다 — CI는 건드리지 않는다.
+    docs: (() => {
+      const all = projectDocStates(root)
+      return { total: all.length, drafts: all.filter((d) => d.state !== 'ready').map((d) => d.path) }
+    })(),
     items: {
       installed,
       recordOnly: [...intended].filter((id) => !installed.includes(id)),
@@ -77,7 +85,7 @@ export async function collectStatus(root, { manifest = MANIFEST, items = [], lat
 
 export function formatStatus(report, t = createT('en')) {
   const lines = []
-  const { tool, files, items } = report
+  const { tool, files, items, docs } = report
 
   if (!report.hasRecord) {
     lines.push(t('status.noRecord'))
@@ -95,6 +103,14 @@ export function formatStatus(report, t = createT('en')) {
   lines.push(t('status.row.files', files))
   if (files.pending > 0) lines.push(t('status.hint.pending'))
   if (files.drift > 0) lines.push(t('status.hint.drift'))
+
+  if (docs) {
+    lines.push(t('status.row.docs', { drafts: docs.drafts.length, total: docs.total }))
+    if (docs.drafts.length > 0) {
+      lines.push(t('status.row.docsList', { list: docs.drafts.join(', ') }))
+      lines.push(t('status.hint.docs'))
+    }
+  }
 
   lines.push(t('status.row.items', { list: items.installed.join(', ') || t('status.none') }))
   if (items.recordOnly.length) lines.push(t('status.row.recordOnly', { list: items.recordOnly.join(', ') }))

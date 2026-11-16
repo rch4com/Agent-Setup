@@ -1,12 +1,18 @@
 import {
-  AGENTS_TEMPLATE, CLAUDE_BLOCK, SKILL_README, EXAMPLE_SKILL,
+  AGENTS_TEMPLATE, AGENTS_TEMPLATE_KO, CLAUDE_BLOCK, SKILL_README, EXAMPLE_SKILL,
   AGENT_KIT_README, CLAUDE_SETTINGS, CODEX_CONFIG, OPENCODE_CONFIG,
 } from './templates.mjs'
 import { CLAUDE_IMPORT, defaultSnippets } from './snippets.mjs'
+import { projectDocFiles } from './project-docs.mjs'
+import { readRecord } from './record.mjs'
 
 // 저장소 부트스트랩이 만들 대상 선언.
 // 도구 추가 = dirs 한 줄 + files 한 줄. 실행 로직은 apply.mjs·adapter.mjs에 있다.
-export const MANIFEST = {
+// 언어에 따라 달라지는 것은 템플릿 문구뿐이다 — 경로·구조는 같다. 부트스트랩과 update는
+// t.locale로 이 함수를 불러 쓰고, 나머지(상태·TUI·테스트)는 영어판 MANIFEST를 읽는다.
+export function manifestFor(locale = 'en') {
+  const ko = locale === 'ko'
+  return {
   // 완료 리포트에 그대로 나열되는 도구 이름. 순서가 출력 순서다.
   tools: ['Claude Code', 'Codex', 'OpenCode', 'Antigravity', 'GitHub Copilot CLI', 'VS Code Copilot'],
 
@@ -20,13 +26,15 @@ export const MANIFEST = {
   // true라(1.145.1 번들에서 확인) .vscode/settings.json에 보장할 키가 없다 —
   // 이 키를 보장하던 1.x와 달라진 점이다.
   files: [
-    { path: 'AGENTS.md', template: AGENTS_TEMPLATE },
+    { path: 'AGENTS.md', template: ko ? AGENTS_TEMPLATE_KO : AGENTS_TEMPLATE },
     { path: '.agents/skills/README.md', template: SKILL_README },
     { path: '.agents/skills/repository-check/SKILL.md', template: EXAMPLE_SKILL },
     { path: '.agent-kit/README.md', template: AGENT_KIT_README },
     { path: '.claude/settings.json', template: CLAUDE_SETTINGS },
     { path: '.codex/config.toml', template: CODEX_CONFIG },
     { path: 'opencode.jsonc', template: OPENCODE_CONFIG },
+    // 프로젝트 문서 여섯 개. 이미 있는 파일(대개 README.md)은 내용을 보지 않고 보존한다.
+    ...projectDocFiles(locale),
   ],
 
   // 마커가 없을 때만 덧붙인다. 파일이 없으면 블록만으로 생성한다.
@@ -41,9 +49,15 @@ export const MANIFEST = {
     { path: 'opencode.jsonc', key: '$schema', value: 'https://opencode.ai/config.json' },
   ],
 
+  // 중첩 키 보장. 파일에 이미 "env"가 있어도 그 안에 키만 더한다(있으면 값이 무엇이든 손대지 않는다).
+  // 새 파일은 템플릿이 이미 담고 있고, 이것은 사용자가 쓴 기존 settings.json을 위한 것이다.
+  jsonPaths: [
+    { path: '.claude/settings.json', keys: ['env', 'CLAUDE_CODE_EXPERIMENTAL_CODE_MODE'], value: '1' },
+  ],
+
   // 파일이 이미 있어도 내용(절·지침·키)이 빠졌으면 덧붙인다. 판정은 내용 기준이다
   // (snippets.mjs). .gitmessage.txt가 있으면 AGENTS.md에 따르라는 지침도 넣는다.
-  snippets: defaultSnippets(),
+  snippets: defaultSnippets(locale),
 
   // .agents/skills 를 가리키는 도구별 어댑터.
   //
@@ -64,4 +78,20 @@ export const MANIFEST = {
   // 커밋 템플릿을 이 파일에 배선하므로, 부정 항목이 없으면 그 설정이 팀에
   // 전파되지 않는다. `.vscode/*`가 없는 저장소에서는 무해한 no-op이다.
   ignore: ['.claude/skills', '!.vscode/settings.json'],
+  }
+}
+
+export const MANIFEST = manifestFor('en')
+
+// 문서 언어는 저장소가 정한다. 팀원의 OS 언어가 달라도 이미 만든 문서가 번역으로 바뀌면 안 된다.
+//  - 기록이 없으면(첫 부트스트랩) 화면 언어를 따르고, 기록이 그 값을 남긴다.
+//  - 기록이 있으면 기록의 lang을 따른다. lang이 없는 옛 기록은 영어 템플릿으로 만든 것이다.
+export function docLocale(root, t) {
+  let record = null
+  try {
+    record = readRecord(root)
+  } catch {
+    // 깨진 기록은 기록을 읽는 쪽이 따로 보고한다 — 문서 언어 때문에 실행을 막지 않는다.
+  }
+  return record ? (record.lang ?? 'en') : t.locale
 }

@@ -12,7 +12,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // 보므로 이쪽을 택했다. 본문은 $ARGUMENTS를 쓰는 슬래시 호출 형식이라
 // 인자 치환이 없는 CLI에서는 대화로 주제를 주면 된다.
 export default defineRecipe({
-  id: 'skill.eli5', category: 'skill', label: 'ELI5', group: '__style',
+  id: 'skill.eli5', category: 'skill', label: 'ELI5', group: '__writing',
   note: 'item.skill.eli5.note',
   verified: '2026-09-18',
   ...skillsAdd({ source: 'https://github.com/anthropics/claude-plugins-community/tree/main/eli5', skill: 'eli5' }),

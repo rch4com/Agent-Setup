@@ -3,9 +3,9 @@
 // 갱신 판정은 apply.mjs의 updateFiles·updateBlocks가 하고, 여기는 순서와
 // 보고, 그리고 기록 갱신만 담당한다. flow.mjs가 생성 쪽에서 하는 역할과 같다.
 import { execFileSync } from 'node:child_process'
-import { MANIFEST } from './bootstrap/manifest.mjs'
+import { manifestFor } from './bootstrap/manifest.mjs'
 import {
-  configureAdapterSafe, ensureIgnore, ensureJsonKeys, updateBlocks, updateFiles,
+  configureAdapterSafe, ensureIgnore, ensureJsonKeys, ensureJsonPaths, updateBlocks, updateFiles,
 } from './bootstrap/apply.mjs'
 import { ensureSnippets } from './bootstrap/snippets.mjs'
 import { RECORD_REL, managedKey, readRecord, toolVersion, writeRecord } from './bootstrap/record.mjs'
@@ -23,13 +23,15 @@ function assertCleanWorktree(root) {
 }
 
 export async function runUpdate(root, opts = {}) {
-  const { dryRun = false, force = false, log = console.log, manifest = MANIFEST, t = createT('en') } = opts
+  const { dryRun = false, force = false, log = console.log, manifest: given = null, t = createT('en') } = opts
   const say = (message) => log(`[agent-setup] ${message}`)
 
   const record = readRecord(root)
   if (!record) {
     throw new LocalizedError('error.noRecordForUpdate', { path: RECORD_REL })
   }
+  // 문서 언어는 기록이 정한다. lang이 없는 옛 기록은 영어 템플릿으로 만든 것이다.
+  const manifest = given ?? manifestFor(record.lang ?? 'en')
 
   if (force) assertCleanWorktree(root)
 
@@ -46,6 +48,7 @@ export async function runUpdate(root, opts = {}) {
     ...updateBlocks(root, manifest.blocks, ctx),
     // 키 보장과 gitignore 항목 추가는 원래 멱등이라 그대로 재실행한다.
     ...ensureJsonKeys(root, manifest.settings ?? [], { dryRun, log: say, t }),
+    ...ensureJsonPaths(root, manifest.jsonPaths ?? [], { dryRun, log: say, t }),
     ...ensureSnippets(root, manifest.snippets ?? [], { dryRun, log: say, t }),
     ...ensureIgnore(root, manifest.ignore, { dryRun, log: say, t }),
   ]

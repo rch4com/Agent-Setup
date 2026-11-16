@@ -268,6 +268,76 @@ export function ensureJsonKeys(root, entries, { dryRun = false, log, t = createT
   })
 }
 
+// 중첩 키 보장. ensureJsonKeys는 최상위 키만 텍스트로 다루므로, 이미 있는 "env" 객체 안에 키를
+// 더하려면 JSON을 읽어야 한다. settings.json은 엄격한 JSON이라 JSON.parse로 충분하다 — 읽지
+// 못하면(주석 등) 건드리지 않고 경고만 한다. 키가 이미 있으면 값이 무엇이든 그대로 둔다.
+// 쓸 때는 파일의 들여쓰기·줄바꿈·끝 개행을 따른다.
+export function ensureJsonPaths(root, entries, { dryRun = false, log, t = createT('en') }) {
+  return (entries ?? []).map(({ path: rel, keys, value }) => {
+    const name = keys.join('.')
+    const build = () => keys.reduceRight((inner, key) => ({ [key]: inner }), value)
+
+    if (!pathExists(repoPath(root, rel))) {
+      const target = repoPathStrict(root, rel)
+      log(t('log.file.create', { path: rel }))
+      if (!dryRun) writeText(target, JSON.stringify(build(), null, 2))
+      return { ok: true, action: 'create', path: rel }
+    }
+
+    let text
+    try {
+      text = readFileSync(repoPath(root, rel), 'utf8')
+    } catch (err) {
+      log(t('log.warn.unreadable', { path: rel, code: err.code ?? err.message }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.readFailed') }
+    }
+
+    let data
+    try {
+      data = JSON.parse(text.replace(/^\uFEFF/, ''))
+    } catch {
+      data = null
+    }
+    if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+      log(t('log.warn.noRootObject', { path: rel }))
+      return { ok: true, action: 'warn', path: rel, message: msg('msg.noRootObject') }
+    }
+
+    // 마지막 키를 뺀 경로를 따라 내려간다. 중간이 객체가 아니면 사용자의 값을 덮지 않고 경고한다.
+    let node = data
+    for (const key of keys.slice(0, -1)) {
+      if (node[key] === undefined) break
+      if (node[key] === null || typeof node[key] !== 'object' || Array.isArray(node[key])) {
+        log(t('log.warn.noRootObject', { path: rel }))
+        return { ok: true, action: 'warn', path: rel, message: msg('msg.noRootObject') }
+      }
+      node = node[key]
+    }
+    const missingFrom = keys.findIndex((key, i) => {
+      let cur = data
+      for (const k of keys.slice(0, i)) cur = cur?.[k]
+      return cur === undefined || cur === null || !Object.hasOwn(cur, key)
+    })
+    if (missingFrom === -1) {
+      log(t('log.json.keep', { path: rel, key: name }))
+      return { ok: true, action: 'skip', path: rel }
+    }
+
+    const strictTarget = repoPathStrict(root, rel)
+    log(t('log.json.add', { path: rel, key: name }))
+    if (!dryRun) {
+      let cur = data
+      for (const key of keys.slice(0, missingFrom)) cur = cur[key]
+      cur[keys[missingFrom]] = keys.slice(missingFrom + 1).reduceRight((inner, key) => ({ [key]: inner }), value)
+      const indent = text.match(/^([ \t]+)\S/m)?.[1] ?? '  '
+      const eol = text.includes('\r\n') ? '\r\n' : '\n'
+      const body = JSON.stringify(data, null, indent).replace(/\n/g, eol) + (/\n$/.test(text) ? eol : '')
+      writeFileSync(strictTarget, body, { encoding: 'utf8' })
+    }
+    return { ok: true, action: 'insert', path: rel }
+  })
+}
+
 // flow.mjs와 update.mjs가 같은 실패 격리를 쓴다 — 어댑터 하나가 실패해도
 // 나머지를 계속해야 한다.
 export function configureAdapterSafe(root, entry, ctx) {

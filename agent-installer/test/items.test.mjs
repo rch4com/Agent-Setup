@@ -13,7 +13,7 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 51개, user 40개를 id순으로', async () => {
+test('loadItems: project 51개, user 41개를 id순으로', async () => {
   const project = await loadItems()
   assert.equal(project.length, 51)
   const ids = project.map((i) => i.id)
@@ -32,13 +32,17 @@ test('loadItems: project 51개, user 40개를 id순으로', async () => {
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 40)
+  assert.equal(user.length, 41)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
   for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
     assert.ok(!uids.includes(id), `${id}는 전역에 없다`)
   }
   assert.ok(user.every((i) => i.scope === 'user'))
+  // 전역 전용 항목(상류 설치기가 머신 전역만 고친다)은 저장소 목록에 없다.
+  for (const id of ['plugin.billion-context', 'plugin.claude-mem']) {
+    assert.ok(uids.includes(id) && !ids.includes(id), `${id}는 전역에만 있다`)
+  }
 })
 
 // 같은 상류를 플러그인과 공유 스킬 양쪽으로 넣으면 같은 스킬이 두 경로에서

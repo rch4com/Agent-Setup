@@ -8,7 +8,7 @@ import { skillsAdd } from '../recipe-helpers.mjs'
 // 밖이라 따라오지 않는다 — 서브에이전트 경로는 Claude 플러그인 판 몫이고,
 // 여기서는 스킬만 공유 디렉터리로 들어온다(note가 알린다).
 export default defineRecipe({
-  id: 'skill.im-not-ai', category: 'skill', label: 'Humanize Korean', group: '__style',
+  id: 'skill.im-not-ai', category: 'skill', label: 'Humanize Korean', group: '__writing',
   note: 'item.skill.im-not-ai.note',
   verified: '2026-10-08',
   ...skillsAdd({ source: 'https://github.com/epoko77-ai/im-not-ai', skill: '*', anchor: 'humanize-korean' }),
