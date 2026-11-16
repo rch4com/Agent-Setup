@@ -5,6 +5,34 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 영상 편집 스킬, claude-code-setup, Claude 전용 표지 (2026-11-16, 2.12.0)
+
+- **`skill.ffmpeg-skill`**(`kajisho5/ffmpeg-skill`, MIT): 로컬 FFmpeg로 자르기·잇기·
+  자막·라우드니스·플랫폼 내보내기. 파이썬 표준 라이브러리만 쓴다. FFmpeg 6.1+와
+  Python 3.10+를 먼저 깔아야 한다. 상류 저장소 전체가 복사되므로 상류 `.claude/`
+  개발용 파일(`SKILL.md`·자산 22개)이 `.agents/skills/ffmpeg-skill` 안에 함께 들어온다.
+- **`skill.ghost-editor`**(`kurbaitaev/ghost-editor`, MIT): 말하는 얼굴 휴대폰 영상을
+  세로 릴스로. **`skill.claude-shorts`**(`agricidaniel/claude-shorts`, MIT, 스킬 이름은
+  `shorts`): 긴 영상에서 쇼츠 클립을 뽑고 Remotion 자막을 입힌다. 런타임 의존성
+  (ffmpeg·Whisper·OpenCV·PyTorch, 상류 `setup.sh`, 효과음 라이브러리)은 이 도구가
+  깔지 않는다.
+- **`plugin.claude-code-setup`**(`claude-code-setup@claude-plugins-official`,
+  Anthropic): 읽기 전용 `claude-automation-recommender` 스킬이 Claude Code 훅·
+  서브에이전트·스킬·MCP 서버·슬래시 명령을 추천한다. Claude Code 전용.
+- **`Claude 전용` 표지.** 항목이 `claudeOnly: true`를 적으면 목록과 `--list`에서
+  `CLI n/N` 대신 `Claude 전용`이 찍힌다. 위 세 항목에 적용했다(상류가 Claude Code
+  스킬이라 밝힘). 기존 항목은 다시 확인하지 않았다. 표지가 붙은 공유 스킬도
+  `.agents/skills`에는 깔린다.
+- **분류 변경.** 새 그룹 "영상 편집 · 쇼츠"에 `ffmpeg-skill`·`ghost-editor`·
+  `claude-shorts`를 두고, "모션 그래픽 · 영상"은 "모션 그래픽 · 애니메이션"으로
+  바꿨다. `claude-code-setup`은 "작업 방식"이다.
+- **추가하지 않음.** `motion-graphics-skills`는 All Rights Reserved 라이선스가 복사를
+  금지한다(Windows에서는 파일명의 `:` 때문에 clone도 안 된다). `OpenMontage`는 스킬이
+  아니라 AGPL-3.0 영상 제작 시스템이다(기존 항목과 겹치고 자체 파이프라인에 기대는
+  스킬 93개).
+- **검증.** 스킬 셋과 플러그인을 임시 저장소에서 설치 → 재실행 → 감지 → 제거했고
+  `npm test` 762개가 통과했다. 미확인: 전역 범위, 실제 영상 작업, 런처 두 번 실행.
+
 ## claude-mem, 프로젝트 문서, Code Mode (2026-11-16, 2.11.0)
 
 - **`plugin.claude-mem`.** `thedotmack/claude-mem` 영속 기억 플러그인. 전역 범위

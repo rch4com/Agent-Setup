@@ -5,6 +5,36 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Video-editing skills, claude-code-setup, Claude-only mark (2026-11-16, 2.12.0)
+
+- **`skill.ffmpeg-skill`** (`kajisho5/ffmpeg-skill`, MIT): local FFmpeg cut, join,
+  captions, loudness, platform exports; Python standard library only. Needs FFmpeg
+  6.1+ and Python 3.10+ first. The whole upstream repository is copied, so its
+  `.claude/` development files (22 `SKILL.md`/asset files) land inside
+  `.agents/skills/ffmpeg-skill`.
+- **`skill.ghost-editor`** (`kurbaitaev/ghost-editor`, MIT): talking-head phone
+  recording to a vertical reel. **`skill.claude-shorts`** (`agricidaniel/claude-shorts`,
+  MIT; the skill is named `shorts`): long video to short clips with Remotion captions.
+  Their runtime dependencies (ffmpeg, Whisper, OpenCV, PyTorch, upstream `setup.sh`,
+  the sound library) are not installed by this tool.
+- **`plugin.claude-code-setup`** (`claude-code-setup@claude-plugins-official`,
+  Anthropic): the read-only `claude-automation-recommender` skill recommends Claude
+  Code hooks, subagents, skills, MCP servers and slash commands. Claude Code only.
+- **`Claude only` mark.** An item that sets `claudeOnly: true` shows `Claude only`
+  in place of `CLI n/N` in the list and `--list`. Applied to the three items above
+  (upstream calls them Claude Code skills); existing items were not re-audited. A
+  shared skill with the mark still installs into `.agents/skills`.
+- **Reclassified.** New group "Video editing · shorts" holds `ffmpeg-skill`,
+  `ghost-editor` and `claude-shorts`; "Motion graphics · video" is renamed
+  "Motion graphics · animation". `claude-code-setup` is under "Way of working".
+- **Not added.** `motion-graphics-skills` is licensed All Rights Reserved and forbids
+  copying (and its repository cannot be cloned on Windows: `:` in a file name).
+  `OpenMontage` is an AGPL-3.0 production system, not a skill (93 vendored skills that
+  overlap existing items and depend on its pipelines).
+- **Verified.** Install, second run, detection and removal in a scratch repository
+  for the three skills and the plugin; `npm test` 762 pass. Not verified: global
+  scope, real video work, running both launchers twice.
+
 ## claude-mem, project documents, Code Mode (2026-11-16, 2.11.0)
 
 - **`plugin.claude-mem`.** `thedotmack/claude-mem` persistent-memory plugin, global
