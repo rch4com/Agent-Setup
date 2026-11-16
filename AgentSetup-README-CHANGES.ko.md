@@ -5,6 +5,21 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## script-to-motion 영상 스킬 추가 (2026-11-16, 2.10.0)
+
+- **`skill.script-to-motion`.** `kstost/script-to-motion`(MIT)은 대본이나 주제로
+  내레이션이 입혀진 모션그래픽 영상을 만든다(HTML/GSAP 장면, Fish Audio 목소리,
+  `render.py`로 MP4). 저장소·전역 범위의 공유 스킬 항목이다. 상류는 macOS·Linux
+  기준이고 Node.js·Chrome, MP4는 Python 3·ffmpeg가 필요하다.
+- **우회.** 상류 `SKILL.md`의 description에 따옴표 없는 `browser: HTML…`이 있어
+  잘못된 YAML이라 `skills add`가 스킬을 건너뛴다. 설치기는 저장소를 받아 그
+  description만 따옴표로 감싼 로컬 복제본을 add한다. 저장소 범위에서는 임시
+  경로를 설치 직후 `skills-lock.json`에서 지운다. 상류가 고치면 보정은 아무 일도
+  하지 않는다.
+- **검증.** 임시 저장소에서 저장소 범위 설치 → 재실행 변경 없음 → 감지 → 제거,
+  잠금 파일 미잔존, `.claude/skills` 미스테이징을 실측했다. 전역 범위는 이
+  머신에 설치하지 않았다.
+
 ## 핸드오프 스킬 원본 갱신을 다시 받는다 (2026-11-15, 2.9.0)
 
 - **문제.** 설치된 스킬은 다시 골라도 변경이 없어, `rch4com/agent-handoff-manager`가

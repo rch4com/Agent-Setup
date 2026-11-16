@@ -5,6 +5,21 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## script-to-motion video skill added (2026-11-16, 2.10.0)
+
+- **`skill.script-to-motion`.** `kstost/script-to-motion` (MIT) turns a script or
+  topic into a narrated motion-graphics video (HTML/GSAP scenes, Fish Audio voice,
+  MP4 via `render.py`). Shared-skill item for repo and global scope. Upstream
+  targets macOS and Linux and needs Node.js, Chrome, and Python 3 + ffmpeg for MP4.
+- **Workaround.** Upstream's `SKILL.md` description holds an unquoted `browser: HTML…`,
+  which is invalid YAML, so `skills add` skips the skill. The installer clones the
+  repo, quotes only that description, and adds the local clone. In repo scope the
+  temporary source is dropped from `skills-lock.json` right after. If upstream fixes
+  the file, the quoting step does nothing.
+- **Verified.** Repo scope in a scratch repository: install, second run unchanged,
+  detection, removal, no lock file left, no `.claude/skills` staged. Global scope
+  was not installed on this machine.
+
 ## Handoff skill picks up upstream updates (2026-11-15, 2.9.0)
 
 - **Problem.** Re-selecting an installed skill changed nothing, so the repository
