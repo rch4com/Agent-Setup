@@ -31,7 +31,7 @@ export const SECTION_ORDER = [ACTION_SECTION, 'plugin', 'mcp', 'skill', 'config'
 // __commit은 CONFIG 탭에만 나오지만 규칙은 같다 — 헤더가 "무엇을 고르는
 // 자리인가"를 말한다. 커밋 템플릿은 대상 파일이 하나뿐이라 헤더에 그 파일
 // 이름과 "하나만"이라는 규칙까지 실어, 라디오 표시와 함께 읽히게 한다.
-export const GROUP_ORDER = ['__token', '__context', '__memory', '__style', '__writing', '__flow', '__commit', '__motion', '__social', '__control', '__service']
+export const GROUP_ORDER = ['__token', '__context', '__memory', '__style', '__writing', '__flow', '__commit', '__motion', '__edit', '__social', '__control', '__service']
 
 function groupRank(group) {
   const i = GROUP_ORDER.indexOf(group)
@@ -79,7 +79,8 @@ export function agentHint(item, state, t = createT('en')) {
   // 커버리지는 상태 바로 뒤에 둔다. 힌트 끝은 좁은 터미널에서 잘려 나가는데,
   // 하필 그때가 "이 항목이 내가 쓰는 CLI에서 되나"를 가장 알고 싶은 순간이다.
   // 전부 지원할 때도 찍는다 — 표시가 없는 것과 "10/10"은 뜻이 다르다.
-  if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
+  if (item.claudeOnly) parts.push(t('item.claudeOnly'))
+  else if (item.supports) parts.push(t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length }))
   const detail = toText(t, state.detail)
   if (detail) parts.push(detail)
   // 대상 파일이 하나로 정해진 항목만 target을 갖는다. 평평한 목록(printPlain·
@@ -122,6 +123,7 @@ const NAME_LIMIT = 4
 // 따로 적는다: 상세에는 "CLI 없음"이라 하면서 행에는 그 이름이 그대로
 // 찍히면 어느 쪽이 참인지 알 수 없다.
 export function coverageText(item, state, t = createT('en')) {
+  if (item.claudeOnly) return t('item.claudeOnly')
   if (!item.supports) return ''
   if (item.supports.length > NAME_LIMIT || item.supports.length === 0) {
     return t('item.cliCoverage', { covered: item.supports.length, total: CLI_IDS.length })

@@ -249,6 +249,10 @@ export default {
   'item.unsupported.vscodePlugin': 'VS Code Copilot has no command that installs plugins (only the Chat: Install Plugin From Source action in the UI)',
   'item.unsupported.cliAnythingCopilot': 'upstream documents Copilot CLI only as an install from a local clone, labeled community',
   'item.unsupported.userOnly': 'this CLI installs it only user-globally — switch the scope to Global',
+  'item.unsupported.claudeCodeOnly': 'a Claude Code plugin from Anthropic\'s marketplace; it recommends Claude Code hooks, subagents and settings, so other CLIs have no use for it',
+  // 상류가 Claude Code 기준으로 만든 항목의 표지 — 공유 스킬은 다른 CLI에도 깔리지만 쓸모는 Claude Code에 있다.
+  'item.claudeOnly': 'Claude only',
+  'item.plugin.claude-code-setup.note': 'Anthropic\'s claude-automation-recommender: reads the codebase and recommends the top Claude Code automations (hooks, subagents, skills, MCP servers, slash commands). Read-only — it changes no files',
   'item.unsupported.projectOnly': 'this CLI installs it only per repository — switch the scope to Repo',
   'item.probeFailed': 'could not read install state: {list}',
   'error.recipeInvalid': 'Invalid recipe in item {id}: {why}',
@@ -316,6 +320,9 @@ export default {
   'item.skill.remotion.note': 'official skills for Remotion, which makes video with React. remotion-best-practices alone holds the other 11 (create, markup, studio, render, captions, maps…), so only it is copied (141 files, 1.1MB). The individual /remotion-* slash commands do not appear. License note: free for individuals, for-profit organizations up to 3 employees, and non-profits; larger for-profit organizations need a Remotion company license',
   'item.skill.line-art-animation.note': 'builds animated line-art SVG/TypeScript components — ink figures that walk, run and react, scenes with wind and a day/night cycle. MIT',
   'item.skill.script-to-motion.note': 'turns a script or topic into a narrated motion-graphics video (HTML/GSAP scenes, Fish Audio voice, MP4 via render.py). Needs Node.js and Chrome, plus Python 3 + ffmpeg for MP4 and a Fish Audio API key and voice id for narration. Upstream targets macOS and Linux. Its scripts/ dependencies install on first use (npm install --prefix <skill>/scripts). MIT',
+  'item.skill.ghost-editor.note': 'turns one talking-to-camera phone recording into a finished vertical 1080x1920 reel: best take of each sentence, pause trimming, word-timed captions off the face, motion scenes, sound effects. Named styles and presets. The skill alone does not run: ffmpeg, Node, Python, Whisper and OpenCV, about 4 GB, plus the sound library come from upstream docs/INSTALL.md (doctor.sh) and are not installed here. Upstream assumes ~/.claude/skills/ghost-editor. A Gemini key is optional. MIT',
+  'item.skill.ffmpeg-skill.note': 'edits video and audio with local FFmpeg: cut, join, reframe, speed, captions, overlays, silence removal, loudness, HDR to SDR, platform exports and checks. Python standard library only, no cloud. Needs FFmpeg 6.1+ and Python 3.10+ installed first; caption transcription needs one local speech engine, for example faster-whisper. MIT',
+  'item.skill.claude-shorts.note': 'the shorts skill: scores candidate clips from a long video, you pick, Remotion renders animated captions, FFmpeg exports for YouTube Shorts, TikTok and Reels. Needs the upstream setup.sh (faster-whisper, mediapipe, OpenCV, PyTorch, npm install in remotion/), which is not run here. Unix tools; on Windows use WSL 2. Pairs with skill.remotion. MIT',
   'item.skill.instagram-agent.note': '13 skills that run an Instagram account (ig-reel, ig-caption, ig-carousel, ig-viral, ig-human…): Reels from scored hook formulas, a caption linter, a humanizer. MIT',
   'item.skill.youtube-agent.note': '11 skills that run a YouTube channel (yt-script, yt-package, yt-edit, yt-retention, yt-shorts, yt-viral…): scripts from scored hook formulas, title and thumbnail linted as a pair, an edit decision list from the transcript, a retention reader. MIT',
   'item.skill.animated-shorts.note': 'the cartoon-3d-short skill: ~60 s vertical cartoon story shorts (2D characters in a 3D world) with three.js inside Remotion. Rendering needs Remotion — pairs with skill.remotion. MIT',
@@ -502,7 +509,8 @@ export default {
   // 헤더 하나가 "무엇을 고르는 자리이고 규칙이 무엇인가"를 함께 말한다 —
   // 대상 파일이 하나뿐인 배타 묶음이라 라디오 표시와 짝이 된다.
   'category.commit': 'Commit template · .gitmessage.txt · pick one',
-  'category.motion': 'Motion graphics · video',
+  'category.motion': 'Motion graphics · animation',
+  'category.edit': 'Video editing · shorts',
   'category.social': 'Social media',
   'category.control': 'App & browser control',
   'category.service': 'External services & tools',

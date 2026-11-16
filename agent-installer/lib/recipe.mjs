@@ -75,6 +75,9 @@ export function bindScope(def, scope) {
     group: def.group ?? null, exclusive: def.exclusive ?? null, bundles: def.bundles ?? [], note: def.note ?? null,
     verified: def.verified ?? null, hooks: Boolean(def.hooks), postInstall: def.postInstall ?? null,
     scope, supports, unsupported,
+    // Claude Code에만 쓸모 있는 항목의 표지. 항목이 claudeOnly: true로 밝힌다 — CLI별 레시피가
+    // claude 하나뿐이라는 것만으로는 부족하다(다른 CLI는 공유 스킬 판이나 상류 별도 설치로 덮일 수 있다).
+    claudeOnly: def.claudeOnly === true,
 
     async detect({ probe }) {
       const reach = supports.filter((c) => probe.has(c))
