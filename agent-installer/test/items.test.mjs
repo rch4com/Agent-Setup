@@ -13,9 +13,9 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 50개, user 39개를 id순으로', async () => {
+test('loadItems: project 51개, user 40개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 50)
+  assert.equal(project.length, 51)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
@@ -24,7 +24,7 @@ test('loadItems: project 50개, user 39개를 id순으로', async () => {
     'plugin.impeccable', 'plugin.mattpocock-skills', 'plugin.ponytail', 'plugin.superpowers', 'plugin.understand-anything',
     'skill.agent-browser', 'skill.agent-desktop', 'skill.animated-shorts', 'skill.iart-motion', 'skill.instagram-agent', 'skill.line-art-animation', 'skill.motion-design', 'skill.youtube-agent', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
     'skill.graphify', 'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
-    'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.strix',
+    'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.script-to-motion', 'skill.strix',
     'skill.superpowers', 'skill.taste', 'skill.unslop',
   ]) assert.ok(ids.includes(id), id)
   // 전역 판은 같은 항목의 다른 범위로 합쳐졌다.
@@ -32,7 +32,7 @@ test('loadItems: project 50개, user 39개를 id순으로', async () => {
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 39)
+  assert.equal(user.length, 40)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
   for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
@@ -277,4 +277,15 @@ test('gstack은 .claude/skills가 저장소 밖을 가리키면 clone하지 않�
   assert.deepEqual(calls, [], '저장소 밖으로 나가는 clone을 실행했다')
   await assert.rejects(() => item.uninstall({ root, dryRun: false, exec, state: { present: ['claude'], targets: ['claude'] } }), /escapes|이탈/)
   assert.deepEqual(calls, [], '저장소 밖에서 제거 스크립트를 실행했다')
+})
+
+test('skill.script-to-motion: 따옴표 없는 description만 감싸고 이미 감쌌으면 그대로 둔다', async () => {
+  const { quoteDescription } = await import('../lib/items/skill.script-to-motion.mjs')
+  const bad = '---\nname: x\ndescription: a "b" browser: HTML\n---\nbody: keep\n'
+  const fixed = quoteDescription(bad)
+  assert.equal(fixed, '---\nname: x\ndescription: "a \\"b\\" browser: HTML"\n---\nbody: keep\n')
+  assert.equal(quoteDescription(fixed), fixed)
+  const single = "---\ndescription: 'ok: fine'\n---\n"
+  assert.equal(quoteDescription(single), single)
+  assert.equal(quoteDescription('no frontmatter'), 'no frontmatter')
 })

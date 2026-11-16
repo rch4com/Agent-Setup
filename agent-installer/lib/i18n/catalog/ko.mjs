@@ -303,6 +303,7 @@ export default {
   'item.skill.archify.note': '아키텍처·워크플로·시퀀스·데이터 흐름·라이프사이클 다이어그램을 검증을 거친 단독 HTML(인라인 SVG, 다크/라이트, PNG·SVG·WebM 내보내기)로 만듭니다. 붙여 넣은 Mermaid도 다시 그립니다. 동봉된 검증기를 돌리려면 Node 18+가 필요합니다(npm install 불필요). 첫 다이어그램 뒤 상류 릴리스 매니페스트를 한 번 확인하며, ARCHIFY_UPDATE_CHECK_DISABLED=1로 끕니다',
   'item.skill.remotion.note': 'React로 영상을 만드는 Remotion의 공식 스킬입니다. remotion-best-practices 하나가 create·markup·studio·render·captions·maps 등 나머지 11개를 품고 있어 이것만 복사합니다(141개 파일, 1.1MB). 개별 /remotion-* 슬래시 명령은 생기지 않습니다. 라이선스 주의: 개인·직원 3명 이하 영리 조직·비영리는 무료지만 그보다 큰 영리 조직은 Remotion 회사 라이선스가 필요합니다',
   'item.skill.line-art-animation.note': '선화 애니메이션 SVG·TypeScript 컴포넌트를 만드는 스킬 — 걷고 뛰고 반응하는 잉크 인물, 바람·낮밤이 도는 장면. MIT',
+  'item.skill.script-to-motion.note': '대본이나 주제로 내레이션이 입혀진 모션그래픽 영상을 만드는 스킬(HTML/GSAP 장면, Fish Audio 목소리, render.py로 MP4). Node.js·Chrome이 필요하고 MP4는 Python 3·ffmpeg, 내레이션은 Fish Audio API 키와 음성 ID가 필요합니다. 상류는 macOS·Linux 기준입니다. scripts/ 의존성은 처음 쓸 때 설치됩니다(npm install --prefix <스킬>/scripts). MIT',
   'item.skill.instagram-agent.note': '인스타그램 계정을 운영하는 스킬 13개(ig-reel·ig-caption·ig-carousel·ig-viral·ig-human 등): 점수 매긴 훅 공식으로 릴스, 캡션 린터, 휴머나이저. MIT',
   'item.skill.youtube-agent.note': '유튜브 채널을 운영하는 스킬 11개(yt-script·yt-package·yt-edit·yt-retention·yt-shorts·yt-viral 등): 점수 매긴 훅 공식으로 대본, 제목·썸네일을 한 쌍으로 점검, 자막에서 편집 목록, 이탈 지점 분석. MIT',
   'item.skill.animated-shorts.note': 'cartoon-3d-short 스킬: three.js와 Remotion으로 약 60초 세로형 카툰 스토리 숏폼(3D 세계의 2D 캐릭터)을 만듭니다. 렌더에 Remotion이 필요해 skill.remotion과 함께 쓰면 좋습니다. MIT',
