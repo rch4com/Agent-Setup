@@ -5,6 +5,39 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## claude-mem, 프로젝트 문서, Code Mode (2026-11-16, 2.11.0)
+
+- **`plugin.claude-mem`.** `thedotmack/claude-mem` 영속 기억 플러그인. 전역 범위
+  전용이고 claude·codex·opencode·copilot을 지원한다. 설치·제거는
+  `npx claude-mem@latest`를 거친다. Antigravity와 VS Code는 배선하지 않았다.
+  Docker(Linux)에서 실측했다. Windows 설치기는 실제 사용자 Path를 고치므로 돌리지
+  않았다.
+- **분류 변경.** 새 그룹: 기억, 글쓰기, 제어. 기억·핸드오프 항목은 기억으로,
+  `eli5`·`i-have-adhd`·`im-not-ai`는 글쓰기로, 브라우저·데스크톱 제어 항목은 제어로
+  옮겼다. "서비스"는 "외부 서비스 · 도구"가 되었다.
+- **프로젝트 문서 여섯 개.** 부트스트랩이 `README.md`, `docs/intent.md`, `spec.md`,
+  `architecture.md`, `plan.md`, `review.md`를 영어 또는 한글로 만든다. 각 문서에는
+  `Status: draft` 줄, `<TBD: …>` 자리표시자, 인터뷰 가이드가 있다. `AGENTS.md`에는
+  "프로젝트 문서" 절이 들어간다. 언어는 저장소마다 기록(`lang`)에 고정되고, 기록에
+  없으면 영어로 본다.
+- **기존 파일.** 직접 쓴 문서는 본문을 지키고 템플릿에 있는데 없는 절만 덧붙인다.
+  제목은 영어·한글·동의어·제목 단계와 무관하게 같은 절로 판정해 두 번 들어가지
+  않는다. 설치기의 `Status: draft|ready` 줄이 있는 문서는 건드리지 않는다.
+- **인터뷰 규칙이 `AGENTS.md`에서 빠진다.** 별도 "문서 인터뷰" 절에 두고, 초안이
+  하나도 남지 않으면 에이전트가 지우라고 적었다. 여섯 문서가 모두 있고 초안이 없는
+  저장소에서는 부트스트랩·`update`가 그 절을 다시 넣지 않는다. 별도 스킬은 없다.
+- **이슈 트래커.** `docs/plan.md`가 작업을 담는 트래커를 묻는다. 트래커를 쓰면
+  계획에는 목표·마일스톤(이슈 링크)·위험만 둔다.
+- **`status`가 초안을 알린다.** 여섯 문서 가운데 초안의 수와 목록을 보여 준다.
+  알리기만 하며 CI와 다른 파일은 건드리지 않는다.
+- **Code Mode 기본 켜짐.** `.claude/settings.json`에
+  `env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE = "1"`을 넣는다. 프로젝트 범위라
+  커밋되어 팀 전체에 적용되며, 부트스트랩은 사용자 홈에 쓰지 않는다. 기존 파일은
+  내용을 지키고 이 키만 더하고, 사용자가 정한 값(`"0"` 포함)은 바꾸지 않는다.
+  주석이 있거나 `env`가 객체가 아닌 파일은 경고만 하고 둔다.
+- **미확인.** Code Mode의 실제 동작과 프로젝트 `env`가 거기에 닿는지. Windows와
+  Antigravity의 `claude-mem`. 에이전트가 인터뷰 규칙을 따르고 절을 지우는지.
+
 ## script-to-motion 영상 스킬 추가 (2026-11-16, 2.10.0)
 
 - **`skill.script-to-motion`.** `kstost/script-to-motion`(MIT)은 대본이나 주제로

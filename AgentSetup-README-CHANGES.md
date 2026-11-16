@@ -5,6 +5,42 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## claude-mem, project documents, Code Mode (2026-11-16, 2.11.0)
+
+- **`plugin.claude-mem`.** `thedotmack/claude-mem` persistent-memory plugin, global
+  scope only, for claude, codex, opencode, and copilot. Install and uninstall go
+  through `npx claude-mem@latest`. Antigravity and VS Code are not wired. Measured in
+  Docker (Linux); the Windows installer edits the real user Path, so it was not run.
+- **Reclassified.** New groups: memory, writing, control. Memory and handoff items
+  moved to memory, `eli5`/`i-have-adhd`/`im-not-ai` to writing, browser/desktop
+  control items to control. "Services" is now "External services & tools".
+- **Six project documents.** Bootstrap creates `README.md`, `docs/intent.md`,
+  `spec.md`, `architecture.md`, `plan.md`, and `review.md` in English or Korean, each
+  with a `Status: draft` line, `<TBD: …>` placeholders, and an Interview guide.
+  `AGENTS.md` gets a "Project documents" section. The language is fixed per
+  repository in the record (`lang`); a record without it means English.
+- **Existing files.** A hand-written document keeps its body; only the template
+  sections it lacks are appended. Headings match across English, Korean, synonyms,
+  and any heading level, so nothing is added twice. A document with the installer's
+  `Status: draft|ready` line is left alone.
+- **Interview rules leave `AGENTS.md`.** They live in a separate "Document
+  interview" section that tells the agent to delete it when no draft is left. The
+  bootstrap and `update` do not put it back once all six documents exist and none is
+  a draft. No separate skill.
+- **Issue tracker.** `docs/plan.md` asks which tracker holds the tasks. With a
+  tracker, the plan keeps only the goal, milestones (issue links), and risks.
+- **`status` reports drafts.** It shows how many of the six documents are drafts and
+  which. It only reports; CI and other files are untouched.
+- **Code Mode on by default.** `.claude/settings.json` gets
+  `env.CLAUDE_CODE_EXPERIMENTAL_CODE_MODE = "1"`. Project scope, so it is committed
+  and applies to the whole team; the bootstrap never writes the user home. An
+  existing file keeps its content and gains only this key, and a value you set
+  (including `"0"`) is never changed. A file with comments or a non-object `env` is
+  left alone with a warning.
+- **Not verified.** What Code Mode does at run time, and whether a project-level
+  `env` reaches it. `claude-mem` on Windows and Antigravity. Whether agents follow
+  the interview rules and delete the section.
+
 ## script-to-motion video skill added (2026-11-16, 2.10.0)
 
 - **`skill.script-to-motion`.** `kstost/script-to-motion` (MIT) turns a script or
