@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## modern-web-guidance skill (2026-11-17, 2.13.0)
+
+- **`skill.modern-web-guidance`** (`GoogleChrome/modern-web-guidance`, Apache-2.0):
+  before the agent writes HTML, CSS or client-side JS, the skill runs
+  `npx -y modern-web-guidance@latest search` and `retrieve` to pull current web
+  platform best practices. Only this skill is copied; the repository's second skill,
+  `chrome-extensions`, is not. Needs Node.js 22+ and network at use time. Under
+  "Way of working". The source repository `modern-web-guidance-src` is a build
+  origin and is not a skills CLI target.
+- **Verified.** Install and second run in a scratch repository; `npm test` 762 pass;
+  both launchers' dry run. Not verified: global scope, running the skill's search.
+
 ## Video-editing skills, claude-code-setup, Claude-only mark (2026-11-16, 2.12.0)
 
 - **`skill.ffmpeg-skill`** (`kajisho5/ffmpeg-skill`, MIT): local FFmpeg cut, join,

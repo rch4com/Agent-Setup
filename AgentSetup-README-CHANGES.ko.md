@@ -5,6 +5,17 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## modern-web-guidance 스킬 (2026-11-17, 2.13.0)
+
+- **`skill.modern-web-guidance`**(`GoogleChrome/modern-web-guidance`, Apache-2.0):
+  에이전트가 HTML·CSS·클라이언트 JS를 쓰기 전에 `npx -y modern-web-guidance@latest
+  search`·`retrieve`로 최신 웹 플랫폼 모범 사례를 가져오게 한다. 이 스킬만 복사하고
+  저장소의 둘째 스킬 `chrome-extensions`는 복사하지 않는다. 쓸 때 Node.js 22+와
+  네트워크가 필요하다. "작업 방식" 그룹이다. 소스 저장소 `modern-web-guidance-src`는
+  빌드 원본이라 skills CLI 대상이 아니다.
+- **검증.** 임시 저장소에서 설치와 두 번째 실행, `npm test` 762개 통과, 두 런처
+  dry run. 미검증: 전역 범위, 스킬의 search 실제 실행.
+
 ## 영상 편집 스킬, claude-code-setup, Claude 전용 표지 (2026-11-16, 2.12.0)
 
 - **`skill.ffmpeg-skill`**(`kajisho5/ffmpeg-skill`, MIT): 로컬 FFmpeg로 자르기·잇기·
