@@ -247,6 +247,15 @@ npx @rch4com/agent-setup bootstrap --adopt
   (데이터가 계속 오는 응답은 시간 제한에 걸리지 않으므로 크기도 함께 막습니다).
 - `--print`(옛 이름 `--dry-run`)를 붙이면 실행할 명령만 출력하고 아무것도
   바꾸지 않습니다.
+- `--update`는 설치된 항목을 최신으로 올리고 끝납니다(`--global`이면 전역, `--print`면 명령만 출력).
+  대화형 화면의 작업 탭 `설치된 항목 업데이트` 행도 검토 화면을 거쳐 같은 일을 합니다.
+  갱신 경로가 있는 항목만 건드립니다: 스킬은 `skills add`를 다시 돌고(복사본과 잠금 해시를
+  새로 씁니다), Claude Code·Copilot CLI 플러그인은 `marketplace update` + `plugin update`,
+  Codex 플러그인은 `marketplace upgrade` + `plugin add`(Codex에는 `plugin update`가 없습니다),
+  보조 앱은 PATH에 이미 있을 때 `npm install -g <패키지>@latest`·`uv tool upgrade`를 돕니다.
+  원격 MCP와 `npx -y <패키지>@latest` MCP는 늘 최신이라 건너뛰고, Antigravity·OpenCode
+  플러그인과 상류 설치기를 쓰는 항목(gstack·gsd·claude-mem·ego-lite·설정 파일)은 여기서
+  갱신 경로가 없어 건너뜁니다.
 - MCP 항목은 각 CLI 설정에 URL·명령만 등록합니다. 인증(OAuth)은 각 CLI를
   처음 쓸 때 진행되며 토큰은 이 저장소에 저장되지 않습니다.
 - OpenCode 항목은 OpenCode CLI를 부르지 않고 설정 파일을 직접 고쳐, LLM 크레딧
@@ -406,7 +415,7 @@ SKILL·CONFIG·DESIGN.MD 탭을 오가며 고르고, 마지막에 한 번 제출
 | `↑` / `↓` / `PgUp` `PgDn` (목록) | 커서 이동. 맨 위에서 `↑`는 검색칸으로 복귀 |
 | `Space` (목록) | 커서 항목 선택/해제 |
 | `Tab` / `Shift+Tab` / `←` `→` | 탭 이동 (선택은 탭을 넘나들며 누적됩니다) |
-| `Enter` (목록) | `[▶]` 작업 행(작업 탭의 언어·설치 범위·부트스트랩, DESIGN.MD 탭 맨 위의 동기화 셋)에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
+| `Enter` (목록) | `[▶]` 작업 행(작업 탭의 언어·설치 범위·설치된 항목 업데이트·부트스트랩, DESIGN.MD 탭 맨 위의 동기화 셋)에서는 그 작업 실행, 그 밖에는 **제출**(검토 화면 → 일괄 적용) |
 | `Ctrl+A` | 지금 탭에서 보이는 항목 전체 선택/해제 |
 | `Ctrl+O` | 커서 항목 미리보기 (design.md는 브라우저) |
 | `Ctrl+F` / `Ctrl+B` | CLI 필터를 앞 / 뒤로 돌리기 (전체 → CLI 하나씩 순환, 검색줄 오른쪽에 `CLI › codex (2/4)`처럼 위치 표시) |
@@ -574,7 +583,7 @@ codex plugin add ponytail@ponytail
 | 플러그인 | `plugin.impeccable`, `plugin.understand-anything`, `plugin.hyperframes`, `plugin.cli-anything` | Claude Code 마켓플레이스 플러그인(저장소·전역). 다른 CLI는 사유가 각기 다릅니다 — impeccable은 공유 스킬 판(`skill.impeccable`, **하나만** 선택)이 맡고, Understand Anything은 Copilot CLI(전역)에는 `copilot plugin install Egonex-AI/Understand-Anything:understand-anything-plugin`을 직접 쓰지만(`copilot plugin list`에 어떻게 보이는지는 실측하지 못했습니다) 다른 CLI는 홈에 클론하는 스크립트, HyperFrames는 CLI별 별도 설치, CLI-Anything은 스크립트·수동 복사뿐이라 CLI 명령으로 배선할 수 없습니다. HyperFrames 렌더에는 Node.js 22+와 FFmpeg가 필요합니다 |
 | MCP | `mcp.notion`, `mcp.supabase`, `mcp.vercel` | 원격 URL. Claude Code·OpenCode(저장소·전역), VS Code Copilot(저장소 `.vscode/mcp.json`, 전역 `~/.copilot/mcp-config.json`), Codex·Antigravity·Copilot CLI(전역)에 등록합니다. 인증(OAuth)은 각 CLI 첫 사용 시 진행되며 시크릿은 커밋되지 않습니다 |
 | MCP | `mcp.graphify`, `mcp.headroom` | stdio 방식 — PATH에 각각 `graphify-mcp`(`uv tool install "graphifyy[mcp]"`), `headroom`(`uv tool install --python 3.13 "headroom-ai[proxy,mcp]"`)이 필요합니다. graphify-mcp는 없으면 함께 설치합니다. graphify는 실행 디렉터리의 `graphify-out/graph.json`을 읽고, 그것을 만드는 `/graphify` 스킬은 `skill.graphify` 항목으로, `mcp.graphify`를 고르면 함께 골라집니다(상류 `graphify install --project --platform agents`, 저장소 범위 전용) |
-| MCP | `mcp.graft` | stdio 방식 — `npx -y @nanonets/graft mcp`라 따로 설치할 것이 없습니다. `graft build`로 그래프를 먼저 만드세요(gitignore되는 `graft/`). 상류 `graft init`의 깊은 연동은 이 저장소가 관리하는 파일을 고치므로 쓰지 않습니다. Windows에서는 의존성 `tree-sitter-kotlin`이 C++ 툴체인을 요구하고 Node 24는 컴파일이 안 됩니다(상류 #400) |
+| MCP | `mcp.graft` | stdio 방식 — `npx -y @nanonets/graft@latest mcp`라 따로 설치할 것이 없습니다. `graft build`로 그래프를 먼저 만드세요(gitignore되는 `graft/`). 상류 `graft init`의 깊은 연동은 이 저장소가 관리하는 파일을 고치므로 쓰지 않습니다. Windows에서는 의존성 `tree-sitter-kotlin`이 C++ 툴체인을 요구하고 Node 24는 컴파일이 안 됩니다(상류 #400) |
 | 스킬 | `skill.superpowers`, `skill.mattpocock-skills`, `skill.strix`, `skill.im-not-ai`, `skill.instagram-agent`, `skill.iart-motion`, `skill.youtube-agent` | 한 상류의 스킬을 `--skill '*'`로 공유 `.agents/skills`에 한 번에 복사합니다. 제거 대상은 `skills-lock.json`의 출처 기록으로 고르며, 전역에서는 그 근거가 없어 **저장소 범위 전용**입니다. superpowers·mattpocock-skills는 같은 상류의 플러그인 판과 **하나만** 고를 수 있습니다(superpowers 스킬 판에는 session-start 자동 주입이 없습니다). strix는 PATH의 `strix` 바이너리, im-not-ai는 상류 서브에이전트 없이 스킬만 들어옵니다 |
 | 스킬 | `skill.caveman`, `skill.taste`, `skill.karpathy`, `skill.hallmark`, `skill.diagram-design`, `skill.agent-browser`, `skill.find-skills`, `skill.mcp-builder`, `skill.prompt-master`, `skill.i-have-adhd`, `skill.eli5`, `skill.archify`, `skill.impeccable`, `skill.remotion`, `skill.officecli`, `skill.html-plan`, `skill.unslop`, `skill.agent-handoff-manager`, `skill.agent-desktop`, `skill.ego-lite`, `skill.line-art-animation`, `skill.animated-shorts`, `skill.motion-design`, `skill.script-to-motion`, `skill.ffmpeg-skill`, `skill.ghost-editor`, `skill.claude-shorts`, `skill.modern-web-guidance` | 스킬 하나를 저장소 범위에서는 공유 `.agents/skills`에 복사해 모든 CLI가 함께 보고(커밋해 팀과 나눌 수 있습니다), 전역 범위에서는 `claude-code`·`codex`·`antigravity-cli` 전역 경로에 넣습니다. agent-browser·agent-desktop·ego-lite는 앱이 없으면 함께 설치하고(`npm i -g agent-browser` + `agent-browser install`, `npm i -g agent-desktop`, ego lite는 Windows 상류 설치기·macOS `install.sh`) 제거할 때 앱은 남기며, officecli는 바이너리가 PATH에 있어야 하고, impeccable은 첫 실행 때 엔진을 `~/.impeccable`에 받으며(`plugin.impeccable`과 **하나만** 선택), Remotion은 규모가 큰 영리 조직에 회사 라이선스가 필요하고, `skill.ghost-editor`·`skill.claude-shorts`는 `Claude 전용` 표지가 붙고(상류가 Claude Code 스킬이라 밝히고 `~/.claude/skills`에서 찾습니다) 런타임 의존성(ffmpeg·Whisper·OpenCV·PyTorch·`setup.sh`)은 이 도구가 깔지 않으며, `skill.ffmpeg-skill`은 FFmpeg 6.1+와 Python 3.10+가 먼저 필요하고(상류 `.claude/` 개발용 파일이 `.agents/skills/ffmpeg-skill` 안에 함께 들어옵니다), `skill.modern-web-guidance`는 `GoogleChrome/modern-web-guidance`에서 해당 스킬만 복사하고(둘째 스킬 chrome-extensions는 설치하지 않음) 쓸 때 Node.js 22+와 네트워크가 필요하며, `skill.script-to-motion`은 상류 frontmatter가 잘못된 YAML이라 `skills add`가 건너뛰므로 `SKILL.md`의 description을 따옴표로 감싼 임시 복제본에서 설치합니다(저장소 범위에서는 임시 경로를 `skills-lock.json`에서 지웁니다) |
 | 스킬 | `skill.gsd` | `npx @opengsd/gsd-core --<런타임> --local` 저장소 범위 설치 — claude→`.claude/commands`, codex→`.codex/skills`, opencode→`.opencode/skills`, copilot→`.github/skills`. 런타임마다 700개 안팎의 파일이 생깁니다. Antigravity는 상류 플래그가 있지만 설치 경로를 실측하지 못해 배선하지 않습니다 |

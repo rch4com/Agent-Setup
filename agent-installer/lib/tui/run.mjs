@@ -1,7 +1,7 @@
 // 유일한 부수효과 지점 — 키 입력, 화면 그리기, 액션 실행, 적용.
 // 무엇을 보여줄지(render)와 무엇이 선택됐는지(state)는 순수 모듈이 정한다.
 import { emitKeypressEvents } from 'node:readline'
-import { planChanges, apply } from '../engine.mjs'
+import { planChanges, planRefresh, apply } from '../engine.mjs'
 import { makeOpener, openPreview } from '../design-md/open.mjs'
 import { netFetch, CATALOG_PATH } from '../design-md/catalog.mjs'
 import { createT, toText, LOCALES } from '../i18n/index.mjs'
@@ -287,6 +287,53 @@ export async function runTui(root, opts = {}) {
     }
   }
 
+  // 검토 → (출력|적용) → 결과 보고. 선택 제출과 '업데이트' 행이 같은 흐름을 쓴다.
+  // 'quit'을 돌려주면 호출부가 화면 루프를 끝낸다.
+  const submit = async (changes) => {
+    const verdict = await review(changes)
+    if (verdict === 'quit') return 'quit'
+    if (verdict === 'cancel') { status = t('tui.submitCancelled'); return null }
+
+    // --print로 띄웠거나 검토 화면에서 p를 눌렀다 — 실행 대신 같은 steps()의
+    // 명령을 화면 밖에 편다. 복사해 직접 돌릴 수 있어야 한다.
+    if (verdict === 'print' || dryRun) {
+      await suspend(async () => {
+        log('')
+        for (const line of formatCommands(planCommands(changes), { t, scope })) log(line)
+        for (const line of activationLines(changes, t)) log(line)
+        await pause()
+      })
+      return null
+    }
+
+    const results = await runApply(changes)
+
+    // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
+    // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 성공해도 message가
+    // 붙은 결과는 똑같이 사연이 있다 — ok만 보고 걸러내면 그 사연이
+    // 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
+    // 이미 나타났고, 다시 여기 나열하면 사용자가 스스로 취소한 일을
+    // 실패처럼 읽게 된다.
+    const notable = results.filter((r) => !r.skipped && (!r.ok || r.message))
+    await suspend(async () => {
+      if (notable.length > 0) {
+        log('')
+        for (const r of notable) {
+          const message = toText(t, r.message)
+          log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${message ? ` — ${message}` : ''}`)
+        }
+      }
+      // 성공한 설치만 안내한다 — 실패한 항목에 "새 세션을 시작하라"고 하면 거짓이다.
+      const done = new Set(results.filter((r) => r.ok).map((r) => r.item.id))
+      const notes = activationLines(changes.filter((c) => done.has(c.item.id)), t)
+      if (notes.length > 0) log(`\n${notes.join('\n')}`)
+      log(`\n${t('apply.seeGitDiff')}`)
+      await pause()
+    })
+    await recollect()
+    return null
+  }
+
   try {
     for (;;) {
       paint()
@@ -401,6 +448,12 @@ export async function runTui(root, opts = {}) {
           status = t('tui.scope.switched', { current: t(`scope.${scope}`) })
           continue
         }
+        if (row?.id === 'action.update') {
+          const changes = planRefresh(itemStates(state.rows))
+          if (changes.length === 0) { status = t('tui.noUpdates'); continue }
+          if (await submit(changes) === 'quit') break
+          continue
+        }
         if (row?.kind === 'action') {
           await suspend(async () => {
             // 작업 하나의 예외가 화면 전체를 끌고 내려가면 안 된다 — 깨진
@@ -420,48 +473,7 @@ export async function runTui(root, opts = {}) {
 
         const changes = planChanges(itemStates(state.rows), state.selected)
         if (changes.length === 0) { status = t('tui.noChanges'); continue }
-
-        const verdict = await review(changes)
-        if (verdict === 'quit') break
-        if (verdict === 'cancel') { status = t('tui.submitCancelled'); continue }
-
-        // --print로 띄웠거나 검토 화면에서 p를 눌렀다 — 실행 대신 같은 steps()의
-        // 명령을 화면 밖에 편다. 복사해 직접 돌릴 수 있어야 한다.
-        if (verdict === 'print' || dryRun) {
-          await suspend(async () => {
-            log('')
-            for (const line of formatCommands(planCommands(changes), { t, scope })) log(line)
-            for (const line of activationLines(changes, t)) log(line)
-            await pause()
-          })
-          continue
-        }
-
-        const results = await runApply(changes)
-
-        // 실패가 있으면 자세한 사연을 화면 밖에서 보여 준다 — 실패 메시지는
-        // 길고, 화면 안에서 잘리면 진단이 불가능해진다. 성공해도 message가
-        // 붙은 결과는 똑같이 사연이 있다 — ok만 보고 걸러내면 그 사연이
-        // 조용히 사라진다. 건너뜀은 실패가 아니다 — 진행 화면에
-        // 이미 나타났고, 다시 여기 나열하면 사용자가 스스로 취소한 일을
-        // 실패처럼 읽게 된다.
-        const notable = results.filter((r) => !r.skipped && (!r.ok || r.message))
-        await suspend(async () => {
-          if (notable.length > 0) {
-            log('')
-            for (const r of notable) {
-              const message = toText(t, r.message)
-              log(`  ${r.ok ? '✔' : '✖'} ${t(`change.${r.action}`)} ${scopedLabel(r.item, t)}${message ? ` — ${message}` : ''}`)
-            }
-          }
-          // 성공한 설치만 안내한다 — 실패한 항목에 "새 세션을 시작하라"고 하면 거짓이다.
-          const done = new Set(results.filter((r) => r.ok).map((r) => r.item.id))
-          const notes = activationLines(changes.filter((c) => done.has(c.item.id)), t)
-          if (notes.length > 0) log(`\n${notes.join('\n')}`)
-          log(`\n${t('apply.seeGitDiff')}`)
-          await pause()
-        })
-        await recollect()
+        if (await submit(changes) === 'quit') break
         continue
       }
     }

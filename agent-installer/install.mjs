@@ -50,9 +50,9 @@ async function openTui(root, { dryRun, skillMode, designDirs, scope, t, localeFo
 }
 
 // --list / --set 전용 비대화형 경로.
-async function runClassic(root, { dryRun, listOnly, setArg, scope = 'project', t }) {
+async function runClassic(root, { dryRun, listOnly, update = false, setArg, scope = 'project', t }) {
   const { loadItems, makeExec } = await withDeps(() => import('./lib/catalog.mjs'), t)
-  const { scan, planChanges, apply, assertExclusive } = await withDeps(() => import('./lib/engine.mjs'), t)
+  const { scan, planChanges, planRefresh, apply, assertExclusive } = await withDeps(() => import('./lib/engine.mjs'), t)
   const { createProbe } = await withDeps(() => import('./lib/probe.mjs'), t)
   const { planCommands, formatCommands } = await withDeps(() => import('./lib/commands.mjs'), t)
   const { activationLines } = await withDeps(() => import('./lib/activation.mjs'), t)
@@ -78,7 +78,10 @@ async function runClassic(root, { dryRun, listOnly, setArg, scope = 'project', t
     return
   }
 
-  const selectedIds = new Set(setArg.split(',').map((s) => s.trim()).filter(Boolean))
+  // --update는 목표 상태를 선언하지 않는다 — 깔린 것을 최신으로 올릴 뿐이라 제거가 없다.
+  const changes = []
+  if (update) changes.push(...planRefresh(states))
+  const selectedIds = new Set(update ? [] : setArg.split(',').map((s) => s.trim()).filter(Boolean))
   const known = new Set(items.map((i) => i.id))
   for (const id of selectedIds) if (!known.has(id)) throw new LocalizedError('error.unknownItem', { id })
   // 짝 항목(item.bundles)을 함께 고른다 — 따로 깔린 짝이 다음 --set에서 목록 밖으로
@@ -92,8 +95,7 @@ async function runClassic(root, { dryRun, listOnly, setArg, scope = 'project', t
   // 저장소에서 스킬 둘을 --set 하다가 copilot의 전역 superpowers가 함께
   // 제거되는 것을 실측했다(2026-08-15). 전역 항목의 제거는 TUI에서 명시적으로
   // 해제해 검토 화면을 거친다.
-  const changes = []
-  for (const c of planChanges(states, selectedIds)) {
+  for (const c of update ? [] : planChanges(states, selectedIds)) {
     if (c.action === 'uninstall' && c.item.scope === 'user') {
       console.log(t('run.keepUserScope', { id: c.item.id }))
       continue

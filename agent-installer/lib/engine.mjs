@@ -49,6 +49,14 @@ export function planChanges(states, selectedIds) {
   return changes
 }
 
+// 이미 깔린 항목을 최신으로 올린다 — 갱신 단계(update)가 있는 항목만 든다.
+// 갱신 경로가 없는 항목(원격 MCP·실행 때 @latest를 받는 MCP, 갱신 명령을 못 잰 항목)은 뺀다.
+export function planRefresh(states) {
+  return states
+    .filter(({ item, status }) => item.canRefresh && (status === 'installed' || status === 'stale'))
+    .map(({ item, result }) => ({ item, action: 'update', state: { ...result, refresh: true } }))
+}
+
 export async function apply(root, changes, { dryRun = false, log = console.log, t = createT('en'), onProgress = null, shouldStop = null } = {}) {
   const baseExec = makeExec(dryRun, log, t)
   const results = []

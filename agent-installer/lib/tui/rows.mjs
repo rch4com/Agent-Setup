@@ -226,6 +226,13 @@ export function buildActions(root, { designItems = [], scope = 'project', t = cr
       hint: t('action.scope.hint', { current: t(`scope.${scope}`) }),
       t,
     }),
+    // 첫 화면에서 한 번에 최신으로 — run.mjs가 특수 처리한다(검토 → 적용 흐름을 쓴다).
+    actionRow({
+      id: 'action.update',
+      label: t('action.update.label'),
+      hint: t('action.update.hint'),
+      t,
+    }),
     actionRow({
       id: 'action.bootstrap',
       label: t('action.bootstrap.label'),

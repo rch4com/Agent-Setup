@@ -27,6 +27,7 @@ test('marketplacePlugin: project 범위 명령', () => {
   assert.deepEqual(item.supports, ['claude', 'opencode'])
   assert.deepEqual(lines(item, 'install'), [
     'claude plugin marketplace add DietrichGebert/ponytail --scope project',
+    'claude plugin marketplace update ponytail',
     'claude plugin install ponytail@ponytail --scope project',
     '# add @dietrichgebert/ponytail to the plugin array in ./opencode.jsonc',
   ])
@@ -39,12 +40,15 @@ test('marketplacePlugin: user 범위 명령과 제거', () => {
   const all = { present: ['claude', 'codex', 'opencode', 'antigravity', 'copilot'], targets: item.supports }
   assert.deepEqual(lines(item, 'install', { targets: item.supports }), [
     'claude plugin marketplace add DietrichGebert/ponytail --scope user',
+    'claude plugin marketplace update ponytail',
     'claude plugin install ponytail@ponytail --scope user',
     'codex plugin marketplace add DietrichGebert/ponytail',
+    'codex plugin marketplace upgrade ponytail',
     'codex plugin add ponytail@ponytail',
     '# add @dietrichgebert/ponytail to the plugin array in ~/.config/opencode/opencode.json',
     'agy plugin install https://github.com/DietrichGebert/ponytail',
     'copilot plugin marketplace add DietrichGebert/ponytail',
+    'copilot plugin marketplace update ponytail',
     'copilot plugin install ponytail@ponytail',
   ])
   const removal = lines(item, 'uninstall', all)
@@ -86,14 +90,14 @@ test('marketplacePlugin: 마켓플레이스 없는 Claude 공식 플러그인', 
 })
 
 test('mcpServer: stdio·http를 CLI별 문법으로', () => {
-  const stdio = defineRecipe({ id: 'mcp.graft', category: 'mcp', label: 'g', ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] } }) })
+  const stdio = defineRecipe({ id: 'mcp.graft', category: 'mcp', label: 'g', ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft@latest', 'mcp'] } }) })
   const user = bindScope(stdio, 'user')
   const got = lines(user, 'install', { targets: user.supports })
-  assert.equal(got[0], 'claude mcp add -s user graft -- npx -y @nanonets/graft mcp')
-  assert.equal(got[1], 'codex mcp add graft -- npx -y @nanonets/graft mcp')
+  assert.equal(got[0], 'claude mcp add -s user graft -- npx -y @nanonets/graft@latest mcp')
+  assert.equal(got[1], 'codex mcp add graft -- npx -y @nanonets/graft@latest mcp')
   assert.equal(got[2], '# set mcp.graft in ~/.config/opencode/opencode.json')
-  assert.equal(got[3], 'agy mcp add graft -- npx -y @nanonets/graft mcp')
-  assert.equal(got[4], 'copilot mcp add graft -- npx -y @nanonets/graft mcp')
+  assert.equal(got[3], 'agy mcp add graft -- npx -y @nanonets/graft@latest mcp')
+  assert.equal(got[4], 'copilot mcp add graft -- npx -y @nanonets/graft@latest mcp')
   assert.match(got[5], /^# add mcpServers\.graft to /, 'VS Code는 명령이 없어 파일을 쓰는 단계다')
   const http = defineRecipe({ id: 'mcp.notion', category: 'mcp', label: 'n', ...mcpServer({ name: 'notion', server: { kind: 'http', url: 'https://mcp.notion.com/mcp' } }) })
   const p = bindScope(http, 'project')
@@ -108,7 +112,7 @@ test('mcpServer: stdio·http를 CLI별 문법으로', () => {
 // VS Code에는 설치 명령이 없다(`code --add-mcp`는 JSON의 큰따옴표를 Windows 인용이
 // 거부하고, 제거·목록 명령도 없다). 그래서 파일을 직접 고치고 편집은 주석을 지킨다.
 test('mcpServer: VS Code 프로젝트는 .vscode/mcp.json의 servers를 쓰고 지운다', async () => {
-  const stdio = defineRecipe({ id: 'mcp.g', category: 'mcp', label: 'g', ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] } }) })
+  const stdio = defineRecipe({ id: 'mcp.g', category: 'mcp', label: 'g', ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft@latest', 'mcp'] } }) })
   const http = defineRecipe({ id: 'mcp.n', category: 'mcp', label: 'n', ...mcpServer({ name: 'notion', server: { kind: 'http', url: 'https://mcp.notion.com/mcp' } }) })
   const root = mkdtempSync(join(tmpdir(), 'vsc-'))
   mkdirSync(join(root, '.vscode'), { recursive: true })
@@ -120,7 +124,7 @@ test('mcpServer: VS Code 프로젝트는 .vscode/mcp.json의 servers를 쓰고 �
   const text = readFileSync(join(root, '.vscode', 'mcp.json'), 'utf8')
   assert.match(text, /\/\/ 팀 서버/, '사용자 주석을 지킨다')
   const data = JSON.parse(text.replace(/\/\/.*$/m, ''))
-  assert.deepEqual(data.servers.graft, { type: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] })
+  assert.deepEqual(data.servers.graft, { type: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft@latest', 'mcp'] })
   assert.deepEqual(data.servers.notion, { type: 'http', url: 'https://mcp.notion.com/mcp' })
   assert.ok(data.servers.keep, '남의 항목은 그대로')
   const [remove] = bindScope(stdio, 'project').steps('uninstall', { present: ['vscode'], targets: ['vscode'] })

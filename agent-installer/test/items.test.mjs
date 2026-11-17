@@ -159,7 +159,7 @@ test('Copilot CLI·VS Code 배선: MCP와 ai-memory 브리지, 직접 설치 플
   assert.ok(pick(project, 'plugin.ai-memory').supports.includes('vscode'))
   // Copilot CLI 플러그인: 마켓 등록 뒤 설치, UA는 마켓 없이 하위 경로를 직접 설치한다.
   assert.deepEqual(cmds(pick(user, 'plugin.superpowers')).filter((c) => c.startsWith('copilot')), [
-    'copilot plugin marketplace add obra/superpowers-marketplace', 'copilot plugin install superpowers@superpowers-marketplace',
+    'copilot plugin marketplace add obra/superpowers-marketplace', 'copilot plugin marketplace update superpowers-marketplace', 'copilot plugin install superpowers@superpowers-marketplace',
   ])
   assert.deepEqual(cmds(pick(user, 'plugin.understand-anything')).filter((c) => c.startsWith('copilot')), [
     'copilot plugin install Egonex-AI/Understand-Anything:understand-anything-plugin',
@@ -171,10 +171,10 @@ test('Ponytail·ai-memory 전역 명령은 상류 안내와 같다', async () =>
   const pick = (id) => user.find((i) => i.id === id)
   const cmds = (item) => item.steps('install', { targets: item.supports }).filter((s) => s.argv).map((s) => s.argv.join(' '))
   assert.deepEqual(cmds(pick('plugin.ponytail')).filter((c) => c.startsWith('codex')), [
-    'codex plugin marketplace add DietrichGebert/ponytail', 'codex plugin add ponytail@ponytail',
+    'codex plugin marketplace add DietrichGebert/ponytail', 'codex plugin marketplace upgrade ponytail', 'codex plugin add ponytail@ponytail',
   ])
   assert.deepEqual(cmds(pick('plugin.ai-memory')).filter((c) => c.startsWith('codex')), [
-    'codex plugin marketplace add akitaonrails/ai-memory', 'codex plugin add ai-memory@ai-memory',
+    'codex plugin marketplace add akitaonrails/ai-memory', 'codex plugin marketplace upgrade ai-memory', 'codex plugin add ai-memory@ai-memory',
   ])
   assert.ok(cmds(pick('plugin.ai-memory')).includes('agy mcp add ai-memory -- ai-memory mcp-bridge --no-session-id'))
   assert.ok(pick('plugin.ponytail').hooks && pick('plugin.ai-memory').hooks, 'Codex /hooks 신뢰 안내가 붙어야 한다')

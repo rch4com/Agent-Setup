@@ -110,16 +110,28 @@ function vscodeMcp(name, server) {
 // copilot: `{ marketplace?, id, source? }`. marketplace가 있으면 먼저 등록하고(이미 있으면
 // 참는다), source가 있으면 그것을 설치 인자로 쓴다(마켓 없이 `owner/repo:경로`로 직접
 // 설치). id는 설치 인자이자 제거·감지에 쓰는 `이름@마켓`/`이름`이다.
+// 플러그인 id는 `이름@마켓`이다 — 마켓 갱신 명령은 마켓 이름을 받는다.
+const marketOf = (id) => id.split('@')[1]
+
 export function marketplacePlugin({ claude, codex, opencode, antigravity, copilot }) {
   const recipes = {}
   const detect = {}
   if (claude) {
     const at = (scope) => ({
       install: [
-        ...(claude.marketplace ? [{ argv: ['claude', 'plugin', 'marketplace', 'add', claude.marketplace, '--scope', scope], tolerateFail: true }] : []),
+        ...(claude.marketplace ? [
+          { argv: ['claude', 'plugin', 'marketplace', 'add', claude.marketplace, '--scope', scope], tolerateFail: true },
+          // 이미 등록된 마켓은 add가 스냅샷을 새로 받지 않는다 — 옛 카탈로그에서 깔지 않도록 갱신한다.
+          { argv: ['claude', 'plugin', 'marketplace', 'update', marketOf(claude.id)], tolerateFail: true },
+        ] : []),
         ['claude', 'plugin', 'install', claude.id, '--scope', scope],
       ],
       uninstall: [['claude', 'plugin', 'uninstall', claude.id, '--scope', scope]],
+      // 마켓 스냅샷을 새로 받고 플러그인을 올린다(적용은 재시작 뒤).
+      update: [
+        { argv: ['claude', 'plugin', 'marketplace', 'update', marketOf(claude.id)], tolerateFail: true },
+        ['claude', 'plugin', 'update', claude.id, '--scope', scope],
+      ],
     })
     recipes.claude = { project: at('project'), user: at('user') }
     detect.claude = (p) => p.claudePlugin(claude.detectIds ?? [claude.id])
@@ -128,8 +140,17 @@ export function marketplacePlugin({ claude, codex, opencode, antigravity, copilo
     // Codex는 범위 플래그가 없다 — 활성 CODEX_HOME 하나에 깔린다(전역).
     recipes.codex = {
       user: {
-        install: [{ argv: ['codex', 'plugin', 'marketplace', 'add', codex.marketplace], tolerateFail: true }, ['codex', 'plugin', 'add', codex.id]],
+        install: [
+          { argv: ['codex', 'plugin', 'marketplace', 'add', codex.marketplace], tolerateFail: true },
+          { argv: ['codex', 'plugin', 'marketplace', 'upgrade', marketOf(codex.id)], tolerateFail: true },
+          ['codex', 'plugin', 'add', codex.id],
+        ],
         uninstall: [['codex', 'plugin', 'remove', codex.id]],
+        // codex에는 plugin update가 없다 — 마켓을 올린 뒤 add를 다시 하면 새 판이 깔린다(2026-11-17 실측).
+        update: [
+          { argv: ['codex', 'plugin', 'marketplace', 'upgrade', marketOf(codex.id)], tolerateFail: true },
+          ['codex', 'plugin', 'add', codex.id],
+        ],
       },
     }
     detect.codex = (p) => p.codexPlugin(codex.id)
@@ -167,10 +188,17 @@ export function marketplacePlugin({ claude, codex, opencode, antigravity, copilo
     recipes.copilot = {
       user: {
         install: [
-          ...(copilot.marketplace ? [{ argv: ['copilot', 'plugin', 'marketplace', 'add', copilot.marketplace], tolerateFail: true }] : []),
+          ...(copilot.marketplace ? [
+            { argv: ['copilot', 'plugin', 'marketplace', 'add', copilot.marketplace], tolerateFail: true },
+            { argv: ['copilot', 'plugin', 'marketplace', 'update', marketOf(copilot.id)], tolerateFail: true },
+          ] : []),
           ['copilot', 'plugin', 'install', copilot.source ?? copilot.id],
         ],
         uninstall: [['copilot', 'plugin', 'uninstall', copilot.id]],
+        update: [
+          ...(copilot.marketplace ? [{ argv: ['copilot', 'plugin', 'marketplace', 'update', marketOf(copilot.id)], tolerateFail: true }] : []),
+          ['copilot', 'plugin', 'update', copilot.id],
+        ],
       },
     }
     detect.copilot = (p) => p.copilotPlugin(copilot.id)
@@ -278,12 +306,16 @@ export function skillsAdd({ source, skill, anchor = null, trackUpstream = false 
           { describe: `remove leftover ${SHARED_SKILLS}/${skill} and its skills-lock.json entry`, fn: ({ root }) => cleanup(root, [skill]) },
         ],
   }
+  // 갱신은 같은 add를 다시 돈다 — add는 기존 복사본과 잠금 해시를 새로 쓴다(실측).
+  project.update = project.install
   const byScope = { project }
   // 한 상류의 스킬 전부(*)는 전역에서 무엇을 지울지 추적할 근거가 없다.
   if (!wildcard) {
+    const install = [[...SKILLS, 'add', source, '--skill', skill, '-g', '-a', ...SKILLS_AGENTS, '--yes', '--copy']]
     byScope.user = {
-      install: [[...SKILLS, 'add', source, '--skill', skill, '-g', '-a', ...SKILLS_AGENTS, '--yes', '--copy']],
+      install,
       uninstall: [[...SKILLS, 'remove', skill, '-g', '-a', ...SKILLS_AGENTS, '--yes']],
+      update: install,
     }
   }
   const detect = async (p) => {
@@ -301,10 +333,16 @@ export function skillsAdd({ source, skill, anchor = null, trackUpstream = false 
 //
 // CLI별 레시피(MCP 등)는 감지를 감싸지 않는다: 앱이 빠졌다고 미설치로 읽으면 다시
 // 골랐을 때 이미 있는 등록을 또 추가하다(`claude mcp add`) 실패한다. 설치 단계만 붙는다.
-export function withApp(base, { describe, install, present }) {
+export function withApp(base, { describe, install, present, update = null, updateDescribe = null }) {
   const step = { describe, fn: async (ctx) => { if (!(await present())) await install(ctx) } }
+  // 갱신은 앱이 이미 있을 때만 한다 — 없는 앱을 갱신 단계가 새로 깔지 않는다.
+  const upStep = update ? { describe: updateDescribe, fn: async (ctx) => { if (await present()) await update(ctx) } } : null
   const recipes = Object.fromEntries(Object.entries(base.recipes).map(([cli, byScope]) => [cli,
-    Object.fromEntries(Object.entries(byScope).map(([scope, r]) => [scope, { ...r, install: [step, ...r.install] }]))]))
+    Object.fromEntries(Object.entries(byScope).map(([scope, r]) => [scope, {
+      ...r,
+      install: [step, ...r.install],
+      ...(upStep ? { update: [upStep, ...(r.update ?? [])] } : {}),
+    }]))]))
   const detect = base.detect[SHARED]
     ? { [SHARED]: async (p) => (await present()) && base.detect[SHARED](p) }
     : base.detect
@@ -324,6 +362,9 @@ export function uvToolApp({ bin, pkg }) {
     describe: `uv tool install ${pkg} (only if ${bin} is not on PATH)`,
     present: async () => onPath(bin),
     install: ({ exec }) => mustRun(exec, 'uv', ['tool', 'install', pkg]),
+    // uv tool upgrade는 extras 없는 도구 이름을 받는다.
+    updateDescribe: `uv tool upgrade ${pkg.replace(/\[.*\]$/, '')} (only if ${bin} is on PATH)`,
+    update: ({ exec }) => mustRun(exec, 'uv', ['tool', 'upgrade', pkg.replace(/\[.*\]$/, '')]),
   }
 }
 
@@ -334,6 +375,11 @@ export function npmApp({ bin, pkg, after = [] }) {
     present: async () => onPath(bin),
     install: async ({ exec }) => {
       await mustRun(exec, 'npm', ['install', '-g', pkg])
+      for (const [cmd, ...args] of after) await mustRun(exec, cmd, args)
+    },
+    updateDescribe: `npm install -g ${pkg}@latest${after.map((a) => ` && ${a.join(' ')}`).join('')} (only if ${bin} is on PATH)`,
+    update: async ({ exec }) => {
+      await mustRun(exec, 'npm', ['install', '-g', `${pkg}@latest`])
       for (const [cmd, ...args] of after) await mustRun(exec, cmd, args)
     },
   }

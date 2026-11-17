@@ -158,8 +158,8 @@ test('변경이 없으면 Enter가 검토 화면으로 들어가지 않는다', 
 })
 
 test('액션 행에서 Enter는 그 작업을 실행한다', async () => {
-  // 커서는 처음에 작업 탭의 언어 행에 있다(목록 포커스) — 언어·범위 행 다음이 부트스트랩 행이다.
-  const { log } = await drive([DOWN, DOWN, ENTER, ANY, ...QUIT])
+  // 커서는 처음에 작업 탭의 언어 행에 있다(목록 포커스) — 언어·범위·업데이트 행 다음이 부트스트랩 행이다.
+  const { log } = await drive([DOWN, DOWN, DOWN, ENTER, ANY, ...QUIT])
   assert.equal(log.includes('공통 지침'), true, `부트스트랩이 실행되지 않았다: ${log}`)
 })
 
@@ -422,7 +422,7 @@ test('작업 행이 던져도 화면은 살아남고 실패를 알린다', async
   mkdirSync(join(root, '.agent-kit'), { recursive: true })
   writeFileSync(join(root, '.agent-kit', 'agent-setup.json'), '{ not json')
   // dry-run은 기록을 읽지 않는다 — 실제 실행이어야 readRecord가 던진다.
-  const { result, log } = await drive([DOWN, DOWN, ENTER, ANY, ...QUIT], { root, dryRun: false })
+  const { result, log } = await drive([DOWN, DOWN, DOWN, ENTER, ANY, ...QUIT], { root, dryRun: false })
   assert.equal(result.interactive, true)
   assert.match(log, /작업이 실패했습니다: .*JSON이 아닙니다/)
 })
@@ -483,4 +483,13 @@ test('--print로 띄우면 Enter도 명령만 보여 준다', async () => {
 test('CLI가 없는 항목을 적용하면 결과에 CLI 없음 사연이 남는다', async () => {
   const { log } = await drive([...TO_MCP, ...type('supabase'), DOWN, SPACE, ENTER, ENTER, ANY, ...QUIT], { dryRun: false })
   assert.match(log, /✔[^\n]*Supabase MCP — CLI 없음: claude, opencode/)
+})
+
+// ── 업데이트 행 ───────────────────────────────────────────────────────
+
+test('첫 화면에 업데이트 행이 있고, 깔린 것이 없으면 안내만 한다', async () => {
+  // 언어·범위 다음이 업데이트 행이다. 격리된 홈의 빈 저장소라 갱신할 항목이 없다.
+  const { screen } = await drive([DOWN, DOWN, ENTER, ...QUIT])
+  assert.ok(screen.includes('설치된 항목 업데이트'), '업데이트 행이 첫 화면에 없다')
+  assert.ok(screen.includes('갱신 경로가 있는 설치 항목이 없습니다.'), '안내가 없다')
 })

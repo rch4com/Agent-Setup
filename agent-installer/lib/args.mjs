@@ -29,7 +29,7 @@ const COMMON_SPEC = { '-h': 'bool', '--help': 'bool', '--lang': 'value' }
 const ROOT_SPEC = {
   ...COMMON_SPEC, '--dry-run': 'bool', '--list': 'bool',
   '--set': 'value', '--skill-mode': 'value', '--design-dir': 'value',
-  '--global': 'bool', '--print': 'bool',
+  '--global': 'bool', '--print': 'bool', '--update': 'bool',
 }
 const DESIGN_SPEC = {
   ...COMMON_SPEC, '--dry-run': 'bool', '--list': 'bool', '--set': 'value',
@@ -192,10 +192,10 @@ export function parseSetArg(argv) {
 export function parseRootArgs(argv, t = createT('en')) {
   const usage = rootUsage(t)
   if (wantsHelp(argv)) {
-    return { help: true, dryRun: false, scope: 'project', listOnly: false, setArg: null, skillMode: 'auto', designDirs: [], lang: null, interactive: false }
+    return { help: true, dryRun: false, scope: 'project', listOnly: false, setArg: null, skillMode: 'auto', designDirs: [], lang: null, interactive: false, update: false }
   }
   assertKnownArgs(argv, ROOT_SPEC, usage)
-  assertSingleAction(argv, ['--list', '--set'], usage)
+  assertSingleAction(argv, ['--list', '--set', '--update'], usage)
   const setArg = parseSetArg(argv)
   return {
     help: false,
@@ -203,6 +203,8 @@ export function parseRootArgs(argv, t = createT('en')) {
     dryRun: argv.includes('--dry-run') || argv.includes('--print'),
     scope: argv.includes('--global') ? 'user' : 'project',
     listOnly: argv.includes('--list'),
+    // 깔린 항목을 최신으로 올린다. --set·--list와 같은 동작 플래그다.
+    update: argv.includes('--update'),
     setArg,
     // 대화형 화면에서 실행하는 부트스트랩이 이 값을 쓴다. 예전에는 루트에서
     // 읽지 않아, 런처가 넘긴 --skill-mode가 조용히 버려졌다.
@@ -211,7 +213,7 @@ export function parseRootArgs(argv, t = createT('en')) {
     lang: parseLang(argv, usage),
     // 목록·집합 지정이 없으면 대화형 화면으로 간다. --lang은 동작 플래그가
     // 아니므로 여기에 끼지 않는다.
-    interactive: !argv.includes('--list') && setArg === null,
+    interactive: !argv.includes('--list') && !argv.includes('--update') && setArg === null,
   }
 }
 

@@ -43,7 +43,7 @@ test('planCommands·formatCommands: 공유·CLI·파일 순으로 묶는다', ()
   assert.deepEqual(groups.map((g) => g.key), ['shared', 'claude', 'codex', 'files'])
   const text = formatCommands(groups, { t, scope: 'user', platform: 'linux' }).join('\n')
   assert.match(text, /# Shared skills/)
-  assert.match(text, /# Codex — user-global\ncodex plugin marketplace add DietrichGebert\/ponytail\ncodex plugin add ponytail@ponytail/)
+  assert.match(text, /# Codex — user-global\ncodex plugin marketplace add DietrichGebert\/ponytail\ncodex plugin marketplace upgrade ponytail\ncodex plugin add ponytail@ponytail/)
   assert.match(text, /\.gitmessage\.txt \(ko\): the installer writes these files itself/)
 })
 
@@ -60,7 +60,7 @@ test('불변식: 실행 모드가 부른 명령 == 출력 모드가 낸 명령',
   const logs = []
   await apply('/repo', changes, { dryRun: true, log: (m) => logs.push(m), t })
   const ran = logs.map((l) => /\[dry-run\] (.*)$/.exec(l)?.[1]).filter(Boolean)
-  assert.equal(printed.length, 4)
+  assert.equal(printed.length, 6)
   assert.deepEqual(ran, printed)
 })
 

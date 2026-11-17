@@ -19,5 +19,5 @@ import { mcpServer } from '../recipe-helpers.mjs'
 export default defineRecipe({
   id: 'mcp.graft', category: 'mcp', label: 'Graft MCP', group: '__context',
   note: 'item.mcp.graft.note',
-  ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] } }),
+  ...mcpServer({ name: 'graft', server: { kind: 'stdio', command: 'npx', args: ['-y', '@nanonets/graft@latest', 'mcp'] } }),
 })

@@ -30,7 +30,8 @@ function assertRecipe(def) {
     if (cli !== SHARED && !RECIPE_CLIS.includes(cli)) bad(`unknown CLI ${cli}`)
     for (const [scope, recipe] of Object.entries(byScope)) {
       if (!SCOPES.includes(scope)) bad(`unknown scope ${scope}`)
-      for (const action of ['install', 'uninstall']) {
+      // update는 선택이다 — 없으면 이 CLI는 갱신 경로가 없는 것이다.
+      for (const action of ['install', 'uninstall', ...(recipe?.update ? ['update'] : [])]) {
         if (!Array.isArray(recipe?.[action])) bad(`${cli}.${scope}.${action} is not a list`)
         for (const raw of recipe[action]) {
           const step = normalizeStep(raw, cli)
@@ -78,6 +79,8 @@ export function bindScope(def, scope) {
     // Claude Code에만 쓸모 있는 항목의 표지. 항목이 claudeOnly: true로 밝힌다 — CLI별 레시피가
     // claude 하나뿐이라는 것만으로는 부족하다(다른 CLI는 공유 스킬 판이나 상류 별도 설치로 덮일 수 있다).
     claudeOnly: def.claudeOnly === true,
+    // 설치된 것을 최신으로 올리는 단계(update)가 하나라도 있는 항목만 갱신 대상이다.
+    canRefresh: (shared ? [SHARED] : supports).some((c) => recipeOf(c).update?.length > 0),
 
     async detect({ probe }) {
       const reach = supports.filter((c) => probe.has(c))
@@ -116,6 +119,12 @@ export function bindScope(def, scope) {
       const stale = state.stale ?? []
       const targets = state.targets ?? (shared ? [SHARED] : supports)
       const removing = action === 'uninstall'
+      // state.refresh는 "이미 깔린 것을 최신으로"다 — 깔려 있는 CLI의 update 단계만 돈다.
+      if (state.refresh) {
+        return targets
+          .filter((c) => present.includes(c) && !failed.includes(c))
+          .flatMap((cli) => (recipeOf(cli).update ?? []).map((s) => normalizeStep(s, cli)))
+      }
       const clis = removing
         ? targets.filter((c) => present.includes(c))
         : targets.filter((c) => (!present.includes(c) || stale.includes(c)) && !failed.includes(c))

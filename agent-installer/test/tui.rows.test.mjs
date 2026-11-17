@@ -555,7 +555,7 @@ test('design.md 동기화 작업은 DESIGN.MD 탭 맨 위에 놓인다', () => {
   const root = makeTempRepo()
   const rows = buildRows({ actions: buildActions(root, { t: createT('ko') }), designStates: DESIGN_STATES, t: createT('ko') })
   const actionTab = rows.filter((r) => r.section === 'action').map((r) => r.id)
-  assert.deepEqual(actionTab, ['action.language', 'action.scope', 'action.bootstrap'])
+  assert.deepEqual(actionTab, ['action.language', 'action.scope', 'action.update', 'action.bootstrap'])
   const design = rows.filter((r) => r.section === 'design')
   assert.deepEqual(design.slice(0, 3).map((r) => r.id), ['action.sync.installed', 'action.sync.catalog', 'action.sync.stale'])
   assert.ok(design.slice(3).every((r) => r.kind === 'item'), '동기화 작업 뒤에 design.md 항목이 온다')
