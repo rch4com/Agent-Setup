@@ -5,6 +5,27 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## --update와 첫 화면 업데이트 메뉴 (2026-11-17, 2.14.0)
+
+- **`--update`**(`node install.mjs --update` 또는 런처): 설치된 항목을 최신으로 올리고
+  끝난다. 이미 설치된 항목의 update 단계만 돌린다. `--global`은 사용자 범위,
+  `--print`는 명령 출력이다. `--list`·`--set`과는 함께 쓸 수 없다. 그냥 다시
+  돌리면 여전히 아무것도 하지 않는다.
+- **첫 화면 "설치된 항목 업데이트" 행.** Enter를 누르면 검토 화면, 적용, 결과 보고
+  순으로 진행한다. 갱신할 항목이 없으면 안내 한 줄만 띄운다.
+- **종류별 갱신 방식.** 스킬: `skills add` 재실행. Claude Code·Copilot CLI 플러그인:
+  `marketplace update` 뒤 `plugin update`. Codex 플러그인: `marketplace upgrade` 뒤
+  `plugin add`(Codex에는 `plugin update`가 없다). 보조 앱: 이미 PATH에 있을 때만
+  `npm install -g <pkg>@latest` 또는 `uv tool upgrade`.
+- **설치 시점 최신.** 플러그인 설치 전에 마켓 스냅샷을 먼저 갱신한다. `mcp.graft`는
+  `@nanonets/graft@latest`로 고정한다.
+- **`--update`가 건너뛰는 것:** 원격 MCP와 `@latest` npx MCP(이미 최신),
+  Antigravity·OpenCode 플러그인, 자체 상류 설치기를 쓰는 항목(gstack·gsd·claude-mem·
+  ego-lite·설정 파일).
+- **검증.** `npm test` 768개 통과, 두 런처 dry run, 임시 저장소에서 설치 후
+  `--update`. 미검증: `claude`·`copilot` `plugin update` 실제 실행, 전역 범위,
+  npm·uv 보조 앱 갱신.
+
 ## modern-web-guidance 스킬 (2026-11-17, 2.13.0)
 
 - **`skill.modern-web-guidance`**(`GoogleChrome/modern-web-guidance`, Apache-2.0):

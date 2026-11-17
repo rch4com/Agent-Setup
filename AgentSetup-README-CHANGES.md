@@ -5,6 +5,27 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## --update and first-screen update menu (2026-11-17, 2.14.0)
+
+- **`--update`** (`node install.mjs --update`, or the launchers): raises installed
+  items to the latest and exits. It runs only the update steps of items that are
+  already installed; `--global` picks the user scope, `--print` prints the commands.
+  It cannot be combined with `--list` or `--set`. A plain rerun is still a no-op.
+- **First screen row "Update installed items".** Enter opens the review screen, then
+  applies and reports. With nothing updatable it shows one notice line.
+- **How each type updates.** Skills: `skills add` again. Claude Code and Copilot CLI
+  plugins: `marketplace update`, then `plugin update`. Codex plugins:
+  `marketplace upgrade`, then `plugin add` (Codex has no `plugin update`). Helper
+  apps: `npm install -g <pkg>@latest` or `uv tool upgrade`, only if already on PATH.
+- **Install-time freshness.** Plugin installs refresh the marketplace snapshot first.
+  `mcp.graft` now pins `@nanonets/graft@latest`.
+- **Skipped by `--update`:** remote MCPs and `@latest` npx MCPs (already current),
+  Antigravity and OpenCode plugins, and items with their own upstream installer
+  (gstack, gsd, claude-mem, ego-lite, config files).
+- **Verified.** `npm test` 768 pass; both launchers' dry run; install then
+  `--update` in a scratch repository. Not verified: real `claude`/`copilot`
+  `plugin update`, global scope, npm/uv helper updates.
+
 ## modern-web-guidance skill (2026-11-17, 2.13.0)
 
 - **`skill.modern-web-guidance`** (`GoogleChrome/modern-web-guidance`, Apache-2.0):
