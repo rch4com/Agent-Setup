@@ -11,7 +11,7 @@ import { LocalizedError, createT, toText } from './i18n/index.mjs'
 import { readJson, removeKey, setKey } from './jsonfile.mjs'
 import { VSCODE_MCP_FILE, copilotMcpFile, onPath, readOpencodeConfig } from './probe.mjs'
 import { SHARED } from './recipe.mjs'
-import { SHARED_SKILLS, findSkillDir, isSafeSkillName, lockedSkills, pruneLock, sourceKey, upstreamChanged } from './skills-registry.mjs'
+import { SHARED_SKILLS, findSkillDir, findSkillDirByName, isSafeSkillName, lockedSkills, pruneLock, sourceKey, upstreamChanged } from './skills-registry.mjs'
 
 const SKILLS = ['npx', '-y', 'skills@latest']
 
@@ -257,6 +257,11 @@ export function mcpServer({ name, server, clis = ['claude', 'codex', 'opencode',
 function cleanup(root, names, lockNames = names) {
   for (const name of names) {
     const dir = findSkillDir(root, name)
+    if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
+  }
+  // 경로로 못 쓰는 이름(stitch::x)은 레지스트리가 폴더 이름을 바꿔 저장한다 — frontmatter로만 찾는다.
+  for (const name of lockNames.filter((n) => !isSafeSkillName(n))) {
+    const dir = findSkillDirByName(root, name)
     if (dir) rmSync(repoPathStrict(root, `${SHARED_SKILLS}/${dir}`), { recursive: true, force: true })
   }
   pruneLock(root, lockNames)

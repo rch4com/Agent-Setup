@@ -46,7 +46,9 @@ export function planChanges(states, selectedIds) {
     else if (selected && status === 'stale') changes.push({ item, action: 'update', state: result })
     else if (!selected && status !== 'absent') changes.push({ item, action: 'uninstall', state: result })
   }
-  return changes
+  // 제거를 먼저 한다 — 배타 항목끼리 갈아탈 때(skill.unslop → skill.pstack) 같은 이름의
+  // 스킬을 새 쪽이 깐 뒤에 옛 쪽 제거가 지워 버리는 것을 막는다.
+  return [...changes.filter((c) => c.action === 'uninstall'), ...changes.filter((c) => c.action !== 'uninstall')]
 }
 
 // 이미 깔린 항목을 최신으로 올린다 — 갱신 단계(update)가 있는 항목만 든다.

@@ -31,6 +31,13 @@ function skillDirs(root) {
 export function findSkillDir(root, skill) {
   const base = repoPath(root, SHARED_SKILLS)
   if (existsSync(join(base, skill, 'SKILL.md'))) return skill
+  return findSkillDirByName(root, skill)
+}
+
+// frontmatter 이름으로만 폴더를 찾는다. 반환값은 스캔한 폴더 이름(안전한 세그먼트)이라,
+// 경로로 쓸 수 없는 이름(`stitch::x` — 레지스트리가 `stitch-x`로 바꿔 저장)도 안전하게 찾는다.
+export function findSkillDirByName(root, skill) {
+  const base = repoPath(root, SHARED_SKILLS)
   for (const name of skillDirs(root)) {
     const file = join(base, name, 'SKILL.md')
     if (!existsSync(file)) continue

@@ -17,7 +17,7 @@ test('planChanges: absent+체크=install, installed+해제=uninstall', () => {
   const changes = planChanges(states, new Set(['a', 'c']))
   assert.deepEqual(
     changes.map((c) => [c.item.id, c.action]),
-    [['a', 'install'], ['b', 'uninstall']],
+    [['b', 'uninstall'], ['a', 'install']], // 제거가 먼저다 — 배타 항목이 같은 이름의 스킬을 두고 갈아탈 때 새 설치가 지워지지 않게
   )
 })
 
@@ -26,13 +26,13 @@ test('planChanges: partial+체크 유지=complete, partial+해제=uninstall', ()
   const changes = planChanges(states, new Set(['p1']))
   assert.deepEqual(
     changes.map((c) => [c.item.id, c.action]),
-    [['p1', 'complete'], ['p2', 'uninstall']],
+    [['p2', 'uninstall'], ['p1', 'complete']],
   )
 })
 
 test('planChanges: stale+체크 유지=update, stale+해제=uninstall', () => {
   const states = [fake('s1', 'stale'), fake('s2', 'stale')]
-  assert.deepEqual(planChanges(states, new Set(['s1'])).map((c) => [c.item.id, c.action]), [['s1', 'update'], ['s2', 'uninstall']])
+  assert.deepEqual(planChanges(states, new Set(['s1'])).map((c) => [c.item.id, c.action]), [['s2', 'uninstall'], ['s1', 'update']])
 })
 
 test('planChanges: 변경 없으면 빈 배열', () => {

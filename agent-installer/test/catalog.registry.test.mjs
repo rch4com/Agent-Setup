@@ -181,6 +181,24 @@ test("레지스트리 스킬 uninstall: '*'의 잠금 이름이 위험하면 건
   assert.equal(existsSync(join(root, '.agents', 'skills', 'using-superpowers')), false)
 })
 
+// 레지스트리는 `stitch::x` 같은 이름을 `stitch-x` 폴더로 바꿔 저장하고 잠금에는 원래 이름을 적는다.
+// 이름이 경로로 못 쓰는 값이라 건너뛰면 폴더만 고아로 남고 잠금은 지워져 '미설치'로 읽힌다.
+test("레지스트리 스킬 uninstall: '*'의 이름이 폴더 이름과 다르면 frontmatter로 찾아 지운다", async () => {
+  const root = makeTempRepo()
+  putSkill(root, 'stitch-generate-design', 'stitch::generate-design')
+  putSkill(root, 'stitch-loop', 'stitch-loop')   // 대표(anchor) 스킬 — 없으면 미설치로 읽혀 제거가 돌지 않는다
+  putSkill(root, 'diagram-design', 'diagram-design')   // 다른 항목이 넣은 것
+  putLock(root, {
+    'stitch::generate-design': { source: 'google-labs-code/stitch-skills' },
+    'stitch-loop': { source: 'google-labs-code/stitch-skills' },
+    'diagram-design': { source: 'cathrynlavery/diagram-design' },
+  })
+  await uninstall(item({ skill: '*', anchor: 'stitch-loop', source: 'https://github.com/google-labs-code/stitch-skills' }), root)
+  assert.equal(existsSync(join(root, '.agents', 'skills', 'stitch-generate-design')), false)
+  assert.equal(existsSync(join(root, '.agents', 'skills', 'diagram-design')), true)
+  assert.deepEqual(Object.keys(readLockFile(root).skills), ['diagram-design'])
+})
+
 // 잠금 항목을 남기면 파일이 "설치돼 있다"고 거짓말한다 — 커밋해서 나누는
 // 파일이라 동료가 복원하면 지운 스킬이 되살아난다.
 test('레지스트리 스킬 uninstall: 마지막 스킬이면 잠금 파일째 지운다', async () => {
