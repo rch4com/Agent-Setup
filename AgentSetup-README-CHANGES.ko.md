@@ -5,6 +5,27 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 스킬 다섯 개와 제거 수정 둘 (2026-11-18, 2.15.0)
+
+- **새 스킬.** `skill.pstack`(`backnotprop/pstack` 미러의 스킬 58종 전부, 진입점
+  `poteto-mode`), `skill.astryx`(Meta 디자인 시스템. `astryx`가 없으면
+  `npm i -g @astryxdesign/cli`도 실행하고, 제거는 CLI를 남김),
+  `skill.be-ambitious`, `skill.stitch-skills`(`google-labs-code/stitch-skills`의
+  스킬 16종 전부. Stitch MCP 서버는 설치하지 않음), `skill.video-use`
+  (`browser-use/video-use`. ffmpeg·파이썬 의존성·ElevenLabs 키는 설치하지 않음).
+- **`skill.pstack`과 `skill.unslop`은 배타.** 둘 다 같은 `.agents/skills` 폴더에
+  `unslop`이라는 스킬을 넣습니다. pstack이 깔려 있으면 `skill.unslop`은 더 이상
+  설치됨으로 읽히지 않습니다.
+- **제거를 설치보다 먼저 실행.** 배타 항목끼리 갈아탈 때 새 항목을 먼저 설치하고
+  옛 항목의 제거가 같은 이름의 스킬을 지워 방금 설치한 것까지 사라졌습니다.
+- **`stitch::x` 같은 이름의 스킬도 완전히 제거.** 레지스트리는 이를 `stitch-x` 폴더에
+  저장하는데, 제거가 이 이름을 건너뛰어 폴더는 남기고 `skills-lock.json`만 지웠습니다.
+  이제 `SKILL.md`의 이름으로 찾아 지웁니다.
+- **검증.** `npm test` 769 통과, 두 런처 dry-run, 새 항목마다 스크래치 저장소에서
+  설치·재실행·제거 확인(astryx CLI는 PATH에 가짜로 두어 실제 전역 `npm i -g`는 돌리지
+  않음). 미검증: 각 CLI 안에서의 스킬 동작(OpenCode는 `stitch::` 스킬 8개를 못 읽을 수
+  있음), 전역 범위.
+
 ## --update와 첫 화면 업데이트 메뉴 (2026-11-17, 2.14.0)
 
 - **`--update`**(`node install.mjs --update` 또는 런처): 설치된 항목을 최신으로 올리고

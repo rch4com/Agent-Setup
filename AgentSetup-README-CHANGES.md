@@ -5,6 +5,30 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Five skills and two removal fixes (2026-11-18, 2.15.0)
+
+- **New skills.** `skill.pstack` (all 58 skills of the `backnotprop/pstack` mirror,
+  entry point `poteto-mode`), `skill.astryx` (Meta's design system; also runs
+  `npm i -g @astryxdesign/cli` when `astryx` is missing, removal keeps the CLI),
+  `skill.be-ambitious`, `skill.stitch-skills` (all 16 skills of
+  `google-labs-code/stitch-skills`; the Stitch MCP server is not installed) and
+  `skill.video-use` (`browser-use/video-use`; ffmpeg, Python dependencies and an
+  ElevenLabs key are not installed).
+- **`skill.pstack` and `skill.unslop` are exclusive.** Both ship a skill named
+  `unslop` in the same `.agents/skills` folder. With pstack installed,
+  `skill.unslop` no longer reads as installed.
+- **Removals now run before installs.** Switching between exclusive items used to
+  install the new one first, and the old item's removal then deleted the same-named
+  skill that was just installed.
+- **Skills named like `stitch::x` are removed completely.** The registry stores them
+  in `stitch-x` folders; removal skipped these names and left the folders behind
+  while deleting `skills-lock.json`. They are now found by their `SKILL.md` name.
+- **Verified.** `npm test` 769 pass; both launchers' dry run; install, rerun and
+  removal of each new item in a scratch repository (the astryx CLI was faked on
+  PATH, so the real global `npm i -g` was not run). Not verified: the skills'
+  behavior inside each CLI (OpenCode may not load the eight `stitch::` skills),
+  global scope.
+
 ## --update and first-screen update menu (2026-11-17, 2.14.0)
 
 - **`--update`** (`node install.mjs --update`, or the launchers): raises installed
