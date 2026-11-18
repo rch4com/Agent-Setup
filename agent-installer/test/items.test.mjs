@@ -13,9 +13,9 @@ import { makeTempRepo } from './helpers.mjs'
 
 const both = async () => [...await loadItems(), ...await loadItems({ scope: 'user' })]
 
-test('loadItems: project 56개, user 46개를 id순으로', async () => {
+test('loadItems: project 61개, user 49개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 56)
+  assert.equal(project.length, 61)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
@@ -25,17 +25,17 @@ test('loadItems: project 56개, user 46개를 id순으로', async () => {
     'skill.agent-browser', 'skill.agent-desktop', 'skill.animated-shorts', 'skill.iart-motion', 'skill.instagram-agent', 'skill.line-art-animation', 'skill.motion-design', 'skill.youtube-agent', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
     'skill.graphify', 'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
     'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.script-to-motion', 'skill.strix', 'skill.ghost-editor', 'skill.ffmpeg-skill', 'skill.claude-shorts', 'plugin.claude-code-setup', 'skill.modern-web-guidance',
-    'skill.superpowers', 'skill.taste', 'skill.unslop',
+    'skill.superpowers', 'skill.taste', 'skill.unslop', 'skill.pstack', 'skill.astryx', 'skill.be-ambitious', 'skill.stitch-skills', 'skill.video-use',
   ]) assert.ok(ids.includes(id), id)
   // 전역 판은 같은 항목의 다른 범위로 합쳐졌다.
   for (const id of ['global.ponytail', 'global.superpowers', 'mcp.ai-memory']) assert.ok(!ids.includes(id), id)
   assert.ok(project.every((i) => i.scope === 'project'))
 
   const user = await loadItems({ scope: 'user' })
-  assert.equal(user.length, 46)
+  assert.equal(user.length, 49)
   const uids = user.map((i) => i.id)
   // 파일을 직접 쓰는 항목·저장소 전용 설치기·전역 제거를 추적 못 하는 스킬 묶음은 전역에 없다.
-  for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
+  for (const id of ['skill.gsd', 'skill.gstack', 'skill.superpowers', 'skill.pstack', 'skill.stitch-skills', 'skill.mattpocock-skills', 'skill.strix', 'skill.im-not-ai', 'config.gitmessage.ko', 'config.gitmessage.en']) {
     assert.ok(!uids.includes(id), `${id}는 전역에 없다`)
   }
   assert.ok(user.every((i) => i.scope === 'user'))
@@ -55,6 +55,8 @@ test('같은 상류의 플러그인 판과 스킬 판은 배타다', async () =>
     ['plugin.superpowers', 'skill.superpowers', 'superpowers'],
     ['plugin.mattpocock-skills', 'skill.mattpocock-skills', 'mattpocock'],
     ['plugin.impeccable', 'skill.impeccable', 'impeccable'],
+    // 플러그인 판은 아니지만 같은 .agents/skills/unslop 이름을 두고 다툰다.
+    ['skill.pstack', 'skill.unslop', 'unslop'],
   ]) {
     assert.equal(pick(pluginId).exclusive, key, `${pluginId}: 배타 키가 없다`)
     assert.equal(pick(skillId).exclusive, key, `${skillId}: 배타 키가 없다`)
