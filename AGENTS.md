@@ -30,6 +30,23 @@ Bootstrap logic lives in `agent-installer`; the shell scripts are launchers.
   a `config.gitmessage.*` item — it depends on a gitignore negation entry,
   so a missing one fails silently.
 
+## Adding catalog items
+
+Judge an upstream by its files, not by its README or third-party summaries;
+those routinely omit runtime requirements.
+
+- Check `LICENSE` first. No license means no redistribution grant: do not
+  add the item until the author grants one.
+- Read the imports in `scripts/` for API keys, external network calls, and
+  runtimes (Python, Node version, `.ts` executed directly).
+- Read `hooks/hooks.json`. Hooks that use `${CLAUDE_PLUGIN_ROOT}` work only
+  as a Claude plugin; `skillsAdd` copies skill folders and leaves them out.
+- Confirm what gets installed with
+  `npx -y skills@latest add <url> --list` (it also finds nested
+  `plugins/*/skills/*` paths).
+- Record every dependency and every part left behind in the item comment,
+  both `item.*.note` strings (ko, en), and both `AgentSetup-README` tables.
+
 ## Commit messages
 
 Follow the template in `.gitmessage.txt` at the repository root:
