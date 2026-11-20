@@ -5,6 +5,20 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Two Korean writing skills (2026-11-20, 2.16.0)
+
+- **New skills.** `skill.stop-slop-ko` (the three skills of `leeandev/stop-slop-ko`:
+  stop-slop-ko, stakeholder-brief and jasoseo; repo scope only. The upstream hook that
+  attaches the skill to document requests is Claude-plugin-only and does not come along)
+  and `skill.korean-prose` (`JellyBrick/korean-prose-skill`; `scripts/prose.ts` calls an
+  external LLM with `OPENROUTER_API_KEY` or `GEMINI_API_KEY` and needs Node 22.6+).
+- **Catalog review checklist.** `AGENTS.md` now lists what to check before adding an
+  upstream: LICENSE, `scripts/` imports, `hooks.json` and `skills add --list`.
+  `seulkikaang/writing-deslop` was left out because it has no license.
+- **Verified.** `npm test` 769 pass; both launchers dry run; install, rerun and removal
+  of both items in a scratch repository. Not verified: `korean-prose` global scope,
+  running `prose.ts` (no API key).
+
 ## Five skills and two removal fixes (2026-11-18, 2.15.0)
 
 - **New skills.** `skill.pstack` (all 58 skills of the `backnotprop/pstack` mirror,

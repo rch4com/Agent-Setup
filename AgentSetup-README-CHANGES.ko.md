@@ -5,6 +5,19 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 한국어 문체 스킬 둘 (2026-11-20, 2.16.0)
+
+- **새 스킬.** `skill.stop-slop-ko`(`leeandev/stop-slop-ko`의 스킬 3종 stop-slop-ko·
+  stakeholder-brief·jasoseo, 저장소 범위 전용. 문서 요청에 스킬을 붙이는 상류 훅은
+  Claude 플러그인 전용이라 들어오지 않음), `skill.korean-prose`(`JellyBrick/korean-prose-skill`.
+  `scripts/prose.ts`는 `OPENROUTER_API_KEY`·`GEMINI_API_KEY`로 외부 LLM을 부르고
+  Node 22.6+가 필요함).
+- **항목 검토 체크리스트.** `AGENTS.md`에 상류를 카탈로그에 넣기 전 LICENSE·
+  `scripts/` import·`hooks.json`·`skills add --list`를 확인하는 절차를 추가.
+  `seulkikaang/writing-deslop`은 라이선스가 없어 넣지 않았습니다.
+- **검증.** `npm test` 769 통과, 두 런처 dry-run, 스크래치 저장소에서 두 항목
+  설치·재실행·제거 확인. 미검증: `korean-prose` 전역 범위, `prose.ts` 실행(API 키 없음).
+
 ## 스킬 다섯 개와 제거 수정 둘 (2026-11-18, 2.15.0)
 
 - **새 스킬.** `skill.pstack`(`backnotprop/pstack` 미러의 스킬 58종 전부, 진입점
