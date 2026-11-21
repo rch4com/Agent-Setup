@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { defineRecipe, bindScope } from '../lib/recipe.mjs'
 import { readJson } from '../lib/jsonfile.mjs'
 import { skillFolderHash, upstreamChanged } from '../lib/skills-registry.mjs'
-import { marketplacePlugin, mcpServer, skillsAdd, SKILLS_AGENTS, withApp, npmApp } from '../lib/recipe-helpers.mjs'
+import { marketplacePlugin, mcpServer, skillsAdd, SKILLS_AGENTS, withApp, npmApp, uvToolApp } from '../lib/recipe-helpers.mjs'
 
 const lines = (item, action, state = {}) => item.steps(action, state).map((s) => (s.argv ? s.argv.join(' ') : `# ${s.describe}`))
 
@@ -327,6 +327,12 @@ test('npmApp: 전역 npm 설치 뒤 후속 명령을 차례로 돌리고, 실패
     app.install({ exec: async () => ({ ok: false, output: 'E404' }) }),
     /npm install -g nope.*E404/,
   )
+})
+
+test('uvToolApp: python을 주면 --python으로 고정하고, 없으면 붙이지 않는다', async () => {
+  const run = async (app) => { const calls = []; await app.install({ exec: async (cmd, args) => { calls.push([cmd, ...args].join(' ')); return { ok: true } } }); return calls }
+  assert.deepEqual(await run(uvToolApp({ bin: 'x', pkg: 'p', python: '3.13' })), ['uv tool install --python 3.13 p'])
+  assert.deepEqual(await run(uvToolApp({ bin: 'x', pkg: 'p[e]' })), ['uv tool install p[e]'])
 })
 
 // CLI별 레시피(MCP)는 앱 단계만 붙고 감지는 그대로다 — 앱이 빠졌다고 미설치로 읽으면

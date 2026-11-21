@@ -362,11 +362,14 @@ export async function mustRun(exec, cmd, args, opts = {}) {
 
 // uv tool로 배포되는 파이썬 CLI 앱. uv가 콘솔 스크립트를 ~/.local/bin에 둔다 —
 // 그 경로가 PATH에 없으면 상류 안내대로 `uv tool update-shell` 뒤 새 터미널이 필요하다.
-export function uvToolApp({ bin, pkg }) {
+// python은 패키지의 requires-python 범위가 좁을 때 고정한다 — uv가 고르는 기본 파이썬이
+// 범위 밖이면 설치가 실패한다.
+export function uvToolApp({ bin, pkg, python = null }) {
+  const args = ['tool', 'install', ...(python ? ['--python', python] : []), pkg]
   return {
-    describe: `uv tool install ${pkg} (only if ${bin} is not on PATH)`,
+    describe: `uv ${args.join(' ')} (only if ${bin} is not on PATH)`,
     present: async () => onPath(bin),
-    install: ({ exec }) => mustRun(exec, 'uv', ['tool', 'install', pkg]),
+    install: ({ exec }) => mustRun(exec, 'uv', args),
     // uv tool upgrade는 extras 없는 도구 이름을 받는다.
     updateDescribe: `uv tool upgrade ${pkg.replace(/\[.*\]$/, '')} (only if ${bin} is on PATH)`,
     update: ({ exec }) => mustRun(exec, 'uv', ['tool', 'upgrade', pkg.replace(/\[.*\]$/, '')]),
