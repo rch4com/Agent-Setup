@@ -5,6 +5,23 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## SkillEvaluator·Manim 스킬과 Blender MCP (2026-11-21, 2.17.0)
+
+- **`skill.skillevaluator`.** `NVIDIA/SkillEvaluator`의 스킬. PATH에 `skillevaluator`가
+  없으면 `uv tool install --python 3.13 skillevaluator`도 실행하고, 제거는 CLI를 남김.
+  Tier 2·3 추가 의존성·스캐너·Docker·LLM 키는 설치하지 않음.
+- **`skill.manim`.** `adithya-s-k/manim_skill`의 스킬 3종(manim-composer·
+  manimce-best-practices·manimgl-best-practices), 저장소 범위 전용. manim·ffmpeg·LaTeX는
+  설치하지 않음.
+- **`mcp.blender`.** `ahujasid/blender-mcp`를 `uvx mcp-for-blender`(stdio)로 등록. Blender
+  애드온(`uvx mcp-for-blender install-addon`)은 저장소 밖을 고치므로 설치하지 않음. 상류는
+  기본으로 익명 사용 기록을 보내며 `DISABLE_TELEMETRY=true`로 끔.
+- **`uvToolApp`에 `python` 옵션.** 패키지의 `requires-python` 범위가 좁을 때 `--python`으로
+  고정해 uv 기본 파이썬이 범위 밖이어도 설치가 실패하지 않게 함.
+- **검증.** `npm test` 770 통과, 두 런처 dry-run, 스크래치 저장소에서 세 항목
+  설치·재실행·제거 확인(skillevaluator CLI는 PATH에 가짜로 두고, uv 설치 명령은 임시
+  `UV_TOOL_DIR`에서 따로 실행). 미검증: Blender MCP 서버 기동, 실제 렌더, 전역 범위.
+
 ## 한국어 문체 스킬 둘 (2026-11-20, 2.16.0)
 
 - **새 스킬.** `skill.stop-slop-ko`(`leeandev/stop-slop-ko`의 스킬 3종 stop-slop-ko·

@@ -5,6 +5,25 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## SkillEvaluator and Manim skills, Blender MCP (2026-11-21, 2.17.0)
+
+- **`skill.skillevaluator`.** The `NVIDIA/SkillEvaluator` skill. Also runs
+  `uv tool install --python 3.13 skillevaluator` when `skillevaluator` is not on PATH;
+  removal keeps the CLI. Tier 2/3 extras, scanners, Docker and an LLM key are not installed.
+- **`skill.manim`.** The three skills of `adithya-s-k/manim_skill` (manim-composer,
+  manimce-best-practices, manimgl-best-practices); repo scope only. manim, ffmpeg and LaTeX
+  are not installed.
+- **`mcp.blender`.** Registers `ahujasid/blender-mcp` as `uvx mcp-for-blender` (stdio). The
+  Blender addon (`uvx mcp-for-blender install-addon`) changes files outside the repository
+  and is not installed. Upstream sends a minimal anonymous usage record by default;
+  `DISABLE_TELEMETRY=true` turns it off.
+- **`uvToolApp` takes `python`.** Pins `--python` when a package has a narrow
+  `requires-python`, so installs do not fail when uv picks an out-of-range default.
+- **Verified.** `npm test` 770 pass; both launchers dry run; install, rerun and removal of
+  all three items in a scratch repository (the skillevaluator CLI was faked on PATH and the
+  uv install command was run separately in a temporary `UV_TOOL_DIR`). Not verified:
+  starting the Blender MCP server, actual renders, global scope.
+
 ## Two Korean writing skills (2026-11-20, 2.16.0)
 
 - **New skills.** `skill.stop-slop-ko` (the three skills of `leeandev/stop-slop-ko`:
