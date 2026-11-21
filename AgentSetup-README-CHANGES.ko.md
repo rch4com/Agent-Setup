@@ -5,6 +5,18 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## skill.korean-prose 제거 (2026-11-21, 2.17.1)
+
+- **`skill.korean-prose`를 카탈로그에서 뺌.** 2.16.0의 설명은 "키 없이도 규약만으로
+  동작한다"고 했지만, 상류 SKILL.md는 번역·작성을 `scripts/prose.ts`(OpenRouter·Gemini API
+  키 또는 로그인된 `agy`)로 하라고 하고 준비가 안 되면 작업을 멈추라고 합니다. 외부 LLM
+  없이는 쓸 수 없어 뺍니다. 키 없이 한국어를 다듬으려면 `skill.stop-slop-ko`나
+  `skill.im-not-ai`를 쓰세요.
+- **이미 설치했다면** 설치기는 더 이상 이 스킬을 알지 못하므로 직접 지우세요:
+  `npx -y skills@latest remove korean-prose --agent universal --yes`(저장소) 또는
+  `-g`(전역).
+- **검증.** `npm test` 770 통과.
+
 ## SkillEvaluator·Manim 스킬과 Blender MCP (2026-11-21, 2.17.0)
 
 - **`skill.skillevaluator`.** `NVIDIA/SkillEvaluator`의 스킬. PATH에 `skillevaluator`가

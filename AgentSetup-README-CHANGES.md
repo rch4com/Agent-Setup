@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## skill.korean-prose removed (2026-11-21, 2.17.1)
+
+- **`skill.korean-prose` is out of the catalog.** The 2.16.0 note said the rules work
+  without a key, but the upstream SKILL.md routes drafting and rewriting through
+  `scripts/prose.ts` (an OpenRouter or Gemini API key, or a signed-in `agy`) and tells the
+  agent to stop when none is set up. It is unusable without an external LLM. For keyless
+  Korean editing, use `skill.stop-slop-ko` or `skill.im-not-ai`.
+- **If you installed it,** the installer no longer knows the skill, so remove it by hand:
+  `npx -y skills@latest remove korean-prose --agent universal --yes` (repo) or with `-g`
+  (global).
+- **Verified.** `npm test` 770 pass.
+
 ## SkillEvaluator and Manim skills, Blender MCP (2026-11-21, 2.17.0)
 
 - **`skill.skillevaluator`.** The `NVIDIA/SkillEvaluator` skill. Also runs
