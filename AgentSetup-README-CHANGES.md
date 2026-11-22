@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## LinkedIn Agent skill (2026-11-22, 2.18.0)
+
+- **`skill.linkedin-agent`.** Installs the 11 skills of
+  `Jakeschincariol/linkedin-agent-skill` (MIT) — li-post, li-comment, li-reply, li-dm,
+  li-inbox, li-human, li-audit, li-carousel, li-plan, li-profile, li-repurpose — into the
+  shared `.agents/skills`. As a multi-skill bundle it is repo scope only. No external API
+  or browser automation; the user posts and sends everything. The `li-human` scripts use
+  only the Python standard library.
+- **Verified.** `npm test` 770 pass, both launcher dry runs, scratch repo install,
+  idempotent rerun and removal.
+- **Not verified.** The skills in action inside each CLI.
+
 ## skill.korean-prose removed (2026-11-21, 2.17.1)
 
 - **`skill.korean-prose` is out of the catalog.** The 2.16.0 note said the rules work

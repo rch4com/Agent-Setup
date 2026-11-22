@@ -5,6 +5,17 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## LinkedIn Agent 스킬 (2026-11-22, 2.18.0)
+
+- **`skill.linkedin-agent`.** `Jakeschincariol/linkedin-agent-skill`(MIT)의 스킬 11종
+  (li-post·li-comment·li-reply·li-dm·li-inbox·li-human·li-audit·li-carousel·li-plan·
+  li-profile·li-repurpose)을 공유 `.agents/skills`에 설치합니다. 여러 스킬 묶음이라
+  저장소 범위 전용입니다. 외부 API·브라우저 자동화가 없고 게시·발송은 사용자가 직접
+  합니다. `li-human`의 스크립트는 Python 표준 라이브러리만 씁니다.
+- **검증.** `npm test` 770 통과, 두 런처 dry-run, 스크래치 저장소 설치·재실행
+  멱등·제거 확인.
+- **미검증.** 각 CLI 안에서 스킬 실제 동작.
+
 ## skill.korean-prose 제거 (2026-11-21, 2.17.1)
 
 - **`skill.korean-prose`를 카탈로그에서 뺌.** 2.16.0의 설명은 "키 없이도 규약만으로
