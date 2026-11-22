@@ -319,6 +319,7 @@ export default {
   'item.skill.claude-shorts.note': 'shorts 스킬: 긴 영상에서 쇼츠 후보 구간에 점수를 매겨 보여 주면 고르고, Remotion이 움직이는 자막을 렌더하고 FFmpeg가 YouTube Shorts·TikTok·Reels용으로 내보낸다. 상류 setup.sh(faster-whisper·mediapipe·OpenCV·PyTorch, remotion/ npm install)가 필요하며 여기서는 돌리지 않는다. Unix 도구를 쓰므로 Windows는 WSL 2. skill.remotion과 함께 쓰면 좋다. MIT',
   'item.skill.modern-web-guidance.note': 'Google Chrome의 최신 웹 플랫폼 가이드: 에이전트가 HTML·CSS·클라이언트 JS를 쓰기 전에 `npx -y modern-web-guidance@latest search`·`retrieve`로 최신 모범 사례(dialog·popover·view transition·anchor positioning·폼·접근성·성능)를 가져와 낡은 패턴 대신 쓰게 한다. 쓸 때 Node.js 22+와 네트워크가 필요하다. 저장소의 두 번째 스킬 chrome-extensions는 설치하지 않는다. Apache-2.0',
   'item.skill.instagram-agent.note': '인스타그램 계정을 운영하는 스킬 13개(ig-reel·ig-caption·ig-carousel·ig-viral·ig-human 등): 점수 매긴 훅 공식으로 릴스, 캡션 린터, 휴머나이저. MIT',
+  'item.skill.linkedin-agent.note': '링크드인 계정을 운영하는 스킬 11개(li-post·li-comment·li-reply·li-dm·li-human 등): 훅 공식 21개로 게시물 초안, 댓글·답글·DM 초안, 휴머나이저(Python 3, 표준 라이브러리만). 글을 쓰기만 하고 게시·발송은 사용자가 직접 합니다. MIT',
   'item.skill.youtube-agent.note': '유튜브 채널을 운영하는 스킬 11개(yt-script·yt-package·yt-edit·yt-retention·yt-shorts·yt-viral 등): 점수 매긴 훅 공식으로 대본, 제목·썸네일을 한 쌍으로 점검, 자막에서 편집 목록, 이탈 지점 분석. MIT',
   'item.skill.animated-shorts.note': 'cartoon-3d-short 스킬: three.js와 Remotion으로 약 60초 세로형 카툰 스토리 숏폼(3D 세계의 2D 캐릭터)을 만듭니다. 렌더에 Remotion이 필요해 skill.remotion과 함께 쓰면 좋습니다. MIT',
   'item.skill.motion-design.note': 'LottieFiles의 UI 모션 디자인 원칙 — 타이밍·이징·안무·디즈니 원칙, 도구 중립. MIT',
