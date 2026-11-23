@@ -591,6 +591,17 @@ codex plugin add ponytail@ponytail
 | 스킬 | `skill.gstack` | 저장소 내부 `.claude/skills/gstack`에 clone + setup(bash 필요, `.gitignore` 자동 처리). 부트스트랩 저장소에서는 그 경로가 Junction이라 실물이 공유 `.agents/skills/gstack`에 앉고, Codex·OpenCode는 재귀 스캔이라 개별 스킬까지 봅니다. 저장소 범위 전용입니다 |
 | 설정 | `config.gitmessage.en`, `config.gitmessage.ko` | 커밋 메시지 템플릿 `.gitmessage.txt`를 저장소 루트에 쓰고 `git config --local commit.template`이 그것을 가리키게 하고, `AGENTS.md`(와 `CLAUDE.md`)로 모든 에이전트 CLI가 따르게 합니다. **영어판과 한국어판 중 하나만** 고를 수 있습니다. 파일을 직접 쓰는 항목이라 저장소 범위 전용이고, `--print`에서는 명령 대신 안내 한 줄이 나옵니다 |
 
+### 따로 설치하는 앱
+
+스킬 묶음이 아니라 저장소를 clone해서 그 안에서 실행하는 앱이라 설치기 항목으로 넣지 않은
+것들입니다. 스킬을 공유 폴더로 복사하면 앱 안의 도구·경로를 잃어 동작하지 않습니다. 설치는
+상류 README를 따르세요.
+
+| 앱 | 하는 일 | 필요한 것 | 설치 |
+|---|---|---|---|
+| [OpenMontage](https://github.com/OpenMontageInc/OpenMontage) (AGPL-3.0) | 에이전트로 영상을 만드는 제작 파이프라인 | Python 3.10+, FFmpeg, Node 22.23.4+. 유료 생성 서비스(HeyGen·ElevenLabs 등)는 각 키 | `git clone` 후 `make setup`, 그 폴더에서 에이전트를 엽니다 |
+| [MiroFish](https://github.com/666ghj/MiroFish) (AGPL-3.0) | 다중 에이전트 시뮬레이션으로 반응·결과를 예측하는 웹앱 | OpenAI 호환 LLM 키와 Zep 키(`.env`). 소스 실행은 Node 18+, Python 3.11~3.12, uv | `.env`를 채운 뒤 `docker compose up -d`(http://localhost:3000) 또는 `npm run setup:all`·`npm run dev`. 시뮬레이션이 토큰을 많이 씁니다 |
+
 ### 동작 원칙
 
 - **실제 상태의 근거는 스캔입니다** — 실행할 때마다 각 CLI의 목록 명령

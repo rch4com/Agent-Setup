@@ -640,6 +640,17 @@ behavior, like `--global`, `--print`, and `--design-dir`, can be combined).
 | Skill | `skill.gstack` | Clone + setup into the in-repository `.claude/skills/gstack` (bash required, `.gitignore` handled automatically). In a bootstrapped repository that path is a junction, so the files land in the shared `.agents/skills/gstack`, and Codex and OpenCode scan recursively, so they see the individual skills. Repo scope only |
 | Config | `config.gitmessage.en`, `config.gitmessage.ko` | Writes the commit message template `.gitmessage.txt` to the repository root and points `git config --local commit.template` at it, and tells every agent CLI to follow it through `AGENTS.md` (and `CLAUDE.md`). **Only one of the English and Korean editions** can be chosen. It writes files itself, so it is repo scope only, and `--print` shows a one-line notice instead of commands |
 
+### Apps installed separately
+
+These are apps you clone and run from their own repository, not skill bundles, so they are
+not installer items. Copying their skills into the shared folder loses the app's tools and
+paths, and they stop working. Follow the upstream README to install.
+
+| App | What it does | Needs | Install |
+|---|---|---|---|
+| [OpenMontage](https://github.com/OpenMontageInc/OpenMontage) (AGPL-3.0) | Agent-driven video production pipeline | Python 3.10+, FFmpeg, Node 22.23.4+. Keys for paid generation services (HeyGen, ElevenLabs, …) | `git clone`, then `make setup`, and open your agent in that folder |
+| [MiroFish](https://github.com/666ghj/MiroFish) (AGPL-3.0) | Web app that predicts reactions and outcomes with multi-agent simulation | An OpenAI-compatible LLM key and a Zep key (`.env`). From source: Node 18+, Python 3.11–3.12, uv | Fill in `.env`, then `docker compose up -d` (http://localhost:3000) or `npm run setup:all` and `npm run dev`. Simulations use many tokens |
+
 ### Operating principles
 
 - **The ground truth for actual state is the scan** — every run decides by
