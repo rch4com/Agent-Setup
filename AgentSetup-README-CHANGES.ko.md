@@ -5,6 +5,26 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## 모션 원칙·rea-video·Hypit 스킬 (2026-11-24, 2.19.0)
+
+- **`skill.design-motion-principles`.** `kylezantos/design-motion-principles`(MIT). UI 모션을
+  만드는 Create와 기존 애니메이션을 점검하는 Audit(HTML 보고서) 두 모드. Markdown뿐이고 스크립트·
+  외부 API가 없습니다.
+- **`skill.rea-video`.** `JuneYaooo/rea-video`(Apache-2.0). 영상을 샷 단위로 역분석해 재현
+  방법을 냅니다. PATH에 `rea-video`가 없으면
+  `uv tool install --python 3.13 "rea-video[ocr] @ git+https://github.com/JuneYaooo/rea-video"`를
+  함께 실행합니다(PyPI에 없음, 3.13은 OCR 의존성의 opencv 충돌을 피하려는 고정). ffmpeg는
+  설치하지 않습니다. 첫 분석 때 음원 분리 모델 약 216MB를 받고, VLM을 켜면 영상 조각이 외부
+  서비스로 전송됩니다.
+- **`skill.hypit`.** `hypit-ai/hypit`(수정된 Apache-2.0: 멀티테넌트 서비스·유료 재배포는 상용
+  라이선스). 상류 설치대로 스킬만 복사하고 실행 파일 `@hypit/hypit`(npm, Node 22.15+)과 HypiHub
+  계정·모델 키는 스킬이 첫 사용 때 준비를 돕습니다.
+- **수정.** `uvToolApp` 갱신이 `@ git+…` 출처가 붙은 패키지 이름을 `uv tool upgrade`에 그대로
+  넘기던 것을 도구 이름만 넘기도록 고쳤습니다.
+- **검증.** `npm test` 771 통과, 두 런처 dry-run, 세 항목 모두 스크래치 저장소 설치·재실행
+  멱등·제거 확인(rea-video는 PATH에 가짜 CLI를 두고).
+- **미검증.** rea-video CLI의 실제 uv 설치, Hypit 실행 파일 준비, 각 CLI 안에서 스킬 동작.
+
 ## LinkedIn Agent 스킬 (2026-11-22, 2.18.0)
 
 - **`skill.linkedin-agent`.** `Jakeschincariol/linkedin-agent-skill`(MIT)의 스킬 11종

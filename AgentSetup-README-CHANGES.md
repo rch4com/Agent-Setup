@@ -5,6 +5,28 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Motion principles, rea-video and Hypit skills (2026-11-24, 2.19.0)
+
+- **`skill.design-motion-principles`.** `kylezantos/design-motion-principles` (MIT). Two
+  modes: Create builds UI motion, Audit reviews existing animation and writes an HTML report.
+  Markdown only, no scripts or external API.
+- **`skill.rea-video`.** `JuneYaooo/rea-video` (Apache-2.0). Reverse-engineers a video shot by
+  shot and writes a remake plan. Also runs
+  `uv tool install --python 3.13 "rea-video[ocr] @ git+https://github.com/JuneYaooo/rea-video"`
+  when `rea-video` is not on PATH (it is not on PyPI; 3.13 avoids the OCR extra's opencv
+  conflict). Does not install ffmpeg. The first run downloads about 216 MB of audio separation
+  models, and turning on a VLM sends video clips to an external service.
+- **`skill.hypit`.** `hypit-ai/hypit` (modified Apache-2.0: multi-tenant services and paid
+  redistribution need a commercial license). Copies only the skill, as upstream installs it; the
+  skill helps prepare the `@hypit/hypit` executable (npm, Node 22.15+) and a HypiHub account or
+  model key on first use.
+- **Fix.** `uvToolApp` updates passed a package spec with an `@ git+…` source straight to
+  `uv tool upgrade`; they now pass only the tool name.
+- **Verified.** `npm test` 771 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun and removal for all three (rea-video with a fake CLI on PATH).
+- **Not verified.** The real uv install of the rea-video CLI, preparing the Hypit executable, and
+  the skills in action inside each CLI.
+
 ## LinkedIn Agent skill (2026-11-22, 2.18.0)
 
 - **`skill.linkedin-agent`.** Installs the 11 skills of
