@@ -366,13 +366,14 @@ export async function mustRun(exec, cmd, args, opts = {}) {
 // 범위 밖이면 설치가 실패한다.
 export function uvToolApp({ bin, pkg, python = null }) {
   const args = ['tool', 'install', ...(python ? ['--python', python] : []), pkg]
+  // uv tool upgrade는 extras·`@ git+…` 출처를 뗀 도구 이름을 받는다.
+  const name = pkg.split(/[[\s@]/)[0]
   return {
     describe: `uv ${args.join(' ')} (only if ${bin} is not on PATH)`,
     present: async () => onPath(bin),
     install: ({ exec }) => mustRun(exec, 'uv', args),
-    // uv tool upgrade는 extras 없는 도구 이름을 받는다.
-    updateDescribe: `uv tool upgrade ${pkg.replace(/\[.*\]$/, '')} (only if ${bin} is on PATH)`,
-    update: ({ exec }) => mustRun(exec, 'uv', ['tool', 'upgrade', pkg.replace(/\[.*\]$/, '')]),
+    updateDescribe: `uv tool upgrade ${name} (only if ${bin} is on PATH)`,
+    update: ({ exec }) => mustRun(exec, 'uv', ['tool', 'upgrade', name]),
   }
 }
 

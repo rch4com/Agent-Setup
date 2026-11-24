@@ -335,6 +335,12 @@ test('uvToolApp: python을 주면 --python으로 고정하고, 없으면 붙이�
   assert.deepEqual(await run(uvToolApp({ bin: 'x', pkg: 'p[e]' })), ['uv tool install p[e]'])
 })
 
+test('uvToolApp: 갱신은 extras와 git 출처를 뗀 도구 이름으로 한다', async () => {
+  const run = async (app) => { const calls = []; await app.update({ exec: async (cmd, args) => { calls.push([cmd, ...args].join(' ')); return { ok: true } } }); return calls }
+  assert.deepEqual(await run(uvToolApp({ bin: 'x', pkg: 'p[e]' })), ['uv tool upgrade p'])
+  assert.deepEqual(await run(uvToolApp({ bin: 'x', pkg: 'p[e] @ git+https://h/o/p' })), ['uv tool upgrade p'])
+})
+
 // CLI별 레시피(MCP)는 앱 단계만 붙고 감지는 그대로다 — 앱이 빠졌다고 미설치로 읽으면
 // 다시 골랐을 때 이미 있는 등록을 또 추가하다 실패한다.
 test('withApp: CLI별 레시피는 CLI마다 앱 단계를 앞에 붙이고 감지는 감싸지 않는다', async () => {
