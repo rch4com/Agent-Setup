@@ -20,7 +20,7 @@ function linkTarget(target) {
   }
 }
 
-function createLink(source, target) {
+export function createLink(source, target) {
   if (process.platform === 'win32') {
     // Junction은 절대 경로를 요구한다.
     symlinkSync(source, target, 'junction')
