@@ -5,6 +5,23 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Grim Prompter·CozyClay·Papercraft (2026-11-25, 2.20.0)
+
+- **`skill.grim-prompter`.** `jmanico/grim-prompter`(MIT). 저장소를 읽기 전용으로 살펴 근거가
+  달린 위협 모델을 `threat-model/`에 씁니다. 스킬이 라이브러리 루트를 실제 경로 두 단계 위에서
+  찾으므로 저장소를 `.agents/grim-prompter`에 clone하고 `.agents/skills/threat-model`을 링크합니다
+  (Windows는 Junction). 두 경로는 `.gitignore`에 넣고, 저장소 범위 전용입니다.
+- **`mcp.cozyclay`.** `HaD0Yun/CozyClay`(AGPL-3.0). 상류 `INSTALL_FOR_AGENTS.md`대로
+  `npx -y cozyclay mcp`(Node 22.19+)를 MCP 서버로 등록합니다. 화면 조작은 사용자가 스튜디오
+  (`npx -y cozyclay`)와 Chromium 탭을 띄워야 하고, 둘이 포트 5184를 다투면
+  `COZYCLAY_LIVE_PORT`로 나눕니다. 익명 사용 통계는 `COZYCLAY_TELEMETRY=0`으로 끕니다.
+- **`skill.papercraft`.** `xikhar/papercraft`(MIT). 팝업북 종이 공예 스타일로 게임·장면·웹
+  페이지·영상을 만듭니다. three.js는 CDN에서 받고, 보조 스크립트용 Python 3·numpy·Pillow
+  (캡처는 Playwright, 측정은 ffmpeg)는 설치하지 않습니다.
+- **검증.** `npm test` 771 통과, 두 런처 dry-run, 세 항목 모두 스크래치 저장소 설치·재실행
+  멱등·제거 확인(grim-prompter는 링크 실제 경로 두 단계 위에 `runbook.md` 확인).
+- **미검증.** CozyClay MCP 서버 실제 기동, 각 CLI 안에서 스킬 동작.
+
 ## 모션 원칙·rea-video·Hypit 스킬 (2026-11-24, 2.19.0)
 
 - **`skill.design-motion-principles`.** `kylezantos/design-motion-principles`(MIT). UI 모션을

@@ -5,6 +5,26 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Grim Prompter, CozyClay and Papercraft (2026-11-25, 2.20.0)
+
+- **`skill.grim-prompter`.** `jmanico/grim-prompter` (MIT). Reads a repository read-only and
+  writes an evidence-backed threat model to `threat-model/`. The skill finds its library root two
+  levels above its real path, so the repository is cloned into `.agents/grim-prompter` and
+  `.agents/skills/threat-model` is linked to it (a junction on Windows). Both paths go into
+  `.gitignore`; repo scope only.
+- **`mcp.cozyclay`.** `HaD0Yun/CozyClay` (AGPL-3.0). Registers `npx -y cozyclay mcp`
+  (Node 22.19+) as an MCP server, as upstream `INSTALL_FOR_AGENTS.md` describes. Moving the
+  viewport needs the studio (`npx -y cozyclay`) and a Chromium tab started by the user; if both
+  claim port 5184, split them with `COZYCLAY_LIVE_PORT`. Turn off anonymous telemetry with
+  `COZYCLAY_TELEMETRY=0`.
+- **`skill.papercraft`.** `xikhar/papercraft` (MIT). Builds games, scenes, web pages and videos
+  in a pop-up book papercraft style. three.js loads from a CDN; Python 3, numpy and Pillow for the
+  helper scripts (capture uses Playwright, measure uses ffmpeg) are not installed.
+- **Verified.** `npm test` 771 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun and removal for all three (for grim-prompter, `runbook.md` sits two levels above the
+  link's real path).
+- **Not verified.** CozyClay MCP server actually starting, the skills running inside each CLI.
+
 ## Motion principles, rea-video and Hypit skills (2026-11-24, 2.19.0)
 
 - **`skill.design-motion-principles`.** `kylezantos/design-motion-principles` (MIT). Two
