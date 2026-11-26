@@ -5,6 +5,16 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Inkworks (2026-11-26, 2.22.0)
+
+- **`skill.inkworks`.** `Moh4696/inkworks-skill`(MIT). 엔진·펌프·자물쇠 같은 기계의 작동 원리를
+  흰 제도 도면 위 잉크 외곽선 3D 부품과 번호 풍선으로 보여 주는 대화형 three.js 페이지(멈춤·단계·
+  회전)로 만들고, 60fps 설명 영상과 합성 소리까지 뽑습니다. three.js는 동봉됩니다. 정적 서버용
+  Python 3과 도구용 playwright(+ `playwright install webkit`)·ffmpeg·numpy·scipy는 설치하지
+  않습니다. 상류 플러그인 매니페스트·`install.sh`·`examples/` 이미지는 넣지 않습니다.
+- **검증.** `npm test` 771 통과, 두 런처 dry-run, 스크래치 저장소 설치·재실행 멱등·제거 확인.
+- **미검증.** 스킬로 페이지 생성·영상 녹화.
+
 ## Animated Shorts 기록 보강 (2026-11-26, 2.21.1)
 
 - **`skill.animated-shorts`.** 동작은 그대로이고 기록만 보강했습니다. 상류 커밋 e3b817b 기준으로

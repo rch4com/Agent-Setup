@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Inkworks (2026-11-26, 2.22.0)
+
+- **`skill.inkworks`.** `Moh4696/inkworks-skill` (MIT). Builds interactive three.js “how it
+  works” pages for a machine (engine, pump, lock) drawn like an engineering sheet, with
+  ink-outlined parts and numbered balloons you can pause, step and orbit, plus a 60 fps walkthrough
+  clip and a synthesised sound track. three.js is bundled. Python 3 for the static server and
+  playwright (+ `playwright install webkit`), ffmpeg, numpy and scipy for the tools are not
+  installed. The upstream plugin manifests, `install.sh` and `examples/` images are left out.
+- **Verified.** `npm test` 771 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun and removal.
+- **Not verified.** Building a page or recording a clip with the skill.
+
 ## Animated Shorts records (2026-11-26, 2.21.1)
 
 - **`skill.animated-shorts`.** No behavior change; the records are filled in. At upstream commit
