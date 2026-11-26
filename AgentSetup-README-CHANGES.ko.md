@@ -5,6 +5,15 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Animated Shorts 기록 보강 (2026-11-26, 2.21.1)
+
+- **`skill.animated-shorts`.** 동작은 그대로이고 기록만 보강했습니다. 상류 커밋 e3b817b 기준으로
+  저장소 루트가 스킬이라 약 36MB가 복사되며, 그중 약 18MB(`references/frames`·`sheets`)는 상류가
+  MIT 범위 밖의 “스타일 연구용”이라 밝힌 제3자 채널 영상 프레임입니다. 템플릿은 그대로
+  실행되지 않는 예제이고, Remotion과 `@remotion/three`·`three`·`postprocessing`, Python 3
+  (numpy·scipy·Pillow), ffmpeg, 내레이션용 TTS는 설치하지 않습니다.
+- **검증.** `npm test` 771 통과, 두 런처 dry-run.
+
 ## Blueprint·Open Code Review (2026-11-26, 2.21.0)
 
 - **`skill.blueprint`.** `nyxera0x/blueprint`(MIT). 평면도·펜 스케치·참고 이미지를 Blender

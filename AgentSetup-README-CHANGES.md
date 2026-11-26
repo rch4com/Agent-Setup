@@ -5,6 +5,16 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Animated Shorts records (2026-11-26, 2.21.1)
+
+- **`skill.animated-shorts`.** No behavior change; the records are filled in. At upstream commit
+  e3b817b the repository root is the skill, so about 36 MB is copied, about 18 MB of it
+  (`references/frames`, `sheets`) third-party channel video frames that upstream says sit outside
+  its MIT grant as “style study” material. The templates are an example that does not run as
+  is, and Remotion with `@remotion/three`, `three` and `postprocessing`, Python 3 (numpy, scipy,
+  Pillow), ffmpeg and a narration TTS are not installed.
+- **Verified.** `npm test` 771 pass, both launcher dry runs.
+
 ## Blueprint and Open Code Review (2026-11-26, 2.21.0)
 
 - **`skill.blueprint`.** `nyxera0x/blueprint` (MIT). Turns a floor plan, a pen sketch or
