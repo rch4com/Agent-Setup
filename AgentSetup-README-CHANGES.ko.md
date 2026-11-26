@@ -5,6 +5,22 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Blueprint·Open Code Review (2026-11-26, 2.21.0)
+
+- **`skill.blueprint`.** `nyxera0x/blueprint`(MIT). 평면도·펜 스케치·참고 이미지를 Blender
+  장면 스크립트로 옮겨 실사 3D 주택과 부품이 쌓여 지어지는 영상을 만듭니다. Blender 4.2+(GPU
+  권장)·Python 3과 pillow(평면도 판독은 opencv-python·numpy)·ffmpeg는 설치하지 않습니다. CC0
+  재질은 Poly Haven에서 받고, 음악은 `ELEVENLABS_API_KEY`가 있을 때만 ElevenLabs를 씁니다.
+  저장소 루트가 스킬이라 README GIF를 포함해 약 25MB가 복사됩니다.
+- **`skill.open-code-review`.** `alibaba/open-code-review`(Apache-2.0). AI 코드 리뷰 스킬
+  2종 — `open-code-review`(네이티브: OCR에 설정한 LLM 공급자가 리뷰)와
+  `open-code-review-delegate`(현재 에이전트 모델이 리뷰, API 키 불필요). PATH에 `ocr`이 없으면
+  `npm i -g @alibaba-group/open-code-review`를 함께 실행하고 제거는 CLI를 남깁니다. Git 2.41+
+  필요, PR 모드의 Python 3·인증된 `gh`는 설치하지 않습니다. 저장소 범위 전용입니다.
+- **검증.** `npm test` 771 통과, 두 런처 dry-run, 두 항목 모두 스크래치 저장소 설치·재실행
+  멱등·제거 확인(`ocr` v1.14.4 설치와 `ocr review --preview` 동작 확인).
+- **미검증.** Blender 렌더링 실행, OCR 네이티브 모드 리뷰(공급자 설정 필요), 각 CLI 안에서 스킬 동작.
+
 ## Grim Prompter·CozyClay·Papercraft (2026-11-25, 2.20.0)
 
 - **`skill.grim-prompter`.** `jmanico/grim-prompter`(MIT). 저장소를 읽기 전용으로 살펴 근거가

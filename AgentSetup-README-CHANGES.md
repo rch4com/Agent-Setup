@@ -5,6 +5,25 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Blueprint and Open Code Review (2026-11-26, 2.21.0)
+
+- **`skill.blueprint`.** `nyxera0x/blueprint` (MIT). Turns a floor plan, a pen sketch or
+  reference images into a Blender scene script that renders a photoreal 3D house and a film of it
+  building itself part by part. Blender 4.2+ (GPU recommended), Python 3 with pillow
+  (opencv-python and numpy to read a plan) and ffmpeg are not installed. CC0 materials download
+  from Poly Haven; music uses ElevenLabs only when `ELEVENLABS_API_KEY` is set. The repository
+  root is the skill, so about 25 MB is copied, README GIFs included.
+- **`skill.open-code-review`.** `alibaba/open-code-review` (Apache-2.0). Two AI code review
+  skills — `open-code-review` (native: the LLM provider configured for OCR reviews) and
+  `open-code-review-delegate` (your agent's model reviews, no API key). Also runs
+  `npm i -g @alibaba-group/open-code-review` when `ocr` is not on PATH; removal leaves the CLI.
+  Needs Git 2.41+; Python 3 and an authenticated `gh` for PR mode are not installed. Repo scope
+  only.
+- **Verified.** `npm test` 771 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun and removal for both (`ocr` v1.14.4 installed and `ocr review --preview` ran).
+- **Not verified.** Blender rendering, an OCR native-mode review (needs a provider), the skills
+  running inside each CLI.
+
 ## Grim Prompter, CozyClay and Papercraft (2026-11-25, 2.20.0)
 
 - **`skill.grim-prompter`.** `jmanico/grim-prompter` (MIT). Reads a repository read-only and
