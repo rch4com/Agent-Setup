@@ -321,7 +321,7 @@ export default {
   'item.skill.instagram-agent.note': '인스타그램 계정을 운영하는 스킬 13개(ig-reel·ig-caption·ig-carousel·ig-viral·ig-human 등): 점수 매긴 훅 공식으로 릴스, 캡션 린터, 휴머나이저. MIT',
   'item.skill.linkedin-agent.note': '링크드인 계정을 운영하는 스킬 11개(li-post·li-comment·li-reply·li-dm·li-human 등): 훅 공식 21개로 게시물 초안, 댓글·답글·DM 초안, 휴머나이저(Python 3, 표준 라이브러리만). 글을 쓰기만 하고 게시·발송은 사용자가 직접 합니다. MIT',
   'item.skill.youtube-agent.note': '유튜브 채널을 운영하는 스킬 11개(yt-script·yt-package·yt-edit·yt-retention·yt-shorts·yt-viral 등): 점수 매긴 훅 공식으로 대본, 제목·썸네일을 한 쌍으로 점검, 자막에서 편집 목록, 이탈 지점 분석. MIT',
-  'item.skill.animated-shorts.note': 'cartoon-3d-short 스킬: three.js와 Remotion으로 약 60초 세로형 카툰 스토리 숏폼(3D 세계의 2D 캐릭터)을 만듭니다. 렌더에 Remotion이 필요해 skill.remotion과 함께 쓰면 좋습니다. MIT',
+  'item.skill.animated-shorts.note': 'cartoon-3d-short 스킬: three.js와 Remotion으로 약 60초 세로형 카툰 스토리 숏폼(3D 세계의 2D 캐릭터)을 만듭니다. 렌더에 Remotion이 필요해 skill.remotion과 함께 쓰면 좋습니다. @remotion/three·three·postprocessing, Python 3(numpy·scipy·Pillow), ffmpeg, 내레이션용 TTS는 설치하지 않습니다. 템플릿은 그대로 실행되지 않는 예제입니다. 약 36MB 중 18MB는 MIT 범위 밖의 제3자 채널 영상 프레임(스타일 연구용)입니다. MIT',
   'item.skill.motion-design.note': 'LottieFiles의 UI 모션 디자인 원칙 — 타이밍·이징·안무·디즈니 원칙, 도구 중립. MIT',
   'item.skill.design-motion-principles.note': 'UI 모션을 만들거나(Create) 기존 애니메이션을 점검합니다(Audit, HTML 보고서). Emil Kowalski·Jakub Krehel·Jhey Tompkins의 공개 자료를 프로젝트 성격에 맞춰 가중합니다. 스크립트·외부 API 없음. MIT',
   'item.skill.papercraft.note': '팝업북 종이 공예 스타일로 게임·인터랙티브 장면·웹 페이지·영상을 만듭니다(three.js 또는 Canvas/SVG/CSS, three.js는 CDN). 보조 스크립트는 Python 3 + numpy·Pillow(캡처는 Playwright, 측정은 ffmpeg)가 필요하며 설치하지 않습니다. 외부 API 없음. MIT',
