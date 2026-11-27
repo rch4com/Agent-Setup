@@ -60,6 +60,7 @@ export default {
   'item.skill.rea-video.usage': ['영상을 샷 단위로 역분석해 제작 방식·자막·음향·편집을 분해하고 재현 방법 제시', '› rea-video로 이 영상이 어떻게 만들어졌는지 분석해줘', '› rea-video로 clip.mp4의 샷별 제작 방식을 정리해줘', '› rea-video로 이 광고 영상 재현에 필요한 소재를 뽑아줘'],
   'item.skill.remotion.usage': ['React로 영상을 만드는 Remotion 모범 사례 (생성·자막·렌더·스튜디오 등 하위 가이드 포함)', '› remotion으로 제품 소개 30초 영상 프로젝트 만들어줘', '› remotion 모범 사례대로 이 영상에 자막을 넣어줘', '› remotion으로 이 컴포지션을 MP4로 렌더링해줘'],
   'item.skill.script-to-motion.usage': ['대본이나 주제를 Fish Audio 내레이션이 입혀진 HTML/GSAP 모션그래픽 영상으로 제작', '› script-to-motion으로 이 대본을 모션그래픽 영상으로 만들어줘', '› script-to-motion으로 AI 에이전트를 소개하는 영상 만들어줘', '› script-to-motion으로 이 기획서를 내레이션 영상으로 바꿔줘'],
+  'item.skill.security-audit.usage': ['질문 하나부터 전체 감사까지, 소스 근거 중심의 Cloudflare 보안 리뷰', '› security-audit로 이 로그인 핸들러에 인증 우회가 있는지 봐줘', '› security-audit로 이 파일 업로드 엔드포인트가 안전한지 검토해줘', '› security-audit로 이 저장소 전체 보안 감사 해줘'],
   'item.skill.skillevaluator.usage': ['NVIDIA SkillEvaluator로 에이전트 스킬(SKILL.md)을 검증·채점하고 결과를 해석', '› skillevaluator로 이 SKILL.md를 검증해줘', '› skillevaluator용 evals.json 테스트 케이스를 써줘', '› skillevaluator 벤치마크 리포트 결과를 해석해줘'],
   'item.skill.sprite-stacking.usage': ['위·옆·앞·뒤 4면 그림으로 돌려 볼 수 있는 가짜 3D 픽셀 아트를 만든다', '› sprite-stacking으로 360도 도는 픽셀 아트 자동차 만들어줘', '› sprite-stacking으로 views.png를 슬라이스 띠로 깎아줘', '› sprite-stacking으로 이 슬라이스 띠를 Godot 게임에 붙여줘'],
   'item.skill.stitch-skills.usage': ['Google Stitch 디자인 생성·DESIGN.md 추출·React 변환 스킬 16종 (Stitch MCP 필요)', '› stitch-loop로 Stitch를 써서 웹사이트를 반복 빌드해줘', '› design-md로 이 Stitch 프로젝트의 DESIGN.md를 만들어줘', '› enhance-prompt로 이 UI 아이디어를 Stitch 프롬프트로 다듬어줘'],
