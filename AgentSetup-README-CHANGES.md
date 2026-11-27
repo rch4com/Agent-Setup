@@ -5,6 +5,27 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Agency Agents, Sprite Stacking and usage examples (2026-11-27, 2.23.0)
+
+- **`plugin.agency-agents`.** `msitarzewski/agency-agents` (MIT): 283 Claude Code subagents in
+  18 divisions. Upstream has no `SKILL.md` or plugin manifest, so it is cloned to
+  `.agents/agency-agents` and each division in `divisions.json` is linked into
+  `.claude/agents/agency-agents/<division>` (Junction on Windows); both paths are gitignored.
+  `integrations/` is not linked because it registers Backend Architect twice. Repository scope,
+  Claude Code only. All 283 descriptions sit in Claude's agent list and use context.
+- **`skill.sprite-stacking`.** `danielwh2/sprite-stacking` (MIT). Carves four orthographic
+  views into a slice strip and renders rotatable fake-3D pixel art for web Canvas, Godot, Unity or
+  Phaser, with a standalone `viewer.html`. Python 3 with Pillow and NumPy for the slicer script is
+  not installed.
+- **Usage examples in the detail panel.** Each of the 68 skill and plugin items ends with a
+  one-line intro and three first-use prompts (en, ko). Skill and command names were checked
+  against upstream `SKILL.md` and `commands/`.
+- **Verified.** `npm test` 772 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun, update and removal for both items. A new Claude Code session saw the Agency agents through
+  the division links.
+- **Not verified.** Carving or rendering a stack with the skill; Agency agents on the global scope
+  (not offered).
+
 ## Inkworks (2026-11-26, 2.22.0)
 
 - **`skill.inkworks`.** `Moh4696/inkworks-skill` (MIT). Builds interactive three.js “how it

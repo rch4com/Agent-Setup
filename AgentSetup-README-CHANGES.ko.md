@@ -5,6 +5,23 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Agency Agents·Sprite Stacking·사용 예시 (2026-11-27, 2.23.0)
+
+- **`plugin.agency-agents`.** `msitarzewski/agency-agents`(MIT): 분과 18개의 Claude Code
+  서브에이전트 283개. 상류에 `SKILL.md`·플러그인 매니페스트가 없어 `.agents/agency-agents`에
+  clone하고 `divisions.json`의 분과마다 `.claude/agents/agency-agents/<분과>`로 링크합니다
+  (Windows는 Junction). 두 경로는 `.gitignore`에 넣습니다. `integrations/`는 Backend
+  Architect를 두 번 등록해 링크하지 않습니다. 저장소 범위·Claude Code 전용. 설명 283개가 모두
+  Claude의 에이전트 목록에 올라가 문맥을 씁니다.
+- **`skill.sprite-stacking`.** `danielwh2/sprite-stacking`(MIT). 4면 정사영 그림을 슬라이스
+  띠로 깎아 돌려 볼 수 있는 가짜 3D 픽셀 아트를 웹 Canvas·Godot·Unity·Phaser용으로 렌더합니다
+  (단독 `viewer.html`). 슬라이서 스크립트용 Python 3 + Pillow·NumPy는 설치하지 않습니다.
+- **상세 패널 사용 예시.** 스킬·플러그인 항목 68개마다 기능 소개 한 줄과 처음 써 볼 예시 세 개가
+  끝에 붙습니다(ko·en). 스킬·명령 이름은 상류 `SKILL.md`·`commands/`에서 확인했습니다.
+- **검증.** `npm test` 772 통과, 두 런처 dry-run, 두 항목의 스크래치 저장소 설치·재실행 멱등·
+  갱신·제거 확인. 새 Claude Code 세션이 분과 링크로 Agency 에이전트를 인식함.
+- **미검증.** 스킬로 실제 슬라이스 깎기·렌더, Agency 에이전트 전역 범위(제공하지 않음).
+
 ## Inkworks (2026-11-26, 2.22.0)
 
 - **`skill.inkworks`.** `Moh4696/inkworks-skill`(MIT). 엔진·펌프·자물쇠 같은 기계의 작동 원리를
