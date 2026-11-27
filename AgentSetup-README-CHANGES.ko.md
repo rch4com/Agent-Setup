@@ -5,6 +5,17 @@
 최신 항목이 위에 옵니다. 상세 사용법은
 [AgentSetup-README.ko.md](AgentSetup-README.ko.md)를 참조하세요.
 
+## Security Audit·상류 기록 정정 (2026-11-27, 2.24.0)
+
+- **`skill.security-audit`.** `cloudflare/security-audit-skill`(MIT). 보안 질문과 부분 리뷰에
+  답하고, 전체 감사·펜테스트·보고서를 요청할 때만 6단계 감사를 돌려 결과를 저장소 밖에 씁니다.
+  검증 스크립트는 Node 표준 라이브러리만 씁니다. 훅·API 키·외부 네트워크 호출 없음.
+- **상류 기록 정정.** archify는 Apache-2.0(상류 커밋 82c7e0f 이전 기여분은 MIT), hallmark에는
+  study 동사가 없고 테마는 50종, hyperframes 번들의 스킬은 21종이 아니라 9종입니다.
+- **검증.** `npm test` 772 통과, 두 런처 dry-run, Security Audit의 스크래치 저장소 설치·재실행
+  멱등·`--list`·제거 확인.
+- **미검증.** 스킬로 실제 보안 감사 실행.
+
 ## Agency Agents·Sprite Stacking·사용 예시 (2026-11-27, 2.23.0)
 
 - **`plugin.agency-agents`.** `msitarzewski/agency-agents`(MIT): 분과 18개의 Claude Code

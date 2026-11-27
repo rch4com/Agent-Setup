@@ -5,6 +5,18 @@
 Newest entries come first. For detailed usage, see
 [AgentSetup-README.md](AgentSetup-README.md).
 
+## Security Audit and upstream corrections (2026-11-27, 2.24.0)
+
+- **`skill.security-audit`.** `cloudflare/security-audit-skill` (MIT). Answers security
+  questions and partial reviews; runs a six-phase audit only when a full audit, pentest or report
+  is requested, and writes results outside the repository. Its validator scripts use only the
+  Node standard library. No hooks, API keys or external network calls.
+- **Upstream corrections.** archify is Apache-2.0 (MIT before upstream commit 82c7e0f);
+  hallmark has no study verb and ships 50 themes; the hyperframes bundle has 9 skills, not 21.
+- **Verified.** `npm test` 772 pass, both launcher dry runs, scratch repo install, idempotent
+  rerun, `--list` and removal for Security Audit.
+- **Not verified.** Running an actual audit with the skill.
+
 ## Agency Agents, Sprite Stacking and usage examples (2026-11-27, 2.23.0)
 
 - **`plugin.agency-agents`.** `msitarzewski/agency-agents` (MIT): 283 Claude Code subagents in
