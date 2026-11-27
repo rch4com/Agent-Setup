@@ -1,6 +1,7 @@
 import { defineRecipe } from '../recipe.mjs'
 import { skillsAdd } from '../recipe-helpers.mjs'
-// 상류 스킬은 archify/SKILL.md(MIT)이고, 저장소에는 기여자용
+// 상류 스킬은 archify/SKILL.md(Apache-2.0 — 2026-11 커밋 82c7e0f 뒤 MIT에서 바뀌었고, 그 전 기여는
+// LICENSE-MIT로 MIT가 유지된다. 2026-11-27 LICENSE·NOTICE 확인)이고, 저장소에는 기여자용
 // .agents/skills/archify-review도 있다. 레지스트리 경로가 늘 --skill archify를
 // 넘기므로 루트를 source로 줘도 archify 하나만 들어온다 — 상류 README가
 // 안내하는 `npx skills add tt-a1i/archify --skill archify`와 같은 호출이다.
