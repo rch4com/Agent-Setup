@@ -246,6 +246,8 @@ export default {
   'item.unsupported.claudeCodeOnly': 'Anthropic 마켓의 Claude Code 플러그인입니다. Claude Code의 훅·서브에이전트·설정을 추천하는 것이라 다른 CLI에는 쓸모가 없습니다',
   'item.claudeOnly': 'Claude 전용',
   'item.plugin.claude-code-setup.note': 'Anthropic의 claude-automation-recommender: 코드베이스를 읽고 Claude Code 자동화(훅·서브에이전트·스킬·MCP 서버·슬래시 명령)를 우선순위로 추천합니다. 읽기 전용이라 파일을 바꾸지 않습니다',
+  'item.plugin.agency-agents.note': 'The Agency: 분과 18개(engineering·design·marketing·sales·testing 등)의 Claude Code 서브에이전트 283개. .agents/agency-agents에 clone하고 분과마다 .claude/agents/agency-agents로 링크합니다(둘 다 .gitignore). 설명 283개가 모두 Claude의 에이전트 목록에 올라가 문맥을 씁니다. 상류 스크립트·데스크톱 앱은 설치하지 않으며 훅·API 키 없음. MIT',
+  'item.unsupported.agencyConvert': 'Claude Code 서브에이전트 파일입니다. 다른 도구는 상류 bash 스크립트 scripts/convert.sh·install.sh --tool <도구>로 형식을 바꿔야 해 Claude Code만 배선합니다',
   'item.unsupported.projectOnly': '이 CLI는 저장소 단위로만 설치합니다 — 범위를 저장소로 바꾸세요',
   'item.probeFailed': '설치 상태를 읽지 못했습니다: {list}',
   'error.recipeInvalid': '항목 {id}의 레시피가 잘못됐습니다: {why}',

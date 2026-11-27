@@ -255,6 +255,8 @@ export default {
   // 상류가 Claude Code 기준으로 만든 항목의 표지 — 공유 스킬은 다른 CLI에도 깔리지만 쓸모는 Claude Code에 있다.
   'item.claudeOnly': 'Claude only',
   'item.plugin.claude-code-setup.note': 'Anthropic\'s claude-automation-recommender: reads the codebase and recommends the top Claude Code automations (hooks, subagents, skills, MCP servers, slash commands). Read-only — it changes no files',
+  'item.plugin.agency-agents.note': 'The Agency: 283 Claude Code subagents in 18 divisions (engineering, design, marketing, sales, testing…). Clones to .agents/agency-agents and links each division into .claude/agents/agency-agents (both gitignored). All 283 descriptions sit in Claude\'s agent list and use context. Upstream scripts and the desktop app are not installed; no hooks or API keys. MIT',
+  'item.unsupported.agencyConvert': 'the files are Claude Code subagents; other tools need upstream\'s bash scripts/convert.sh and install.sh --tool <tool> to rewrite them, so only Claude Code is wired',
   'item.unsupported.projectOnly': 'this CLI installs it only per repository — switch the scope to Repo',
   'item.probeFailed': 'could not read install state: {list}',
   'error.recipeInvalid': 'Invalid recipe in item {id}: {why}',

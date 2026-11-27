@@ -15,7 +15,7 @@ const both = async () => [...await loadItems(), ...await loadItems({ scope: 'use
 
 test('loadItems: project 71개, user 55개를 id순으로', async () => {
   const project = await loadItems()
-  assert.equal(project.length, 75)
+  assert.equal(project.length, 76)
   const ids = project.map((i) => i.id)
   assert.deepEqual(ids, [...ids].sort())
   for (const id of [
@@ -25,7 +25,7 @@ test('loadItems: project 71개, user 55개를 id순으로', async () => {
     'skill.agent-browser', 'skill.agent-desktop', 'skill.animated-shorts', 'skill.iart-motion', 'skill.instagram-agent', 'skill.line-art-animation', 'skill.motion-design', 'skill.youtube-agent', 'skill.agent-handoff-manager', 'skill.archify', 'skill.caveman', 'skill.diagram-design', 'skill.ego-lite', 'skill.eli5', 'skill.find-skills',
     'skill.graphify', 'skill.gsd', 'skill.gstack', 'skill.hallmark', 'skill.html-plan', 'skill.i-have-adhd', 'skill.im-not-ai', 'skill.impeccable', 'skill.karpathy',
     'skill.mattpocock-skills', 'skill.mcp-builder', 'skill.officecli', 'skill.prompt-master', 'skill.remotion', 'skill.script-to-motion', 'skill.strix', 'skill.ghost-editor', 'skill.ffmpeg-skill', 'skill.claude-shorts', 'plugin.claude-code-setup', 'skill.modern-web-guidance',
-    'skill.superpowers', 'skill.taste', 'skill.unslop', 'skill.pstack', 'skill.astryx', 'skill.be-ambitious', 'skill.stitch-skills', 'skill.video-use', 'skill.stop-slop-ko', 'skill.skillevaluator', 'skill.manim', 'mcp.blender', 'skill.linkedin-agent', 'skill.design-motion-principles', 'skill.rea-video', 'skill.hypit', 'skill.grim-prompter', 'mcp.cozyclay', 'skill.papercraft', 'skill.blueprint', 'skill.open-code-review', 'skill.inkworks',
+    'skill.superpowers', 'skill.taste', 'skill.unslop', 'skill.pstack', 'skill.astryx', 'skill.be-ambitious', 'skill.stitch-skills', 'skill.video-use', 'skill.stop-slop-ko', 'skill.skillevaluator', 'skill.manim', 'mcp.blender', 'skill.linkedin-agent', 'skill.design-motion-principles', 'skill.rea-video', 'skill.hypit', 'skill.grim-prompter', 'mcp.cozyclay', 'skill.papercraft', 'skill.blueprint', 'skill.open-code-review', 'skill.inkworks', 'plugin.agency-agents',
   ]) assert.ok(ids.includes(id), id)
   // 전역 판은 같은 항목의 다른 범위로 합쳐졌다.
   for (const id of ['global.ponytail', 'global.superpowers', 'mcp.ai-memory']) assert.ok(!ids.includes(id), id)
@@ -301,9 +301,10 @@ test('claudeOnly: 밝힌 항목만 표지가 붙고, 힌트가 Claude 전용이�
   const { agentHint, coverageText } = await import('../lib/tui/rows.mjs')
   const { createT } = await import('../lib/i18n/index.mjs')
   const only = ['plugin.claude-code-setup', 'skill.claude-shorts', 'skill.ghost-editor']
-  for (const scope of ['project', 'user']) {
+  // agency-agents는 파일을 직접 쓰는 항목이라 저장소 범위에만 있다.
+  for (const [scope, ids] of [['project', ['plugin.agency-agents', ...only]], ['user', only]]) {
     const items = await loadItems({ scope })
-    assert.deepEqual(items.filter((i) => i.claudeOnly).map((i) => i.id).sort(), only, scope)
+    assert.deepEqual(items.filter((i) => i.claudeOnly).map((i) => i.id).sort(), ids, scope)
   }
   const items = await loadItems()
   const state = { status: 'absent', excluded: [] }
