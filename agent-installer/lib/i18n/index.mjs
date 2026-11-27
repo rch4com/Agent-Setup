@@ -8,10 +8,13 @@
 // 돌아도 로케일이 서로를 오염시키지 않는다.
 import EN from './catalog/en.mjs'
 import KO from './catalog/ko.mjs'
+import USAGE_EN from './catalog/usage.en.mjs'
+import USAGE_KO from './catalog/usage.ko.mjs'
 
 export const LOCALES = ['en', 'ko']
 
-const CATALOGS = { en: EN, ko: KO }
+// 사용 예시는 항목 수만큼 길어 따로 둔 파일이다 — 조회는 한 카탈로그처럼 한다.
+const CATALOGS = { en: { ...EN, ...USAGE_EN }, ko: { ...KO, ...USAGE_KO } }
 const PLACEHOLDER = /\{(\w+)\}/g
 
 // 자리에 값이 없으면 던진다. `12 of undefined files`가 화면에 남는 것보다
@@ -31,7 +34,7 @@ function fill(template, params, key) {
 function lookup(locale, key) {
   const value = CATALOGS[locale]?.[key]
   if (value !== undefined) return value
-  const base = EN[key]
+  const base = CATALOGS.en[key]
   if (base === undefined) throw new Error(`i18n: 알 수 없는 키입니다: ${key}`)
   return base
 }
@@ -45,6 +48,8 @@ export function createT(locale) {
       : fill(value, params, key)
   }
   t.locale = use
+  // 있을 수도 없을 수도 있는 키(항목별 사용 예시)를 던지지 않고 묻는다.
+  t.has = (key) => CATALOGS.en[key] !== undefined
   return t
 }
 

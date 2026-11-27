@@ -321,3 +321,25 @@ test('claudeOnly: 밝힌 항목만 표지가 붙고, 힌트가 Claude 전용이�
   const other = items.find((i) => i.id === 'skill.ffmpeg-skill')
   assert.match(coverageText(other, state, createT('en')), /CLI 6\/6/)
 })
+
+test('스킬·플러그인 항목마다 소개 한 줄과 예시 셋이 두 로케일에 있고 상세 패널에 나온다', async () => {
+  const { detailLines } = await import('../lib/tui/detail.mjs')
+  const { createT } = await import('../lib/i18n/index.mjs')
+  const { default: KO } = await import('../lib/i18n/catalog/usage.ko.mjs')
+  const { default: EN } = await import('../lib/i18n/catalog/usage.en.mjs')
+  const items = (await both()).filter((i) => i.category === 'skill' || i.category === 'plugin')
+  const ids = [...new Set(items.map((i) => i.id))]
+  for (const id of ids) {
+    for (const cat of [KO, EN]) {
+      const lines = cat[`item.${id}.usage`]
+      assert.ok(Array.isArray(lines) && lines.length === 4, id)
+      assert.ok(lines.slice(1).every((l) => l.startsWith('› ')), id)
+    }
+  }
+  // 없어진 항목의 예시가 남지 않는다.
+  assert.deepEqual(Object.keys(KO).sort(), ids.map((id) => `item.${id}.usage`).sort())
+  assert.deepEqual(Object.keys(EN).sort(), Object.keys(KO).sort())
+  const item = items.find((i) => i.id === 'skill.eli5')
+  const out = detailLines({ item, status: 'absent' }, { width: 200, height: 50, t: createT('ko') }).join('\n')
+  assert.ok(out.includes('› /eli5 DNS'), out)
+})

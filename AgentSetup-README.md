@@ -514,7 +514,8 @@ the filter would make it impossible to type `codex` as a query.
 - **The detail panel below the list unfolds the full text of the item under the
   cursor** — which CLIs it is wired into, which ones are not and why (grouped by
   identical reason, as in `not wired for 2: codex·antigravity — reason`), plus
-  the item's note and description across multiple lines. The hint keeps only
+  the item's note and description across multiple lines. Skill and plugin items
+  end with a one-line intro and three first-use prompts. The hint keeps only
   status and coverage. The panel height is determined **by terminal size only**,
   independent of cursor position — a height that changed as you moved the cursor
   would make the list bounce. If the terminal is short, the panel disappears

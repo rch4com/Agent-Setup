@@ -101,6 +101,9 @@ function agentLines(row, w, t) {
   if (row.statusDetail) out.push(...wrap(row.statusDetail, w))
   out.push(...wiredLines(item, w, lead, t))
   out.push(...unwiredLines(item, w, lead, t))
+  // 사용 예시는 배선표 뒤에 둔다 — 좁은 패널에서 잘려도 배선 정보가 먼저 보인다.
+  const usage = `item.${item.id}.usage`
+  if (t.has?.(usage)) out.push(...wrap(t(usage), w))
   return out
 }
 
